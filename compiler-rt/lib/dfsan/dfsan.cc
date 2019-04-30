@@ -27,6 +27,10 @@
 
 #include "dfsan/dfsan.h"
 
+#include <stdlib.h>
+#include <stdio.h>
+#include <assert.h>
+
 using namespace __dfsan;
 
 typedef atomic_uint16_t atomic_dfsan_label;
@@ -43,6 +47,9 @@ SANITIZER_INTERFACE_ATTRIBUTE THREADLOCAL dfsan_label __dfsan_retval_tls;
 SANITIZER_INTERFACE_ATTRIBUTE THREADLOCAL dfsan_label __dfsan_arg_tls[64];
 
 SANITIZER_INTERFACE_ATTRIBUTE uptr __dfsan_shadow_ptr_mask;
+
+// TODO: protect
+static int __dfsan_last_id = 0;
 
 // On Linux/x86_64, memory is laid out as follows:
 //
@@ -359,6 +366,44 @@ dfsan_dump_labels(int fd) {
     }
     WriteToFile(fd, "\n", 1);
   }
+}
+
+// Returns a new block ID to be used in an assignment block.
+extern "C" SANITIZER_INTERFACE_ATTRIBUTE int
+__dfsan_enter_assignment() {
+  __dfsan_last_id++;
+  return __dfsan_last_id;
+}
+
+// Prints a data-flow edge from the definer block of l to the given block ID.
+extern "C" SANITIZER_INTERFACE_ATTRIBUTE void
+__dfsan_print_data_flow(dfsan_label l, int id) {
+  const struct dfsan_label_info * info = dfsan_get_label_info(l);
+  assert(info != NULL);
+  // Assert that l is a base label.
+  assert(info->l1 == 0 && info->l2 == 0);
+  void * data = info->userdata;
+  // TODO: protect
+  if (data == NULL) {
+    printf ("DF ? %d\n", id);
+  } else {
+    int definer = *((int*)data);
+    printf ("DF %d %d\n", definer, id);
+  }
+  return;
+}
+
+// Sets the given block as the definer of l.
+extern "C" SANITIZER_INTERFACE_ATTRIBUTE void
+__dfsan_set_definer(dfsan_label l, int id) {
+  // FIXME: improve this ugly thing, create a pool or something
+  int * data = (int*) malloc(sizeof(int));
+  data[0] = id;
+  // TODO: protect
+  __dfsan_label_info[l].l1 = __dfsan_label_info[l].l2 = 0;
+  __dfsan_label_info[l].desc = "";
+  __dfsan_label_info[l].userdata = data;
+  return;
 }
 
 void Flags::SetDefaults() {

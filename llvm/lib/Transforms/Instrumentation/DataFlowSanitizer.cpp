@@ -160,6 +160,11 @@ static cl::opt<bool> ClDebugNonzeroLabels(
              "load or return with a nonzero label"),
     cl::Hidden);
 
+static cl::opt<bool> ClDiscovery(
+    "dfsan-discovery",
+    cl::desc("Use DataFlowSanitizer to build the dynamic data-flow graph"),
+    cl::Hidden);
+
 static StringRef GetGlobalTypeString(const GlobalValue &G) {
   // Types of GlobalVariables are always pointer types.
   Type *GType = G.getValueType();
@@ -284,6 +289,10 @@ class DataFlowSanitizer : public ModulePass {
     ShadowWidth = 16
   };
 
+  enum {
+    BlockIdWidth = 64
+  };
+
   /// Which ABI should be used for instrumented functions?
   enum InstrumentedABI {
     /// Argument and return value labels are passed through additional
@@ -325,6 +334,7 @@ class DataFlowSanitizer : public ModulePass {
   IntegerType *ShadowTy;
   PointerType *ShadowPtrTy;
   IntegerType *IntptrTy;
+  IntegerType *BlockIdTy;
   ConstantInt *ZeroShadow;
   ConstantInt *ShadowPtrMask;
   ConstantInt *ShadowPtrMul;
@@ -343,6 +353,9 @@ class DataFlowSanitizer : public ModulePass {
   FunctionType *DFSanSetLabelFnTy;
   FunctionType *DFSanNonzeroLabelFnTy;
   FunctionType *DFSanVarargWrapperFnTy;
+  FunctionType *DFSanEnterAssignmentFnTy;
+  FunctionType *DFSanPrintDataFlowFnTy;
+  FunctionType *DFSanSetDefinerFnTy;
   FunctionCallee DFSanUnionFn;
   FunctionCallee DFSanCheckedUnionFn;
   FunctionCallee DFSanUnionLoadFn;
@@ -350,6 +363,9 @@ class DataFlowSanitizer : public ModulePass {
   FunctionCallee DFSanSetLabelFn;
   FunctionCallee DFSanNonzeroLabelFn;
   FunctionCallee DFSanVarargWrapperFn;
+  FunctionCallee DFSanEnterAssignmentFn;
+  FunctionCallee DFSanPrintDataFlowFn;
+  FunctionCallee DFSanSetDefinerFn;
   MDNode *ColdCallWeights;
   DFSanABIList ABIList;
   DenseMap<Value *, Function *> UnwrappedFnMap;
@@ -410,7 +426,7 @@ struct DFSanFunction {
     DT.recalculate(*F);
     // FIXME: Need to track down the register allocator issue which causes poor
     // performance in pathological cases with large numbers of basic blocks.
-    AvoidNewBlocks = F->size() > 1000;
+    AvoidNewBlocks = ClDiscovery ? true : F->size() > 1000; // FIXME: temp, just to simplify!
   }
 
   Value *getArgTLSPtr();
@@ -551,6 +567,7 @@ bool DataFlowSanitizer::doInitialization(Module &M) {
   ShadowTy = IntegerType::get(*Ctx, ShadowWidth);
   ShadowPtrTy = PointerType::getUnqual(ShadowTy);
   IntptrTy = DL.getIntPtrType(*Ctx);
+  BlockIdTy = IntegerType::get(*Ctx, BlockIdWidth);
   ZeroShadow = ConstantInt::getSigned(ShadowTy, 0);
   ShadowPtrMul = ConstantInt::getSigned(IntptrTy, ShadowWidth / 8);
   if (IsX86_64)
@@ -578,6 +595,15 @@ bool DataFlowSanitizer::doInitialization(Module &M) {
       Type::getVoidTy(*Ctx), None, /*isVarArg=*/false);
   DFSanVarargWrapperFnTy = FunctionType::get(
       Type::getVoidTy(*Ctx), Type::getInt8PtrTy(*Ctx), /*isVarArg=*/false);
+  if (ClDiscovery) {
+    DFSanEnterAssignmentFnTy = FunctionType::get(BlockIdTy, {},
+                                                 /*isVarArg=*/false);
+    Type *DFSanPrintDataFlowArgs[2] = { ShadowTy, BlockIdTy };
+    DFSanPrintDataFlowFnTy = FunctionType::get(
+        Type::getVoidTy(*Ctx), DFSanPrintDataFlowArgs, /*isVarArg=*/false);
+    DFSanSetDefinerFnTy = FunctionType::get(
+        Type::getVoidTy(*Ctx), DFSanPrintDataFlowArgs, /*isVarArg=*/false);
+  }
 
   if (GetArgTLSPtr) {
     Type *ArgTLSTy = ArrayType::get(ShadowTy, 64);
@@ -777,7 +803,24 @@ bool DataFlowSanitizer::runOnModule(Module &M) {
       Mod->getOrInsertFunction("__dfsan_nonzero_label", DFSanNonzeroLabelFnTy);
   DFSanVarargWrapperFn = Mod->getOrInsertFunction("__dfsan_vararg_wrapper",
                                                   DFSanVarargWrapperFnTy);
-
+  if (ClDiscovery) {
+    DFSanEnterAssignmentFn =
+      Mod->getOrInsertFunction("__dfsan_enter_assignment",
+                               DFSanEnterAssignmentFnTy);
+    {
+      AttributeList AL;
+      AL = AL.addParamAttribute(M.getContext(), 0, Attribute::ZExt);
+      DFSanPrintDataFlowFn =
+        Mod->getOrInsertFunction("__dfsan_print_data_flow",
+                                 DFSanPrintDataFlowFnTy, AL);
+    }
+    {
+      AttributeList AL;
+      AL = AL.addParamAttribute(M.getContext(), 0, Attribute::ZExt);
+      DFSanSetDefinerFn = Mod->getOrInsertFunction("__dfsan_set_definer",
+                                                   DFSanSetDefinerFnTy, AL);
+    }
+  }
   std::vector<Function *> FnsToInstrument;
   SmallPtrSet<Function *, 2> FnsWithNativeABI;
   for (Function &i : M) {
@@ -788,7 +831,10 @@ bool DataFlowSanitizer::runOnModule(Module &M) {
         &i != DFSanUnimplementedFn.getCallee()->stripPointerCasts() &&
         &i != DFSanSetLabelFn.getCallee()->stripPointerCasts() &&
         &i != DFSanNonzeroLabelFn.getCallee()->stripPointerCasts() &&
-        &i != DFSanVarargWrapperFn.getCallee()->stripPointerCasts())
+        &i != DFSanVarargWrapperFn.getCallee()->stripPointerCasts() &&
+        &i != DFSanEnterAssignmentFn.getCallee()->stripPointerCasts() &&
+        &i != DFSanPrintDataFlowFn.getCallee()->stripPointerCasts() &&
+        &i != DFSanSetDefinerFn.getCallee()->stripPointerCasts())
       FnsToInstrument.push_back(&i);
   }
 
@@ -1165,10 +1211,51 @@ Value *DFSanFunction::combineOperandShadows(Instruction *Inst) {
   if (Inst->getNumOperands() == 0)
     return DFS.ZeroShadow;
 
+  // If the ClDiscovery flag is passed, instrument each assignment as follows:
+  //
+  // (%2, %1 shadow addresses of %a2, %a1)
+  // %3 = call zeroext i16 @dfsan_union(i16 zeroext %2, i16 zeroext %1)
+  // %add = add nsw i32 %a2, %a1
+  //
+  // ->
+  //
+  // %x = call i64 @__dfsan_enter_assignment()
+  // call void @__dfsan_print_data_flow(i16 zeroext %2, i64 %x)
+  // call void @__dfsan_print_data_flow(i16 zeroext %1, i32 %x)
+  // %3 = call zeroext i16 @dfsan_union(i16 zeroext %2, i16 zeroext %1)
+  // call void @__dfsan_set_definer(i16 zeroext %3, i32 %x)
+  // %add = add nsw i32 %a2, %a1
+  //
+  // TODO: do we even need the call to dfsan_union? can we simplify it? all we
+  //       need is to create a label and to mark it with the definer block.
+
+  CallInst *CallEA;
+
+  if (ClDiscovery) {
+    IRBuilder<> IRB(Inst);
+    // Enter assignment and get a new block ID.
+    CallEA = IRB.CreateCall(DFS.DFSanEnterAssignmentFn, {});
+    // Print the data flow from each Inst operand's definer to the new block ID.
+    for (unsigned i = 0, n = Inst->getNumOperands(); i != n; ++i) {
+      Value *ShadowAddr = getShadow(Inst->getOperand(i));
+      CallInst *CallPDF = IRB.CreateCall(DFS.DFSanPrintDataFlowFn,
+                                         {ShadowAddr, CallEA});
+      CallPDF->addParamAttr(0, Attribute::ZExt);
+    }
+  }
+
   Value *Shadow = getShadow(Inst->getOperand(0));
   for (unsigned i = 1, n = Inst->getNumOperands(); i != n; ++i) {
     Shadow = combineShadows(Shadow, getShadow(Inst->getOperand(i)), Inst);
   }
+
+  if (ClDiscovery) {
+    IRBuilder<> IRB(Inst);
+    // Set the new bock ID as the definer of Inst's result.
+    CallInst *CallSD = IRB.CreateCall(DFS.DFSanSetDefinerFn, {Shadow, CallEA});
+    CallSD->addParamAttr(0, Attribute::ZExt);
+  }
+
   return Shadow;
 }
 
