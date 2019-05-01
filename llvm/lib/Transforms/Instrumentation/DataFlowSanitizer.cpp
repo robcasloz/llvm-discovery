@@ -831,11 +831,13 @@ bool DataFlowSanitizer::runOnModule(Module &M) {
         &i != DFSanUnimplementedFn.getCallee()->stripPointerCasts() &&
         &i != DFSanSetLabelFn.getCallee()->stripPointerCasts() &&
         &i != DFSanNonzeroLabelFn.getCallee()->stripPointerCasts() &&
-        &i != DFSanVarargWrapperFn.getCallee()->stripPointerCasts() &&
-        &i != DFSanEnterAssignmentFn.getCallee()->stripPointerCasts() &&
-        &i != DFSanPrintDataFlowFn.getCallee()->stripPointerCasts() &&
-        &i != DFSanSetDefinerFn.getCallee()->stripPointerCasts())
-      FnsToInstrument.push_back(&i);
+        &i != DFSanVarargWrapperFn.getCallee()->stripPointerCasts()) {
+      if (!ClDiscovery ||
+          (&i != DFSanEnterAssignmentFn.getCallee()->stripPointerCasts() &&
+           &i != DFSanPrintDataFlowFn.getCallee()->stripPointerCasts() &&
+           &i != DFSanSetDefinerFn.getCallee()->stripPointerCasts()))
+        FnsToInstrument.push_back(&i);
+    }
   }
 
   // Give function aliases prefixes when necessary, and build wrappers where the
