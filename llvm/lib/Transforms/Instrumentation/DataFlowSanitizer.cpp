@@ -814,11 +814,13 @@ bool DataFlowSanitizer::runOnModule(Module &M) {
         &i != DFSanUnimplementedFn &&
         &i != DFSanSetLabelFn &&
         &i != DFSanNonzeroLabelFn &&
-        &i != DFSanVarargWrapperFn &&
-        &i != DFSanEnterAssignmentFn &&
-        &i != DFSanPrintDataFlowFn &&
-        &i != DFSanSetDefinerFn)
-      FnsToInstrument.push_back(&i);
+        &i != DFSanVarargWrapperFn) {
+      if (!ClDiscovery ||
+          (&i != DFSanEnterAssignmentFn &&
+           &i != DFSanPrintDataFlowFn &&
+           &i != DFSanSetDefinerFn))
+        FnsToInstrument.push_back(&i);
+    }
   }
 
   // Give function aliases prefixes when necessary, and build wrappers where the
