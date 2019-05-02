@@ -1242,9 +1242,10 @@ Value *DFSanFunction::combineOperandShadows(Instruction *Inst) {
     CallInst *CallEA = IRB.CreateCall(DFS.DFSanEnterAssignmentFn, {});
     // Print the data flow from each Inst operand's definer to the new block ID.
     for (unsigned i = 0, n = Inst->getNumOperands(); i != n; ++i) {
-      Value *ShadowAddr = getShadow(Inst->getOperand(i));
+      Value * Op = Inst->getOperand(i);
+      if (isa<Constant>(Op)) continue;
       CallInst *CallPDF = IRB.CreateCall(DFS.DFSanPrintDataFlowFn,
-                                         {ShadowAddr, CallEA});
+                                         {getShadow(Op), CallEA});
       CallPDF->addParamAttr(0, Attribute::ZExt);
     }
     // Create a new label for Inst's result defined by the new block ID.
