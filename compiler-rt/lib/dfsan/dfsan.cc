@@ -393,17 +393,13 @@ __dfsan_print_data_flow(dfsan_label l, int id) {
   return;
 }
 
-// Sets the given block as the definer of l.
-extern "C" SANITIZER_INTERFACE_ATTRIBUTE void
-__dfsan_set_definer(dfsan_label l, int id) {
+// Creates a new label l with the given definer.
+extern "C" SANITIZER_INTERFACE_ATTRIBUTE dfsan_label
+__dfsan_create_label_with_definer(int id) {
   // FIXME: improve this ugly thing, create a pool or something
   int * data = (int*) malloc(sizeof(int));
   data[0] = id;
-  // TODO: protect
-  __dfsan_label_info[l].l1 = __dfsan_label_info[l].l2 = 0;
-  __dfsan_label_info[l].desc = "";
-  __dfsan_label_info[l].userdata = data;
-  return;
+  return dfsan_create_label("", data);
 }
 
 void Flags::SetDefaults() {

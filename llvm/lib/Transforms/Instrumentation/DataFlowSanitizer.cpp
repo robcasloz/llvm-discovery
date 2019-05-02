@@ -355,7 +355,7 @@ class DataFlowSanitizer : public ModulePass {
   FunctionType *DFSanVarargWrapperFnTy;
   FunctionType *DFSanEnterAssignmentFnTy;
   FunctionType *DFSanPrintDataFlowFnTy;
-  FunctionType *DFSanSetDefinerFnTy;
+  FunctionType *DFSanCreateLabelWithDefinerFnTy;
   FunctionCallee DFSanUnionFn;
   FunctionCallee DFSanCheckedUnionFn;
   FunctionCallee DFSanUnionLoadFn;
@@ -365,7 +365,7 @@ class DataFlowSanitizer : public ModulePass {
   FunctionCallee DFSanVarargWrapperFn;
   FunctionCallee DFSanEnterAssignmentFn;
   FunctionCallee DFSanPrintDataFlowFn;
-  FunctionCallee DFSanSetDefinerFn;
+  FunctionCallee DFSanCreateLabelWithDefinerFn;
   MDNode *ColdCallWeights;
   DFSanABIList ABIList;
   DenseMap<Value *, Function *> UnwrappedFnMap;
@@ -601,8 +601,9 @@ bool DataFlowSanitizer::doInitialization(Module &M) {
     Type *DFSanPrintDataFlowArgs[2] = { ShadowTy, BlockIdTy };
     DFSanPrintDataFlowFnTy = FunctionType::get(
         Type::getVoidTy(*Ctx), DFSanPrintDataFlowArgs, /*isVarArg=*/false);
-    DFSanSetDefinerFnTy = FunctionType::get(
-        Type::getVoidTy(*Ctx), DFSanPrintDataFlowArgs, /*isVarArg=*/false);
+    Type *DFSanCreateLabelWithDefinerArgs[1] = { BlockIdTy };
+    DFSanCreateLabelWithDefinerFnTy = FunctionType::get(
+        ShadowTy, DFSanCreateLabelWithDefinerArgs, /*isVarArg=*/false);
   }
 
   if (GetArgTLSPtr) {
@@ -817,8 +818,9 @@ bool DataFlowSanitizer::runOnModule(Module &M) {
     {
       AttributeList AL;
       AL = AL.addParamAttribute(M.getContext(), 0, Attribute::ZExt);
-      DFSanSetDefinerFn = Mod->getOrInsertFunction("__dfsan_set_definer",
-                                                   DFSanSetDefinerFnTy, AL);
+      DFSanCreateLabelWithDefinerFn =
+        Mod->getOrInsertFunction("__dfsan_create_label_with_definer",
+                                 DFSanCreateLabelWithDefinerFnTy, AL);
     }
   }
   std::vector<Function *> FnsToInstrument;
@@ -835,7 +837,7 @@ bool DataFlowSanitizer::runOnModule(Module &M) {
       if (!ClDiscovery ||
           (&i != DFSanEnterAssignmentFn.getCallee()->stripPointerCasts() &&
            &i != DFSanPrintDataFlowFn.getCallee()->stripPointerCasts() &&
-           &i != DFSanSetDefinerFn.getCallee()->stripPointerCasts()))
+           &i != DFSanCreateLabelWithDefinerFn.getCallee()->stripPointerCasts()))
         FnsToInstrument.push_back(&i);
     }
   }
@@ -1213,6 +1215,8 @@ Value *DFSanFunction::combineOperandShadows(Instruction *Inst) {
   if (Inst->getNumOperands() == 0)
     return DFS.ZeroShadow;
 
+  Value *Shadow;
+
   // If the ClDiscovery flag is passed, instrument each assignment as follows:
   //
   // (%2, %1 shadow addresses of %a2, %a1)
@@ -1231,12 +1235,11 @@ Value *DFSanFunction::combineOperandShadows(Instruction *Inst) {
   // TODO: do we even need the call to dfsan_union? can we simplify it? all we
   //       need is to create a label and to mark it with the definer block.
 
-  CallInst *CallEA;
 
   if (ClDiscovery) {
     IRBuilder<> IRB(Inst);
     // Enter assignment and get a new block ID.
-    CallEA = IRB.CreateCall(DFS.DFSanEnterAssignmentFn, {});
+    CallInst *CallEA = IRB.CreateCall(DFS.DFSanEnterAssignmentFn, {});
     // Print the data flow from each Inst operand's definer to the new block ID.
     for (unsigned i = 0, n = Inst->getNumOperands(); i != n; ++i) {
       Value *ShadowAddr = getShadow(Inst->getOperand(i));
@@ -1244,18 +1247,17 @@ Value *DFSanFunction::combineOperandShadows(Instruction *Inst) {
                                          {ShadowAddr, CallEA});
       CallPDF->addParamAttr(0, Attribute::ZExt);
     }
-  }
-
-  Value *Shadow = getShadow(Inst->getOperand(0));
-  for (unsigned i = 1, n = Inst->getNumOperands(); i != n; ++i) {
-    Shadow = combineShadows(Shadow, getShadow(Inst->getOperand(i)), Inst);
-  }
-
-  if (ClDiscovery) {
-    IRBuilder<> IRB(Inst);
-    // Set the new bock ID as the definer of Inst's result.
-    CallInst *CallSD = IRB.CreateCall(DFS.DFSanSetDefinerFn, {Shadow, CallEA});
-    CallSD->addParamAttr(0, Attribute::ZExt);
+    // Create a new label for Inst's result defined by the new block ID.
+    CallInst *CallCLWD =
+      IRB.CreateCall(DFS.DFSanCreateLabelWithDefinerFn, {CallEA});
+    CallCLWD->addAttribute(AttributeList::ReturnIndex, Attribute::ZExt);
+    // Make the new label Inst's shadow instead of the union of the operands.
+    Shadow = CallCLWD;
+  } else {
+    Shadow = getShadow(Inst->getOperand(0));
+    for (unsigned i = 1, n = Inst->getNumOperands(); i != n; ++i) {
+      Shadow = combineShadows(Shadow, getShadow(Inst->getOperand(i)), Inst);
+    }
   }
 
   return Shadow;
