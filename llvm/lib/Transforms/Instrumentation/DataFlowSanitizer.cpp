@@ -166,6 +166,11 @@ static cl::opt<bool> ClDiscovery(
     cl::desc("Use DataFlowSanitizer to build the dynamic data-flow graph"),
     cl::Hidden);
 
+static cl::opt<bool> ClDiscoveryDebug(
+    "dfsan-discovery-debug",
+    cl::desc("Refine the dynamic data-flow graph with debug information"),
+    cl::Hidden, cl::init(false));
+
 static StringRef GetGlobalTypeString(const GlobalValue &G) {
   // Types of GlobalVariables are always pointer types.
   Type *GType = G.getValueType();
@@ -355,6 +360,7 @@ class DataFlowSanitizer : public ModulePass {
   FunctionType *DFSanEnterAssignmentFnTy;
   FunctionType *DFSanPrintDataFlowFnTy;
   FunctionType *DFSanCreateLabelWithDefinerFnTy;
+  FunctionType *DFSanPrintBlockNameFnTy;
   Constant *DFSanUnionFn;
   Constant *DFSanCheckedUnionFn;
   Constant *DFSanUnionLoadFn;
@@ -365,6 +371,7 @@ class DataFlowSanitizer : public ModulePass {
   Constant* DFSanEnterAssignmentFn;
   Constant* DFSanPrintDataFlowFn;
   Constant* DFSanCreateLabelWithDefinerFn;
+  Constant* DFSanPrintBlockNameFn;
   MDNode *ColdCallWeights;
   DFSanABIList ABIList;
   DenseMap<Value *, Function *> UnwrappedFnMap;
@@ -603,6 +610,12 @@ bool DataFlowSanitizer::doInitialization(Module &M) {
     Type *DFSanCreateLabelWithDefinerArgs[1] = { BlockIdTy };
     DFSanCreateLabelWithDefinerFnTy = FunctionType::get(
         ShadowTy, DFSanCreateLabelWithDefinerArgs, /*isVarArg=*/false);
+    if (ClDiscoveryDebug) {
+      Type *DFSanPrintBlockNameArgs[2] =
+        { BlockIdTy, Type::getInt8PtrTy(*Ctx) };
+      DFSanPrintBlockNameFnTy = FunctionType::get(
+        Type::getVoidTy(*Ctx), DFSanPrintBlockNameArgs, /*isVarArg=*/false);
+    }
   }
 
   if (GetArgTLSPtr) {
@@ -805,6 +818,11 @@ bool DataFlowSanitizer::runOnModule(Module &M) {
         Mod->getOrInsertFunction("__dfsan_create_label_with_definer",
                                  DFSanCreateLabelWithDefinerFnTy, AL);
     }
+    if (ClDiscoveryDebug) {
+      DFSanPrintBlockNameFn =
+        Mod->getOrInsertFunction("__dfsan_print_block_name",
+                                 DFSanPrintBlockNameFnTy);
+    }
   }
   std::vector<Function *> FnsToInstrument;
   SmallPtrSet<Function *, 2> FnsWithNativeABI;
@@ -820,8 +838,11 @@ bool DataFlowSanitizer::runOnModule(Module &M) {
       if (!ClDiscovery ||
           (&i != DFSanEnterAssignmentFn &&
            &i != DFSanPrintDataFlowFn &&
-           &i != DFSanCreateLabelWithDefinerFn))
-        FnsToInstrument.push_back(&i);
+           &i != DFSanCreateLabelWithDefinerFn)) {
+        if (!ClDiscoveryDebug ||
+            (&i != DFSanPrintBlockNameFn))
+          FnsToInstrument.push_back(&i);
+      }
     }
   }
 
@@ -1219,6 +1240,12 @@ Value *DFSanFunction::combineOperandShadows(Instruction *Inst) {
     IRBuilder<> IRB(Inst);
     // Enter assignment and get a new block ID.
     CallInst *CallEA = IRB.CreateCall(DFS.DFSanEnterAssignmentFn, {});
+    // In debug mode, print the name of each block for more readable graphs.
+    if (ClDiscoveryDebug) {
+      IRB.CreateCall(DFS.DFSanPrintBlockNameFn,
+                     {CallEA,
+                         IRB.CreateGlobalStringPtr(Inst->getOpcodeName())});
+    }
     // Print the data flow from each Inst operand's definer to the new block ID.
     for (unsigned i = 0, n = Inst->getNumOperands(); i != n; ++i) {
       Value * Op = Inst->getOperand(i);
