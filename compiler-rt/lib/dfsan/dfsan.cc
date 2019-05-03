@@ -385,7 +385,9 @@ __dfsan_print_data_flow(dfsan_label l, int id) {
   void * data = info->userdata;
   // TODO: protect
   if (data == NULL) {
-    printf ("DF ? %d\n", id);
+    // If l does not have a definer, assume it has been defined statically and
+    // assign it the "source block ID" 0.
+    printf ("DF 0 %d\n", id);
   } else {
     int definer = *((int*)data);
     printf ("DF %d %d\n", definer, id);
