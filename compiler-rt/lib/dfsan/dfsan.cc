@@ -404,6 +404,12 @@ __dfsan_create_label_with_definer(int id) {
   return dfsan_create_label("", data);
 }
 
+// Prints the name of the given block ID for debugging purposes.
+extern "C" SANITIZER_INTERFACE_ATTRIBUTE void
+__dfsan_print_block_name(int id, const char * name) {
+  printf ("BN %d %s\n", id, name);
+}
+
 void Flags::SetDefaults() {
 #define DFSAN_FLAG(Type, Name, DefaultValue, Description) Name = DefaultValue;
 #include "dfsan_flags.inc"
