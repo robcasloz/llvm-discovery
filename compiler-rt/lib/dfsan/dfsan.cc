@@ -381,8 +381,18 @@ extern "C" SANITIZER_INTERFACE_ATTRIBUTE void
 __dfsan_print_data_flow(dfsan_label l, int id) {
   const struct dfsan_label_info * info = dfsan_get_label_info(l);
   assert(info != NULL);
-  // Assert that l is a base label.
-  assert(info->l1 == 0 && info->l2 == 0);
+  // Non-base labels can be formed by the instrumentation code around loads and
+  // stores, when the options -dfsan-combine-pointer-labels-on-load and
+  // -dfsan-combine-pointer-labels-on-store are set to true (default). An
+  // alternative implementation that would preserve the "only-base-labels"
+  // invariant would be to treat loads and stores as first-class operations with
+  // block IDs.
+  if (info->l1 != 0) {
+    __dfsan_print_data_flow(info->l1, id);
+  }
+  if (info->l2 != 0) {
+    __dfsan_print_data_flow(info->l2, id);
+  }
   void * data = info->userdata;
   // TODO: protect
   if (data == NULL) {
