@@ -103,6 +103,11 @@ void dfsan_weak_hook_memcmp(void *caller_pc, const void *s1, const void *s2,
 void dfsan_weak_hook_strncmp(void *caller_pc, const char *s1, const char *s2,
                              size_t n, dfsan_label s1_label,
                              dfsan_label s2_label, dfsan_label n_label);
+
+/// Marks the latest definer of [addr,addr+size) in the dynamic data-flow graph
+/// with the attribute s.
+void dfsan_highlight(void *addr, size_t size, const char *s);
+
 #ifdef __cplusplus
 }  // extern "C"
 

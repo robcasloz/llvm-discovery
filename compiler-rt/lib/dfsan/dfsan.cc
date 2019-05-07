@@ -421,6 +421,18 @@ __dfsan_print_block_name(int id, const char * name) {
   printf ("BN %d %s\n", id, name);
 }
 
+extern "C" SANITIZER_INTERFACE_ATTRIBUTE
+void dfsan_highlight(void *addr, uptr size, const char * s) {
+  dfsan_label l = dfsan_read_label(addr, size);
+  const dfsan_label_info *info = dfsan_get_label_info(l);
+  assert(info != NULL);
+  void * data = info->userdata;
+  if (data != NULL) {
+    int definer = *((int*)data);
+    printf ("HL %d %s\n", definer, s);
+  }
+}
+
 void Flags::SetDefaults() {
 #define DFSAN_FLAG(Type, Name, DefaultValue, Description) Name = DefaultValue;
 #include "dfsan_flags.inc"
