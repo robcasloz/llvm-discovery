@@ -118,6 +118,12 @@ private:
                                      unsigned VecReg, unsigned LaneIdx,
                                      MachineIRBuilder &MIRBuilder) const;
 
+  /// Helper function for selecting G_FCONSTANT. If the G_FCONSTANT can be
+  /// materialized using a FMOV instruction, then update MI and return it.
+  /// Otherwise, do nothing and return a nullptr.
+  MachineInstr *emitFMovForFConstant(MachineInstr &MI,
+                                     MachineRegisterInfo &MRI) const;
+
   ComplexRendererFns selectArithImmed(MachineOperand &Root) const;
 
   ComplexRendererFns selectAddrModeUnscaled(MachineOperand &Root,
@@ -515,6 +521,36 @@ static bool selectSubregisterCopy(MachineInstr &I, MachineRegisterInfo &MRI,
   return true;
 }
 
+/// Helper function to get the source and destination register classes for a
+/// copy. Returns a std::pair containing the source register class for the
+/// copy, and the destination register class for the copy. If a register class
+/// cannot be determined, then it will be nullptr.
+static std::pair<const TargetRegisterClass *, const TargetRegisterClass *>
+getRegClassesForCopy(MachineInstr &I, const TargetInstrInfo &TII,
+                     MachineRegisterInfo &MRI, const TargetRegisterInfo &TRI,
+                     const RegisterBankInfo &RBI) {
+  unsigned DstReg = I.getOperand(0).getReg();
+  unsigned SrcReg = I.getOperand(1).getReg();
+  const RegisterBank &DstRegBank = *RBI.getRegBank(DstReg, MRI, TRI);
+  const RegisterBank &SrcRegBank = *RBI.getRegBank(SrcReg, MRI, TRI);
+  unsigned DstSize = RBI.getSizeInBits(DstReg, MRI, TRI);
+  unsigned SrcSize = RBI.getSizeInBits(SrcReg, MRI, TRI);
+
+  // Special casing for cross-bank copies of s1s. We can technically represent
+  // a 1-bit value with any size of register. The minimum size for a GPR is 32
+  // bits. So, we need to put the FPR on 32 bits as well.
+  //
+  // FIXME: I'm not sure if this case holds true outside of copies. If it does,
+  // then we can pull it into the helpers that get the appropriate class for a
+  // register bank. Or make a new helper that carries along some constraint
+  // information.
+  if (SrcRegBank != DstRegBank && (DstSize == 1 && SrcSize == 1))
+    SrcSize = DstSize = 32;
+
+  return {getMinClassForRegBank(SrcRegBank, SrcSize, true),
+          getMinClassForRegBank(DstRegBank, DstSize, true)};
+}
+
 static bool selectCopy(MachineInstr &I, const TargetInstrInfo &TII,
                        MachineRegisterInfo &MRI, const TargetRegisterInfo &TRI,
                        const RegisterBankInfo &RBI) {
@@ -523,8 +559,12 @@ static bool selectCopy(MachineInstr &I, const TargetInstrInfo &TII,
   unsigned SrcReg = I.getOperand(1).getReg();
   const RegisterBank &DstRegBank = *RBI.getRegBank(DstReg, MRI, TRI);
   const RegisterBank &SrcRegBank = *RBI.getRegBank(SrcReg, MRI, TRI);
-  const TargetRegisterClass *DstRC = getMinClassForRegBank(
-      DstRegBank, RBI.getSizeInBits(DstReg, MRI, TRI), true);
+
+  // Find the correct register classes for the source and destination registers.
+  const TargetRegisterClass *SrcRC;
+  const TargetRegisterClass *DstRC;
+  std::tie(SrcRC, DstRC) = getRegClassesForCopy(I, TII, MRI, TRI, RBI);
+
   if (!DstRC) {
     LLVM_DEBUG(dbgs() << "Unexpected dest size "
                       << RBI.getSizeInBits(DstReg, MRI, TRI) << '\n');
@@ -557,8 +597,6 @@ static bool selectCopy(MachineInstr &I, const TargetInstrInfo &TII,
   // a SUBREG_TO_REG.
   if (I.isCopy()) {
     // Yes. Check if there's anything to fix up.
-    const TargetRegisterClass *SrcRC = getMinClassForRegBank(
-        SrcRegBank, RBI.getSizeInBits(SrcReg, MRI, TRI), true);
     if (!SrcRC) {
       LLVM_DEBUG(dbgs() << "Couldn't determine source register class\n");
       return false;
@@ -1178,14 +1216,18 @@ bool AArch64InstructionSelector::select(MachineInstr &I,
     const unsigned MovOpc =
         DefSize == 32 ? AArch64::MOVi32imm : AArch64::MOVi64imm;
 
-    I.setDesc(TII.get(MovOpc));
-
     if (isFP) {
+      // Either emit a FMOV, or emit a copy to emit a normal mov.
       const TargetRegisterClass &GPRRC =
           DefSize == 32 ? AArch64::GPR32RegClass : AArch64::GPR64RegClass;
       const TargetRegisterClass &FPRRC =
           DefSize == 32 ? AArch64::FPR32RegClass : AArch64::FPR64RegClass;
 
+      // Can we use a FMOV instruction to represent the immediate?
+      if (emitFMovForFConstant(I, MRI))
+        return true;
+
+      // Nope. Emit a copy and use a normal mov instead.
       const unsigned DefGPRReg = MRI.createVirtualRegister(&GPRRC);
       MachineOperand &RegOp = I.getOperand(0);
       RegOp.setReg(DefGPRReg);
@@ -1209,6 +1251,7 @@ bool AArch64InstructionSelector::select(MachineInstr &I,
       I.getOperand(1).ChangeToImmediate(Val);
     }
 
+    I.setDesc(TII.get(MovOpc));
     constrainSelectedInstRegOperands(I, TII, TRI, RBI);
     return true;
   }
@@ -1713,12 +1756,16 @@ bool AArch64InstructionSelector::select(MachineInstr &I,
     const unsigned TReg = I.getOperand(2).getReg();
     const unsigned FReg = I.getOperand(3).getReg();
 
+    // If we have a floating-point result, then we should use a floating point
+    // select instead of an integer select.
+    bool IsFP = (RBI.getRegBank(I.getOperand(0).getReg(), MRI, TRI)->getID() !=
+                 AArch64::GPRRegBankID);
     unsigned CSelOpc = 0;
 
     if (Ty == LLT::scalar(32)) {
-      CSelOpc = AArch64::CSELWr;
+      CSelOpc = IsFP ? AArch64::FCSELSrrr : AArch64::CSELWr;
     } else if (Ty == LLT::scalar(64) || Ty == LLT::pointer(0, 64)) {
-      CSelOpc = AArch64::CSELXr;
+      CSelOpc = IsFP ? AArch64::FCSELDrrr : AArch64::CSELXr;
     } else {
       return false;
     }
@@ -2714,6 +2761,39 @@ MachineInstr *AArch64InstructionSelector::emitVectorConcat(
           .addImm(0);
   constrainSelectedInstRegOperands(*InsElt, TII, TRI, RBI);
   return &*InsElt;
+}
+
+MachineInstr *AArch64InstructionSelector::emitFMovForFConstant(
+    MachineInstr &I, MachineRegisterInfo &MRI) const {
+  assert(I.getOpcode() == TargetOpcode::G_FCONSTANT &&
+         "Expected a G_FCONSTANT!");
+  MachineOperand &ImmOp = I.getOperand(1);
+  unsigned DefSize = MRI.getType(I.getOperand(0).getReg()).getSizeInBits();
+
+  // Only handle 32 and 64 bit defs for now.
+  if (DefSize != 32 && DefSize != 64)
+    return nullptr;
+
+  // Don't handle null values using FMOV.
+  if (ImmOp.getFPImm()->isNullValue())
+    return nullptr;
+
+  // Get the immediate representation for the FMOV.
+  const APFloat &ImmValAPF = ImmOp.getFPImm()->getValueAPF();
+  int Imm = DefSize == 32 ? AArch64_AM::getFP32Imm(ImmValAPF)
+                          : AArch64_AM::getFP64Imm(ImmValAPF);
+
+  // If this is -1, it means the immediate can't be represented as the requested
+  // floating point value. Bail.
+  if (Imm == -1)
+    return nullptr;
+
+  // Update MI to represent the new FMOV instruction, constrain it, and return.
+  ImmOp.ChangeToImmediate(Imm);
+  unsigned MovOpc = DefSize == 32 ? AArch64::FMOVSi : AArch64::FMOVDi;
+  I.setDesc(TII.get(MovOpc));
+  constrainSelectedInstRegOperands(I, TII, TRI, RBI);
+  return &I;
 }
 
 bool AArch64InstructionSelector::tryOptVectorDup(MachineInstr &I) const {

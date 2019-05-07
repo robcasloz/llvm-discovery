@@ -238,7 +238,14 @@ public:
   /// Return the pointer type for the given address space, defaults to
   /// the pointer type from the data layout.
   /// FIXME: The default needs to be removed once all the code is updated.
-  MVT getPointerTy(const DataLayout &DL, uint32_t AS = 0) const {
+  virtual MVT getPointerTy(const DataLayout &DL, uint32_t AS = 0) const {
+    return MVT::getIntegerVT(DL.getPointerSizeInBits(AS));
+  }
+
+  /// Return the in-memory pointer type for the given address space, defaults to
+  /// the pointer type from the data layout.  FIXME: The default needs to be
+  /// removed once all the code is updated.
+  MVT getPointerMemTy(const DataLayout &DL, uint32_t AS = 0) const {
     return MVT::getIntegerVT(DL.getPointerSizeInBits(AS));
   }
 
@@ -573,11 +580,6 @@ public:
   /// vector is more efficiently handled by splatting the scalar instead.
   virtual bool shouldSplatInsEltVarIndex(EVT) const {
     return false;
-  }
-
-  /// Return true if target supports floating point exceptions.
-  bool hasFloatingPointExceptions() const {
-    return HasFloatingPointExceptions;
   }
 
   /// Return true if target always beneficiates from combining into FMA for a
@@ -1162,23 +1164,41 @@ public:
   EVT getValueType(const DataLayout &DL, Type *Ty,
                    bool AllowUnknown = false) const {
     // Lower scalar pointers to native pointer types.
-    if (PointerType *PTy = dyn_cast<PointerType>(Ty))
+    if (auto *PTy = dyn_cast<PointerType>(Ty))
       return getPointerTy(DL, PTy->getAddressSpace());
 
-    if (Ty->isVectorTy()) {
-      VectorType *VTy = cast<VectorType>(Ty);
-      Type *Elm = VTy->getElementType();
+    if (auto *VTy = dyn_cast<VectorType>(Ty)) {
+      Type *EltTy = VTy->getElementType();
       // Lower vectors of pointers to native pointer types.
+      if (auto *PTy = dyn_cast<PointerType>(EltTy)) {
+        EVT PointerTy(getPointerTy(DL, PTy->getAddressSpace()));
+        EltTy = PointerTy.getTypeForEVT(Ty->getContext());
+      }
+      return EVT::getVectorVT(Ty->getContext(), EVT::getEVT(EltTy, false),
+                              VTy->getNumElements());
+    }
+
+    return EVT::getEVT(Ty, AllowUnknown);
+  }
+
+  EVT getMemValueType(const DataLayout &DL, Type *Ty,
+                      bool AllowUnknown = false) const {
+    // Lower scalar pointers to native pointer types.
+    if (PointerType *PTy = dyn_cast<PointerType>(Ty))
+      return getPointerMemTy(DL, PTy->getAddressSpace());
+    else if (VectorType *VTy = dyn_cast<VectorType>(Ty)) {
+      Type *Elm = VTy->getElementType();
       if (PointerType *PT = dyn_cast<PointerType>(Elm)) {
-        EVT PointerTy(getPointerTy(DL, PT->getAddressSpace()));
+        EVT PointerTy(getPointerMemTy(DL, PT->getAddressSpace()));
         Elm = PointerTy.getTypeForEVT(Ty->getContext());
       }
-
       return EVT::getVectorVT(Ty->getContext(), EVT::getEVT(Elm, false),
                        VTy->getNumElements());
     }
-    return EVT::getEVT(Ty, AllowUnknown);
+
+    return getValueType(DL, Ty, AllowUnknown);
   }
+
 
   /// Return the MVT corresponding to this LLVM type. See getValueType.
   MVT getSimpleValueType(const DataLayout &DL, Type *Ty,
@@ -1889,12 +1909,6 @@ protected:
   /// control.
   void setJumpIsExpensive(bool isExpensive = true);
 
-  /// Tells the code generator that this target supports floating point
-  /// exceptions and cares about preserving floating point exception behavior.
-  void setHasFloatingPointExceptions(bool FPExceptions = true) {
-    HasFloatingPointExceptions = FPExceptions;
-  }
-
   /// Tells the code generator which bitwidths to bypass.
   void addBypassSlowDiv(unsigned int SlowBitWidth, unsigned int FastBitWidth) {
     BypassSlowDivWidths[SlowBitWidth] = FastBitWidth;
@@ -2553,10 +2567,6 @@ private:
   /// instructions and should attempt to combine flow control instructions via
   /// predication.
   bool JumpIsExpensive;
-
-  /// Whether the target supports or cares about preserving floating point
-  /// exception behavior.
-  bool HasFloatingPointExceptions;
 
   /// This target prefers to use _setjmp to implement llvm.setjmp.
   ///

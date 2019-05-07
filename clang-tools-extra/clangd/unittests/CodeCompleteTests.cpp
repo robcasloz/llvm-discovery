@@ -174,6 +174,7 @@ struct ClassWithMembers {
   int BBB();
   int CCC();
 };
+
 int main() { ClassWithMembers().^ }
       )cpp",
                              /*IndexSymbols=*/{}, Opts);
@@ -234,6 +235,7 @@ void TestAfterDotCompletion(clangd::CodeCompleteOptions Opts) {
       )cpp",
       {cls("IndexClass"), var("index_var"), func("index_func")}, Opts);
 
+  EXPECT_TRUE(Results.RanParser);
   // Class members. The only items that must be present in after-dot
   // completion.
   EXPECT_THAT(Results.Completions,
@@ -283,6 +285,7 @@ void TestGlobalScopeCompletion(clangd::CodeCompleteOptions Opts) {
       )cpp",
       {cls("IndexClass"), var("index_var"), func("index_func")}, Opts);
 
+  EXPECT_TRUE(Results.RanParser);
   // Class members. Should never be present in global completions.
   EXPECT_THAT(Results.Completions,
               Not(AnyOf(Has("method"), Has("method()"), Has("field"))));
@@ -324,7 +327,7 @@ TEST(CompletionTest, CompletionOptions) {
   }
 }
 
-TEST(CompletionTest, Priorities) {
+TEST(CompletionTest, Accessible) {
   auto Internal = completions(R"cpp(
       class Foo {
         public: void pub();
@@ -334,7 +337,7 @@ TEST(CompletionTest, Priorities) {
       void Foo::pub() { this->^ }
   )cpp");
   EXPECT_THAT(Internal.Completions,
-              HasSubsequence(Named("priv"), Named("prot"), Named("pub")));
+              AllOf(Has("priv"), Has("prot"), Has("pub")));
 
   auto External = completions(R"cpp(
       class Foo {
@@ -500,6 +503,21 @@ TEST(CompletionTest, ReferencesAffectRanking) {
                         {withReferences(10000, ns("absl")), func("absb")});
   EXPECT_THAT(Results.Completions,
               HasSubsequence(Named("absl"), Named("absb")));
+}
+
+TEST(CompletionTest, ContextWords) {
+  auto Results = completions(R"cpp(
+  enum class Color { RED, YELLOW, BLUE };
+
+  // (blank lines so the definition above isn't "context")
+
+  // "It was a yellow car," he said. "Big yellow car, new."
+  auto Finish = Color::^
+  )cpp");
+  // Yellow would normally sort last (alphabetic).
+  // But the recent mention shuold bump it up.
+  ASSERT_THAT(Results.Completions,
+              HasSubsequence(Named("YELLOW"), Named("BLUE")));
 }
 
 TEST(CompletionTest, GlobalQualified) {
@@ -2073,19 +2091,28 @@ TEST(CompletionTest, MergeMacrosFromIndexAndSema) {
               UnorderedElementsAre(Named("Clangd_Macro_Test")));
 }
 
-TEST(CompletionTest, NoMacroFromPreambleIfIndexIsSet) {
+TEST(CompletionTest, MacroFromPreamble) {
+  MockFSProvider FS;
+  MockCompilationDatabase CDB;
+  std::string FooHeader = testPath("foo.h");
+  FS.Files[FooHeader] = "#define CLANGD_PREAMBLE_HEADER x\n";
+  IgnoreDiagnostics DiagConsumer;
+  ClangdServer Server(CDB, FS, DiagConsumer, ClangdServer::optsForTest());
   auto Results = completions(
-      R"cpp(#define CLANGD_PREAMBLE x
+      R"cpp(#include "foo.h"
+          #define CLANGD_PREAMBLE_MAIN x
 
           int x = 0;
           #define CLANGD_MAIN x
           void f() { CLANGD_^ }
       )cpp",
       {func("CLANGD_INDEX")});
-  // Index is overriden in code completion options, so the preamble symbol is
-  // not seen.
-  EXPECT_THAT(Results.Completions, UnorderedElementsAre(Named("CLANGD_MAIN"),
-                                                        Named("CLANGD_INDEX")));
+  // We should get results from the main file, including the preamble section.
+  // However no results from included files (the index should cover them).
+  EXPECT_THAT(Results.Completions,
+              UnorderedElementsAre(Named("CLANGD_PREAMBLE_MAIN"),
+                                   Named("CLANGD_MAIN"),
+                                   Named("CLANGD_INDEX")));
 }
 
 TEST(CompletionTest, DeprecatedResults) {
@@ -2434,6 +2461,7 @@ TEST(NoCompileCompletionTest, Basic) {
       ^
     }
   )cpp");
+  EXPECT_FALSE(Results.RanParser);
   EXPECT_THAT(Results.Completions,
               UnorderedElementsAre(Named("void"), Named("func"), Named("int"),
                                    Named("xyz"), Named("abc")));

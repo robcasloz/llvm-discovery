@@ -182,6 +182,11 @@ FixupLEAPass::postRAConvertToLEA(MachineBasicBlock &MBB,
 
 FunctionPass *llvm::createX86FixupLEAs() { return new FixupLEAPass(); }
 
+static bool isLEA(unsigned Opcode) {
+  return Opcode == X86::LEA32r || Opcode == X86::LEA64r ||
+         Opcode == X86::LEA64_32r;
+}
+
 bool FixupLEAPass::runOnMachineFunction(MachineFunction &MF) {
   if (skipFunction(MF.getFunction()))
     return false;
@@ -204,6 +209,9 @@ bool FixupLEAPass::runOnMachineFunction(MachineFunction &MF) {
   for (MachineBasicBlock &MBB : MF) {
     // First pass. Try to remove or optimize existing LEAs.
     for (MachineBasicBlock::iterator I = MBB.begin(); I != MBB.end(); ++I) {
+      if (!isLEA(I->getOpcode()))
+        continue;
+
       if (OptIncDec && fixupIncDec(I, MBB))
         continue;
 
@@ -287,11 +295,6 @@ FixupLEAPass::searchBackwards(MachineOperand &p, MachineBasicBlock::iterator &I,
   return MachineBasicBlock::iterator();
 }
 
-static inline bool isLEA(const unsigned Opcode) {
-  return Opcode == X86::LEA16r || Opcode == X86::LEA32r ||
-         Opcode == X86::LEA64r || Opcode == X86::LEA64_32r;
-}
-
 static inline bool isInefficientLEAReg(unsigned Reg) {
   return Reg == X86::EBP || Reg == X86::RBP ||
          Reg == X86::R13D || Reg == X86::R13;
@@ -319,8 +322,6 @@ static inline unsigned getADDrrFromLEA(unsigned LEAOpcode) {
   switch (LEAOpcode) {
   default:
     llvm_unreachable("Unexpected LEA instruction");
-  case X86::LEA16r:
-    return X86::ADD16rr;
   case X86::LEA32r:
     return X86::ADD32rr;
   case X86::LEA64_32r:
@@ -335,8 +336,6 @@ static inline unsigned getADDriFromLEA(unsigned LEAOpcode,
   switch (LEAOpcode) {
   default:
     llvm_unreachable("Unexpected LEA instruction");
-  case X86::LEA16r:
-    return IsInt8 ? X86::ADD16ri8 : X86::ADD16ri;
   case X86::LEA32r:
   case X86::LEA64_32r:
     return IsInt8 ? X86::ADD32ri8 : X86::ADD32ri;
@@ -362,17 +361,11 @@ static inline bool isLEASimpleIncOrDec(MachineInstr &LEA) {
 bool FixupLEAPass::fixupIncDec(MachineBasicBlock::iterator &I,
                                MachineBasicBlock &MBB) const {
   MachineInstr &MI = *I;
-  unsigned Opcode = MI.getOpcode();
-  if (!isLEA(Opcode))
-    return false;
 
   if (isLEASimpleIncOrDec(MI) && TII->isSafeToClobberEFLAGS(MBB, I)) {
     unsigned NewOpcode;
     bool isINC = MI.getOperand(1 + X86::AddrDisp).getImm() == 1;
-    switch (Opcode) {
-    case X86::LEA16r:
-      NewOpcode = isINC ? X86::INC16r : X86::DEC16r;
-      break;
+    switch (MI.getOpcode()) {
     case X86::LEA32r:
     case X86::LEA64_32r:
       NewOpcode = isINC ? X86::INC32r : X86::DEC32r;
@@ -435,8 +428,6 @@ void FixupLEAPass::processInstructionForSlowLEA(MachineBasicBlock::iterator &I,
                                                 MachineBasicBlock &MBB) {
   MachineInstr &MI = *I;
   const unsigned Opcode = MI.getOpcode();
-  if (!isLEA(Opcode))
-    return;
 
   const MachineOperand &Dst =     MI.getOperand(0);
   const MachineOperand &Base =    MI.getOperand(1 + X86::AddrBaseReg);
@@ -485,10 +476,7 @@ void FixupLEAPass::processInstructionForSlowLEA(MachineBasicBlock::iterator &I,
 MachineInstr *
 FixupLEAPass::processInstrForSlow3OpLEA(MachineInstr &MI,
                                         MachineBasicBlock &MBB) {
-
   const unsigned LEAOpcode = MI.getOpcode();
-  if (!isLEA(LEAOpcode))
-    return nullptr;
 
   const MachineOperand &Dst =     MI.getOperand(0);
   const MachineOperand &Base =    MI.getOperand(1 + X86::AddrBaseReg);

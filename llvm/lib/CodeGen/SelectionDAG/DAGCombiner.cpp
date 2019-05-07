@@ -1792,8 +1792,9 @@ SDValue DAGCombiner::visitTokenFactor(SDNode *N) {
   TFs.push_back(N);
 
   // Iterate through token factors.  The TFs grows when new token factors are
-  // encountered.
-  for (unsigned i = 0; i < TFs.size(); ++i) {
+  // encountered. Limit number of nodes to inline, to avoid quadratic compile
+  // times.
+  for (unsigned i = 0; i < TFs.size() && Ops.size() <= 2048; ++i) {
     SDNode *TF = TFs[i];
 
     // Check each of the operands.
@@ -3817,7 +3818,6 @@ SDValue DAGCombiner::visitMULHU(SDNode *N) {
   // fold (mulhu x, (1 << c)) -> x >> (bitwidth - c)
   if (isConstantOrConstantVector(N1, /*NoOpaques*/ true) &&
       DAG.isKnownToBeAPowerOfTwo(N1) && hasOperation(ISD::SRL, VT)) {
-    SDLoc DL(N);
     unsigned NumEltBits = VT.getScalarSizeInBits();
     SDValue LogBase2 = BuildLogBase2(N1, DL);
     SDValue SRLAmt = DAG.getNode(
@@ -8293,11 +8293,10 @@ SDValue DAGCombiner::visitVSELECT(SDNode *N) {
     // This is OK if we don't care about what happens if either operand is a
     // NaN.
     //
-    if (N0.hasOneUse() && isLegalToCombineMinNumMaxNum(
-                              DAG, N0.getOperand(0), N0.getOperand(1), TLI)) {
-      ISD::CondCode CC = cast<CondCodeSDNode>(N0.getOperand(2))->get();
+    if (N0.hasOneUse() && isLegalToCombineMinNumMaxNum(DAG, N0.getOperand(0),
+                                                       N0.getOperand(1), TLI)) {
       if (SDValue FMinMax = combineMinNumMaxNum(
-            DL, VT, N0.getOperand(0), N0.getOperand(1), N1, N2, CC, TLI, DAG))
+              DL, VT, N0.getOperand(0), N0.getOperand(1), N1, N2, CC, TLI, DAG))
         return FMinMax;
     }
 
@@ -10078,7 +10077,6 @@ SDValue DAGCombiner::visitTRUNCATE(SDNode *N) {
 
   // trunc (select c, a, b) -> select c, (trunc a), (trunc b)
   if (N0.getOpcode() == ISD::SELECT && N0.hasOneUse()) {
-    EVT SrcVT = N0.getValueType();
     if ((!LegalOperations || TLI.isOperationLegal(ISD::SELECT, SrcVT)) &&
         TLI.isTruncateFree(SrcVT, VT)) {
       SDLoc SL(N0);
@@ -11915,7 +11913,7 @@ SDValue DAGCombiner::combineRepeatedFPDivisors(SDNode *N) {
 
   // Skip if current node is a reciprocal.
   SDValue N0 = N->getOperand(0);
-  ConstantFPSDNode *N0CFP = dyn_cast<ConstantFPSDNode>(N0);
+  ConstantFPSDNode *N0CFP = isConstOrConstSplatFP(N0, /* AllowUndefs */ true);
   if (N0CFP && N0CFP->isExactlyValue(1.0))
     return SDValue();
 
@@ -18673,6 +18671,7 @@ SDValue DAGCombiner::visitFP16_TO_FP(SDNode *N) {
 SDValue DAGCombiner::visitVECREDUCE(SDNode *N) {
   SDValue N0 = N->getOperand(0);
   EVT VT = N0.getValueType();
+  unsigned Opcode = N->getOpcode();
 
   // VECREDUCE over 1-element vector is just an extract.
   if (VT.getVectorNumElements() == 1) {
@@ -18683,6 +18682,17 @@ SDValue DAGCombiner::visitVECREDUCE(SDNode *N) {
     if (Res.getValueType() != N->getValueType(0))
       Res = DAG.getNode(ISD::ANY_EXTEND, dl, N->getValueType(0), Res);
     return Res;
+  }
+
+  // On an boolean vector an and/or reduction is the same as a umin/umax
+  // reduction. Convert them if the latter is legal while the former isn't.
+  if (Opcode == ISD::VECREDUCE_AND || Opcode == ISD::VECREDUCE_OR) {
+    unsigned NewOpcode = Opcode == ISD::VECREDUCE_AND
+        ? ISD::VECREDUCE_UMIN : ISD::VECREDUCE_UMAX;
+    if (!TLI.isOperationLegalOrCustom(Opcode, VT) &&
+        TLI.isOperationLegalOrCustom(NewOpcode, VT) &&
+        DAG.ComputeNumSignBits(N0) == VT.getScalarSizeInBits())
+      return DAG.getNode(NewOpcode, SDLoc(N), N->getValueType(0), N0);
   }
 
   return SDValue();
@@ -18999,6 +19009,10 @@ bool DAGCombiner::SimplifySelectOps(SDNode *TheSelect, SDValue LHS,
         // locations are not in the default address space.
         LLD->getPointerInfo().getAddrSpace() != 0 ||
         RLD->getPointerInfo().getAddrSpace() != 0 ||
+        // We can't produce a CMOV of a TargetFrameIndex since we won't
+        // generate the address generation required.
+        LLD->getBasePtr().getOpcode() == ISD::TargetFrameIndex ||
+        RLD->getBasePtr().getOpcode() == ISD::TargetFrameIndex ||
         !TLI.isOperationLegalOrCustom(TheSelect->getOpcode(),
                                       LLD->getBasePtr().getValueType()))
       return false;
@@ -19485,7 +19499,6 @@ SDValue DAGCombiner::BuildReciprocalEstimate(SDValue Op, SDNodeFlags Flags) {
     AddToWorklist(Est.getNode());
 
     if (Iterations) {
-      EVT VT = Op.getValueType();
       SDLoc DL(Op);
       SDValue FPOne = DAG.getConstantFP(1.0, DL, VT);
 
@@ -19641,7 +19654,6 @@ SDValue DAGCombiner::buildSqrtEstimateImpl(SDValue Op, SDNodeFlags Flags,
       if (!Reciprocal) {
         // The estimate is now completely wrong if the input was exactly 0.0 or
         // possibly a denormal. Force the answer to 0.0 for those cases.
-        EVT VT = Op.getValueType();
         SDLoc DL(Op);
         EVT CCVT = getSetCCResultType(VT);
         ISD::NodeType SelOpcode = VT.isVector() ? ISD::VSELECT : ISD::SELECT;

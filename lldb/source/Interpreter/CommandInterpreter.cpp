@@ -429,6 +429,11 @@ void CommandInterpreter::Initialize() {
     AddAlias("var", cmd_obj_sp);
     AddAlias("vo", cmd_obj_sp, "--object-description");
   }
+
+  cmd_obj_sp = GetCommandSPExact("register", false);
+  if (cmd_obj_sp) {
+    AddAlias("re", cmd_obj_sp);
+  }
 }
 
 void CommandInterpreter::Clear() {
@@ -744,7 +749,9 @@ void CommandInterpreter::LoadCommandDictionary() {
           *this, "_regexp-bt",
           "Show the current thread's call stack.  Any numeric argument "
           "displays at most that many "
-          "frames.  The argument 'all' displays all threads.",
+          "frames.  The argument 'all' displays all threads.  Use 'settings"
+          " set frame-format' to customize the printing of individual frames "
+          "and 'settings set thread-format' to customize the thread header.",
           "bt [<digit> | all]", 2, 0, false));
   if (bt_regex_cmd_up) {
     // accept but don't document "bt -c <number>" -- before bt was a regex
@@ -2088,16 +2095,14 @@ void CommandInterpreter::SourceInitFile(bool in_cwd,
                                         CommandReturnObject &result) {
   FileSpec init_file;
   if (in_cwd) {
-    ExecutionContext exe_ctx(GetExecutionContext());
-    Target *target = exe_ctx.GetTargetPtr();
-    if (target) {
+    lldb::TargetPropertiesSP properties = Target::GetGlobalProperties();
+    if (properties) {
       // In the current working directory we don't load any program specific
       // .lldbinit files, we only look for a ".lldbinit" file.
       if (m_skip_lldbinit_files)
         return;
 
-      LoadCWDlldbinitFile should_load =
-          target->TargetProperties::GetLoadCWDlldbinitFile();
+      LoadCWDlldbinitFile should_load = properties->GetLoadCWDlldbinitFile();
       if (should_load == eLoadCWDlldbinitWarn) {
         FileSpec dot_lldb(".lldbinit");
         FileSystem::Instance().Resolve(dot_lldb);

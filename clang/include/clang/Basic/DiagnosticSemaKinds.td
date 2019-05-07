@@ -6370,13 +6370,15 @@ def err_variably_modified_typeid : Error<"'typeid' of variably modified type %0"
 def err_static_illegal_in_new : Error<
   "the 'static' modifier for the array size is not legal in new expressions">;
 def err_array_new_needs_size : Error<
-  "array size must be specified in new expressions">;
+  "array size must be specified in new expression with no initializer">;
 def err_bad_new_type : Error<
   "cannot allocate %select{function|reference}1 type %0 with new">;
 def err_new_incomplete_type : Error<
   "allocation of incomplete type %0">;
 def err_new_array_nonconst : Error<
   "only the first dimension of an allocated array may have dynamic size">;
+def err_new_array_size_unknown_from_init : Error<
+  "cannot determine allocated array size from initializer">;
 def err_new_array_init_args : Error<
   "array 'new' cannot have initialization arguments">;
 def ext_new_paren_array_nonconst : ExtWarn<
@@ -7781,9 +7783,6 @@ def err_defaulted_special_member_copy_const_param : Error<
 def err_defaulted_copy_assign_not_ref : Error<
   "the parameter for an explicitly-defaulted copy assignment operator must be an "
   "lvalue reference type">;
-def err_incorrect_defaulted_exception_spec : Error<
-  "exception specification of explicitly defaulted "
-  "%sub{select_special_member_kind}0 does not match the calculated one">;
 def err_incorrect_defaulted_constexpr : Error<
   "defaulted definition of %sub{select_special_member_kind}0 "
   "is not constexpr">;
@@ -8583,6 +8582,10 @@ def err_invalid_astype_of_different_size : Error<
   "invalid reinterpretation: sizes of %0 and %1 must match">;
 def err_static_kernel : Error<
   "kernel functions cannot be declared static">;
+def err_method_kernel : Error<
+  "kernel functions cannot be class members">;
+def err_template_kernel : Error<
+  "kernel functions cannot be used in a template declaration, instantiation or specialization">;
 def err_opencl_ptrptr_kernel_param : Error<
   "kernel parameter cannot be declared as a pointer to a pointer">;
 def err_kernel_arg_address_space : Error<
@@ -8793,6 +8796,8 @@ def err_omp_threadprivate_incomplete_type : Error<
   "threadprivate variable with incomplete type %0">;
 def err_omp_no_dsa_for_variable : Error<
   "variable %0 must have explicitly specified data sharing attributes">;
+def note_omp_default_dsa_none : Note<
+  "explicit data sharing attribute requested here">;
 def err_omp_wrong_dsa : Error<
   "%0 variable cannot be %1">;
 def err_omp_variably_modified_type_not_supported : Error<

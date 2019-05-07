@@ -689,11 +689,8 @@ SymbolFileDWARF::GetDWARFCompileUnit(lldb_private::CompileUnit *comp_unit) {
 
   DWARFDebugInfo *info = DebugInfo();
   if (info) {
-    // Just a normal DWARF file whose user ID for the compile unit is the DWARF
-    // offset itself
-
-    DWARFUnit *dwarf_cu =
-        info->GetCompileUnit((dw_offset_t)comp_unit->GetID());
+    // The compile unit ID is the index of the DWARF unit.
+    DWARFUnit *dwarf_cu = info->GetCompileUnitAtIndex(comp_unit->GetID());
     if (dwarf_cu && dwarf_cu->GetUserData() == NULL)
       dwarf_cu->SetUserData(comp_unit);
     return dwarf_cu;
@@ -781,7 +778,7 @@ lldb::CompUnitSP SymbolFileDWARF::ParseCompileUnit(DWARFUnit *dwarf_cu,
 
               // Figure out the compile unit index if we weren't given one
               if (cu_idx == UINT32_MAX)
-                DebugInfo()->GetCompileUnit(dwarf_cu->GetOffset(), &cu_idx);
+                cu_idx = dwarf_cu->GetID();
 
               m_obj_file->GetModule()->GetSymbolVendor()->SetCompileUnitAtIndex(
                   cu_idx, cu_sp);
@@ -908,9 +905,6 @@ bool SymbolFileDWARF::ParseImportedModules(
           sc.comp_unit->GetLanguage()))
     return false;
   UpdateExternalModuleListIfNeeded();
-
-  if (!sc.comp_unit)
-    return false;
 
   const DWARFDIE die = dwarf_cu->DIE();
   if (!die)
@@ -1644,9 +1638,7 @@ void SymbolFileDWARF::UpdateExternalModuleListIfNeeded() {
             // printed. However, as one can notice in this case we don't
             // actually need to try to load the already loaded module
             // (corresponding to .dwo) so we simply skip it.
-            if (m_obj_file->GetFileSpec()
-                        .GetFileNameExtension()
-                        .GetStringRef() == ".dwo" &&
+            if (m_obj_file->GetFileSpec().GetFileNameExtension() == ".dwo" &&
                 llvm::StringRef(m_obj_file->GetFileSpec().GetPath())
                     .endswith(dwo_module_spec.GetFileSpec().GetPath())) {
               continue;
@@ -1769,7 +1761,7 @@ uint32_t SymbolFileDWARF::ResolveSymbolContext(const Address &so_addr,
       } else {
         uint32_t cu_idx = DW_INVALID_INDEX;
         DWARFUnit *dwarf_cu =
-            debug_info->GetCompileUnit(cu_offset, &cu_idx);
+            debug_info->GetCompileUnitAtOffset(cu_offset, &cu_idx);
         if (dwarf_cu) {
           sc.comp_unit = GetCompUnitForDWARFCompUnit(dwarf_cu, cu_idx);
           if (sc.comp_unit) {
@@ -3126,7 +3118,7 @@ size_t SymbolFileDWARF::ParseVariablesForContext(const SymbolContext &sc) {
         return num_variables;
       }
     } else if (sc.comp_unit) {
-      DWARFUnit *dwarf_cu = info->GetCompileUnit(sc.comp_unit->GetID());
+      DWARFUnit *dwarf_cu = info->GetCompileUnitAtIndex(sc.comp_unit->GetID());
 
       if (dwarf_cu == NULL)
         return 0;

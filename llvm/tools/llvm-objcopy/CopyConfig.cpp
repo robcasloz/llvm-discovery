@@ -584,6 +584,8 @@ Expected<DriverConfig> parseObjcopyOptions(ArrayRef<const char *> ArgsArr) {
   Config.KeepFileSymbols = InputArgs.hasArg(OBJCOPY_keep_file_symbols);
   Config.DecompressDebugSections =
       InputArgs.hasArg(OBJCOPY_decompress_debug_sections);
+  if (Config.DiscardMode == DiscardType::All)
+    Config.StripDebug = true;
   for (auto Arg : InputArgs.filtered(OBJCOPY_localize_symbol))
     Config.SymbolsToLocalize.emplace_back(Arg->getValue(), UseRegex);
   for (auto Arg : InputArgs.filtered(OBJCOPY_localize_symbols))
@@ -730,7 +732,8 @@ Expected<DriverConfig> parseStripOptions(ArrayRef<const char *> ArgsArr) {
             ? DiscardType::All
             : DiscardType::Locals;
   Config.StripUnneeded = InputArgs.hasArg(STRIP_strip_unneeded);
-  Config.StripAll = InputArgs.hasArg(STRIP_strip_all);
+  if (auto Arg = InputArgs.getLastArg(STRIP_strip_all, STRIP_no_strip_all))
+    Config.StripAll = Arg->getOption().getID() == STRIP_strip_all;
   Config.StripAllGNU = InputArgs.hasArg(STRIP_strip_all_gnu);
   Config.OnlyKeepDebug = InputArgs.hasArg(STRIP_only_keep_debug);
   Config.KeepFileSymbols = InputArgs.hasArg(STRIP_keep_file_symbols);
@@ -747,9 +750,13 @@ Expected<DriverConfig> parseStripOptions(ArrayRef<const char *> ArgsArr) {
   for (auto Arg : InputArgs.filtered(STRIP_keep_symbol))
     Config.SymbolsToKeep.emplace_back(Arg->getValue(), UseRegexp);
 
-  if (!Config.StripDebug && !Config.StripUnneeded &&
-      Config.DiscardMode == DiscardType::None && !Config.StripAllGNU && Config.SymbolsToRemove.empty())
+  if (!InputArgs.hasArg(STRIP_no_strip_all) && !Config.StripDebug &&
+      !Config.StripUnneeded && Config.DiscardMode == DiscardType::None &&
+      !Config.StripAllGNU && Config.SymbolsToRemove.empty())
     Config.StripAll = true;
+
+  if (Config.DiscardMode == DiscardType::All)
+    Config.StripDebug = true;
 
   Config.DeterministicArchives =
       InputArgs.hasFlag(STRIP_enable_deterministic_archives,

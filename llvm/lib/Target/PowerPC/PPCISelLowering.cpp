@@ -10994,10 +10994,10 @@ PPCTargetLowering::EmitInstrWithCustomInserter(MachineInstr &MI,
     // When the operand is immediate, using the two least significant bits of
     // the immediate to set the bits 62:63 of FPSCR.
     unsigned Mode = MI.getOperand(1).getImm();
-    BuildMI(*BB, MI, dl, TII->get(Mode & 1 ? PPC::MTFSB1 : PPC::MTFSB0))
+    BuildMI(*BB, MI, dl, TII->get((Mode & 1) ? PPC::MTFSB1 : PPC::MTFSB0))
       .addImm(31);
 
-    BuildMI(*BB, MI, dl, TII->get(Mode & 2 ? PPC::MTFSB1 : PPC::MTFSB0))
+    BuildMI(*BB, MI, dl, TII->get((Mode & 2) ? PPC::MTFSB1 : PPC::MTFSB0))
       .addImm(30);
   } else if (MI.getOpcode() == PPC::SETRND) {
     DebugLoc dl = MI.getDebugLoc();
@@ -11145,7 +11145,9 @@ SDValue PPCTargetLowering::getSqrtEstimate(SDValue Operand, SelectionDAG &DAG,
     if (RefinementSteps == ReciprocalEstimate::Unspecified)
       RefinementSteps = getEstimateRefinementSteps(VT, Subtarget);
 
-    UseOneConstNR = true;
+    // The Newton-Raphson computation with a single constant does not provide
+    // enough accuracy on some CPUs.
+    UseOneConstNR = !Subtarget.needsTwoConstNR();
     return DAG.getNode(PPCISD::FRSQRTE, SDLoc(Operand), VT, Operand);
   }
   return SDValue();
@@ -12201,6 +12203,11 @@ static SDValue combineBVOfConsecutiveLoads(SDNode *N, SelectionDAG &DAG) {
          "Should be called with a BUILD_VECTOR node");
 
   SDLoc dl(N);
+
+  // Return early for non byte-sized type, as they can't be consecutive.
+  if (!N->getValueType(0).getVectorElementType().isByteSized())
+    return SDValue();
+
   bool InputsAreConsecutiveLoads = true;
   bool InputsAreReverseConsecutive = true;
   unsigned ElemSize = N->getValueType(0).getScalarType().getStoreSize();
@@ -12471,9 +12478,8 @@ SDValue PPCTargetLowering::DAGCombineBuildVector(SDNode *N,
   ConstantSDNode *Ext2Op = dyn_cast<ConstantSDNode>(Ext2.getOperand(1));
   if (!Ext1Op || !Ext2Op)
     return SDValue();
-  if (Ext1.getValueType() != MVT::i32 ||
-      Ext2.getValueType() != MVT::i32)
-  if (Ext1.getOperand(0) != Ext2.getOperand(0))
+  if (Ext1.getOperand(0).getValueType() != MVT::v4i32 ||
+      Ext1.getOperand(0) != Ext2.getOperand(0))
     return SDValue();
 
   int FirstElem = Ext1Op->getZExtValue();

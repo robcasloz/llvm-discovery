@@ -122,9 +122,9 @@ public:
   enum class ThinLTOPhase {
     /// No ThinLTO behavior needed.
     None,
-    // ThinLTO prelink (summary) phase.
+    /// ThinLTO prelink (summary) phase.
     PreLink,
-    // ThinLTO postlink (backend compile) phase.
+    /// ThinLTO postlink (backend compile) phase.
     PostLink
   };
 
@@ -223,7 +223,7 @@ public:
   /// Cross register the analysis managers through their proxies.
   ///
   /// This is an interface that can be used to cross register each
-  // AnalysisManager with all the others analysis managers.
+  /// AnalysisManager with all the others analysis managers.
   void crossRegisterProxies(LoopAnalysisManager &LAM,
                             FunctionAnalysisManager &FAM,
                             CGSCCAnalysisManager &CGAM,
@@ -432,7 +432,7 @@ public:
   /// {{@ Parse a textual pass pipeline description into a specific PassManager
   ///
   /// Automatic deduction of an appropriate pass manager stack is not supported.
-  /// For example, to insert a loop pass 'lpass' into a FunctinoPassManager,
+  /// For example, to insert a loop pass 'lpass' into a FunctionPassManager,
   /// this is the valid pipeline text:
   ///
   ///   function(lpass)

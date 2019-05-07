@@ -6,6 +6,7 @@ set(files
   armintr.h
   arm64intr.h
   avx2intrin.h
+  avx512bf16intrin.h
   avx512bwintrin.h
   avx512bitalgintrin.h
   avx512vlbitalgintrin.h
@@ -21,6 +22,7 @@ set(files
   avx512vbmivlintrin.h
   avx512vbmi2intrin.h
   avx512vlvbmi2intrin.h
+  avx512vlbf16intrin.h
   avx512vlbwintrin.h
   avx512vlcdintrin.h
   avx512vldqintrin.h
@@ -31,6 +33,9 @@ set(files
   avxintrin.h
   bmi2intrin.h
   bmiintrin.h
+  openmp_wrappers/math.h
+  openmp_wrappers/cmath
+  openmp_wrappers/__clang_openmp_math.h
   __clang_cuda_builtin_vars.h
   __clang_cuda_cmath.h
   __clang_cuda_complex_builtins.h
@@ -128,6 +133,7 @@ set(ppc_wrapper_files
 
 set(output_dir ${LLVM_LIBRARY_OUTPUT_INTDIR}/clang/${CLANG_VERSION}/include)
 set(out_files)
+set(generated_files)
 
 function(copy_header_to_output_dir src_dir file)
   set(src ${src_dir}/${file})
@@ -147,6 +153,8 @@ function(clang_generate_header td_option td_file out_file)
 
   copy_header_to_output_dir(${CMAKE_CURRENT_BINARY_DIR} ${out_file})
   set(out_files ${out_files} PARENT_SCOPE)
+  list(APPEND generated_files "${CMAKE_CURRENT_BINARY_DIR}/${out_file}")
+  set(generated_files ${generated_files} PARENT_SCOPE)
 endfunction(clang_generate_header)
 
 
@@ -166,11 +174,21 @@ set_target_properties(clang-resource-headers PROPERTIES
   FOLDER "Misc"
   RUNTIME_OUTPUT_DIRECTORY "${output_dir}")
 
-set(header_install_dir lib${LLVM_LIBDIR_SUFFIX}/clang/${CLANG_VERSION})
+set(header_install_dir lib${LLVM_LIBDIR_SUFFIX}/clang/${CLANG_VERSION}/include)
 
 install(
-  DIRECTORY ${output_dir}
+  FILES ${files} ${generated_files}
   DESTINATION ${header_install_dir}
+  COMPONENT clang-resource-headers)
+
+install(
+  FILES ${cuda_wrapper_files}
+  DESTINATION ${header_install_dir}/cuda_wrappers
+  COMPONENT clang-resource-headers)
+
+install(
+  FILES ${ppc_wrapper_files}
+  DESTINATION ${header_install_dir}/ppc_wrappers
   COMPONENT clang-resource-headers)
 
 if (NOT LLVM_ENABLE_IDE)

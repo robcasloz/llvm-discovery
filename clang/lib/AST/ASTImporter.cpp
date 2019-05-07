@@ -175,6 +175,14 @@ namespace clang {
       return Importer.Import_New(From);
     }
 
+    // Import an Optional<T> by importing the contained T, if any.
+    template<typename T>
+    Expected<Optional<T>> import(Optional<T> From) {
+      if (!From)
+        return Optional<T>();
+      return import(*From);
+    }
+
     template <class T>
     Expected<std::tuple<T>>
     importSeq(const T &From) {
@@ -411,6 +419,8 @@ namespace clang {
     Expected<FunctionTemplateAndArgsTy>
     ImportFunctionTemplateWithTemplateArgsFromSpecialization(
         FunctionDecl *FromFD);
+    Error ImportTemplateParameterLists(const DeclaratorDecl *FromD,
+                                       DeclaratorDecl *ToD);
 
     Error ImportTemplateInformation(FunctionDecl *FromFD, FunctionDecl *ToFD);
 
@@ -2772,6 +2782,22 @@ ExpectedDecl ASTNodeImporter::VisitEnumConstantDecl(EnumConstantDecl *D) {
   return ToEnumerator;
 }
 
+Error ASTNodeImporter::ImportTemplateParameterLists(const DeclaratorDecl *FromD,
+                                                    DeclaratorDecl *ToD) {
+  unsigned int Num = FromD->getNumTemplateParameterLists();
+  if (Num == 0)
+    return Error::success();
+  SmallVector<TemplateParameterList *, 2> ToTPLists(Num);
+  for (unsigned int I = 0; I < Num; ++I)
+    if (Expected<TemplateParameterList *> ToTPListOrErr =
+            import(FromD->getTemplateParameterList(I)))
+      ToTPLists[I] = *ToTPListOrErr;
+    else
+      return ToTPListOrErr.takeError();
+  ToD->setTemplateParameterListsInfo(Importer.ToContext, ToTPLists);
+  return Error::success();
+}
+
 Error ASTNodeImporter::ImportTemplateInformation(
     FunctionDecl *FromFD, FunctionDecl *ToFD) {
   switch (FromFD->getTemplatedKind()) {
@@ -2817,6 +2843,9 @@ Error ASTNodeImporter::ImportTemplateInformation(
     ExpectedSLoc POIOrErr = import(FTSInfo->getPointOfInstantiation());
     if (!POIOrErr)
       return POIOrErr.takeError();
+
+    if (Error Err = ImportTemplateParameterLists(FromFD, ToFD))
+      return Err;
 
     TemplateSpecializationKind TSK = FTSInfo->getTemplateSpecializationKind();
     ToFD->setFunctionTemplateSpecialization(
@@ -6878,7 +6907,8 @@ ExpectedStmt ASTNodeImporter::VisitCXXNewExpr(CXXNewExpr *E) {
 
   FunctionDecl *ToOperatorNew, *ToOperatorDelete;
   SourceRange ToTypeIdParens, ToSourceRange, ToDirectInitRange;
-  Expr *ToArraySize, *ToInitializer;
+  Optional<Expr *> ToArraySize;
+  Expr *ToInitializer;
   QualType ToType;
   TypeSourceInfo *ToAllocatedTypeSourceInfo;
   std::tie(

@@ -951,7 +951,7 @@ public:
   }
 
   void HandleDiagnostic(DiagnosticsEngine::Level DiagLevel,
-                        const clang::Diagnostic &info) {
+                        const clang::Diagnostic &info) override {
     if (m_log) {
       llvm::SmallVector<char, 32> diag_str(10);
       info.FormatDiagnostic(diag_str);
@@ -4257,9 +4257,11 @@ ClangASTContext::GetMinimumLanguage(lldb::opaque_compiler_type_t type) {
   if (qual_type->isAnyPointerType()) {
     if (qual_type->isObjCObjectPointerType())
       return lldb::eLanguageTypeObjC;
+    if (qual_type->getPointeeCXXRecordDecl())
+      return lldb::eLanguageTypeC_plus_plus;
 
     clang::QualType pointee_type(qual_type->getPointeeType());
-    if (pointee_type->getPointeeCXXRecordDecl() != nullptr)
+    if (pointee_type->getPointeeCXXRecordDecl())
       return lldb::eLanguageTypeC_plus_plus;
     if (pointee_type->isObjCObjectOrInterfaceType())
       return lldb::eLanguageTypeObjC;
@@ -4466,6 +4468,8 @@ ClangASTContext::GetTypeClass(lldb::opaque_compiler_type_t type) {
     break;
 
   case clang::Type::DependentAddressSpace:
+    break;
+  case clang::Type::MacroQualified:
     break;
   }
   // We don't know hot to display this type...
@@ -5335,6 +5339,8 @@ lldb::Encoding ClangASTContext::GetEncoding(lldb::opaque_compiler_type_t type,
 
   case clang::Type::DependentAddressSpace:
     break;
+  case clang::Type::MacroQualified:
+    break;
   }
   count = 0;
   return lldb::eEncodingInvalid;
@@ -5501,6 +5507,8 @@ lldb::Format ClangASTContext::GetFormat(lldb::opaque_compiler_type_t type) {
     break;
 
   case clang::Type::DependentAddressSpace:
+    break;
+  case clang::Type::MacroQualified:
     break;
   }
   // We don't know hot to display this type...

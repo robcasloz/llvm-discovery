@@ -38,6 +38,7 @@ add_unittest(ClangdUnitTests ClangdTests
   FileDistanceTests.cpp
   FileIndexTests.cpp
   FindSymbolsTests.cpp
+  FormattedStringTests.cpp
   FSTests.cpp
   FunctionTests.cpp
   FuzzyMatchTests.cpp
@@ -48,6 +49,7 @@ add_unittest(ClangdUnitTests ClangdTests
   JSONTransportTests.cpp
   PrintASTTests.cpp
   QualityTests.cpp
+  RenameTests.cpp
   RIFFTests.cpp
   SelectionTests.cpp
   SerializationTests.cpp
@@ -93,5 +95,5 @@ if (CLANGD_BUILD_XPC)
 endif ()
 
 configure_lit_site_cfg(
-  ${CMAKE_CURRENT_SOURCE_DIR}/lit.cfg.in
-  ${CMAKE_CURRENT_BINARY_DIR}/lit.cfg)
+  ${CMAKE_CURRENT_SOURCE_DIR}/lit.site.cfg.py.in
+  ${CMAKE_CURRENT_BINARY_DIR}/lit.site.cfg.py)
