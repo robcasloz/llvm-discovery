@@ -2,3 +2,7 @@
 	path = third-party/Pedigree
 	url = https://github.com/robcasloz/Pedigree.git
 	branch = master
+[submodule "third-party/IteratorRecognition"]
+	path = third-party/IteratorRecognition
+	url = https://github.com/robcasloz/IteratorRecognition.git
+	branch = master
