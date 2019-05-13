@@ -5,15 +5,21 @@ LLVM's DataFlowSanitizer. Most of the extensions are implemented in the files
 `llvm/lib/Transforms/Instrumentation/DataFlowSanitizer.cpp` and
 `compiler-rt/lib/dfsan/dfsan.cc`.
 
+## Additional dependencies
+
+- Clang 7 or later (to compile the project)
+
+- Boost 1.68
+
 ## Compiling the extended LLVM project
 
 ```
-git clone https://github.com/robcasloz/llvm-discovery.git
+git clone --recursive https://github.com/robcasloz/llvm-discovery.git
 cd llvm-project
 mkdir build
 cd build
-cmake -DLLVM_ENABLE_PROJECTS="clang;compiler-rt" -DLLVM_PARALLEL_LINK_JOBS=1 -DLLVM_TARGETS_TO_BUILD="X86" ../llvm
-make compiler-rt clang
+cmake -D CMAKE_C_COMPILER=clang -D CMAKE_CXX_COMPILER=clang++ -DBUILD_SHARED_LIBS=1 -DLLVM_ENABLE_PROJECTS="clang;compiler-rt" -DLLVM_TARGETS_TO_BUILD="X86" -DCMAKE_CXX_STANDARD=14 -G "Ninja" ../llvm
+ninja compiler-rt clang
 ```
 
 ## Compiling a source file `foo.c` with data-flow tracing enabled

@@ -1,0 +1,4 @@
+[submodule "third-party/Pedigree"]
+	path = third-party/Pedigree
+	url = https://github.com/robcasloz/Pedigree.git
+	branch = master
