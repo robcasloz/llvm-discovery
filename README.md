@@ -18,7 +18,7 @@ git clone --recursive https://github.com/robcasloz/llvm-discovery.git
 cd llvm-project
 mkdir build
 cd build
-cmake -D CMAKE_C_COMPILER=clang -D CMAKE_CXX_COMPILER=clang++ -DBUILD_SHARED_LIBS=1 -DLLVM_ENABLE_PROJECTS="clang;compiler-rt" -DLLVM_TARGETS_TO_BUILD="X86" -DCMAKE_CXX_STANDARD=14 -G "Ninja" ../llvm
+cmake -DLLVM_CCACHE_BUILD=1 -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DBUILD_SHARED_LIBS=1 -DLLVM_ENABLE_PROJECTS="clang;compiler-rt" -DLLVM_TARGETS_TO_BUILD="X86" -DCMAKE_CXX_STANDARD=14 -G "Ninja" ../llvm
 ninja compiler-rt clang
 ```
 
