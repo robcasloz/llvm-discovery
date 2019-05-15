@@ -1288,11 +1288,12 @@ Value *DFSanFunction::combineOperandShadows(Instruction *Inst) {
                            IRB.CreateGlobalStringPtr("TRUE")});
       }
     }
-    // Print whether the block is a system call. A system call in this context
-    // is a call to any external function that is opaque to DataFlowSanitizer
-    // (that is, non-functional system calls in the DataFlowSanitizer's ABI
-    // list). These are the only function calls that are observed here.
-    if (isa<CallInst>(Inst)) {
+    // Print whether the block is a system call or the return from main(). A
+    // system call in this context is a call to any external function that is
+    // opaque to DataFlowSanitizer (that is, non-functional system calls in the
+    // DataFlowSanitizer's ABI list). These are the only function calls that are
+    // observed here.
+    if (isa<CallInst>(Inst) || isa<ReturnInst>(Inst)) {
       IRB.CreateCall(DFS.DFSanPrintBlockPropertyFn,
                      {CallEA, IRB.CreateGlobalStringPtr("SYSTEM"),
                          IRB.CreateGlobalStringPtr("TRUE")});
@@ -1663,6 +1664,9 @@ void DFSanVisitor::visitMemTransferInst(MemTransferInst &I) {
 }
 
 void DFSanVisitor::visitReturnInst(ReturnInst &RI) {
+  if (ClDiscovery && DFSF.F->getName() == "main") {
+    DFSF.combineOperandShadows(&RI);
+  }
   if (!DFSF.IsNativeABI && RI.getReturnValue()) {
     switch (DFSF.IA) {
     case DataFlowSanitizer::IA_TLS: {
