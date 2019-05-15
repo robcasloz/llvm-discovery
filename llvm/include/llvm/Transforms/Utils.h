@@ -113,6 +113,21 @@ extern char &LoopSimplifyID;
 /// This function returns a new pass that downgrades the debug info in the
 /// module to line tables only.
 ModulePass *createStripNonLineTableDebugInfoPass();
+
+/// Pedigree passes.
+FunctionPass *createPDGraphWrapperPass();
+extern char &PDGraphID;
+FunctionPass *createCDGraphWrapperPass();
+extern char &CDGraphID;
+FunctionPass *createDDGraphWrapperPass();
+extern char &DDGraphID;
+FunctionPass *createMDGraphWrapperPass();
+extern char &MDGraphID;
+
+/// IteratorRecognition passes.
+FunctionPass *createIteratorRecognitionWrapperPass();
+extern char &IteratorRecognitionID;
+
 }
 
 #endif

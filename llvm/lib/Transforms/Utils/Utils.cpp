@@ -39,6 +39,14 @@ void llvm::initializeTransformUtils(PassRegistry &Registry) {
   initializeMetaRenamerPass(Registry);
   initializeStripGCRelocatesPass(Registry);
   initializePredicateInfoPrinterLegacyPassPass(Registry);
+  // Iterator recognition passes
+  initializeIteratorRecognitionWrapperPassPass(Registry);
+  // Pedigree passes
+  initializePDGraphWrapperPassPass(Registry);
+  initializeCDGraphWrapperPassPass(Registry);
+  initializeDDGraphWrapperPassPass(Registry);
+  initializeMDGraphWrapperPassPass(Registry);
+
 }
 
 /// LLVMInitializeTransformUtils - C binding for initializeTransformUtilsPasses.

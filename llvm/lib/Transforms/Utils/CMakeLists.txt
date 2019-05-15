@@ -58,6 +58,39 @@ add_llvm_library(LLVMTransformUtils
   ValueMapper.cpp
   VNCoercion.cpp
 
+  Pedigree/Analysis/Hazards.cpp
+  Pedigree/Analysis/Graphs/DependenceGraphs.cpp
+  Pedigree/Analysis/Passes/MDGraphPass.cpp
+  Pedigree/Analysis/Passes/CDGraphPass.cpp
+  Pedigree/Analysis/Passes/Printers/Graphviz/GraphPrinterPassCommandLineOptions.cpp
+  Pedigree/Analysis/Passes/Printers/Graphviz/PDGraphPrinterPass.cpp
+  Pedigree/Analysis/Passes/Printers/Graphviz/MDGraphPrinterPass.cpp
+  Pedigree/Analysis/Passes/Printers/Graphviz/DDGraphPrinterPass.cpp
+  Pedigree/Analysis/Passes/Printers/Graphviz/CDGraphPrinterPass.cpp
+  Pedigree/Analysis/Passes/Printers/Graphviz/InstCDGraphPrinterPass.cpp
+  Pedigree/Analysis/Passes/PDGraphPass.cpp
+  Pedigree/Analysis/Passes/DDGraphPass.cpp
+  Pedigree/Analysis/Passes/GraphPassCommandLineOptions.cpp
+  Pedigree/Support/FileSystem.cpp
+  Pedigree/RegisterPasses.cpp
+  Pedigree/Debug.cpp
+
+  IteratorRecognition/Analysis/Graphs/PDGCondensationGraph.cpp
+  IteratorRecognition/Analysis/IteratorRecognition.cpp
+  IteratorRecognition/Analysis/Passes/ValueClassificationPass.cpp
+  IteratorRecognition/Analysis/Passes/PayloadDependenceGraphPass.cpp
+  IteratorRecognition/Analysis/Passes/IteratorRecognitionPass.cpp
+  IteratorRecognition/Analysis/ValueClassification.cpp
+  IteratorRecognition/Support/Utils/DebugInfo.cpp
+  IteratorRecognition/Support/Utils/StringConversion.cpp
+  IteratorRecognition/Support/FileSystem.cpp
+  IteratorRecognition/Passes/RegisterPasses.cpp
+  IteratorRecognition/Passes/PassCommandLineOptions.cpp
+  IteratorRecognition/Exchange/JSONTransfer.cpp
+  IteratorRecognition/Exchange/Passes/JSONExporterPass.cpp
+  IteratorRecognition/Transforms/Utils/DemotePayloadPhis.cpp
+  IteratorRecognition/Transforms/Passes/AnnotatorPass.cpp
+
   ADDITIONAL_HEADER_DIRS
   ${LLVM_MAIN_INCLUDE_DIR}/llvm/Transforms
   ${LLVM_MAIN_INCLUDE_DIR}/llvm/Transforms/Utils
@@ -65,3 +98,5 @@ add_llvm_library(LLVMTransformUtils
   DEPENDS
   intrinsics_gen
   )
+
+include_directories(${LLVM_MAIN_SRC_DIR}/lib/Transforms/Utils/IteratorRecognition/include)

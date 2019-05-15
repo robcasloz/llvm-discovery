@@ -44,8 +44,6 @@ subdirectories =
  ToolDrivers
  Transforms
  WindowsManifest
- Pedigree
- IteratorRecognition
 
 [component_0]
 type = Group

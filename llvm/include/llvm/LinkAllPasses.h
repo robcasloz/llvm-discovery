@@ -54,8 +54,6 @@
 #include "llvm/Transforms/Utils/SymbolRewriter.h"
 #include "llvm/Transforms/Utils/UnifyFunctionExitNodes.h"
 #include "llvm/Transforms/Vectorize.h"
-#include "Pedigree/Pedigree.h"
-#include "IteratorRecognition/IteratorRecognition.h"
 #include <cstdlib>
 
 namespace {
