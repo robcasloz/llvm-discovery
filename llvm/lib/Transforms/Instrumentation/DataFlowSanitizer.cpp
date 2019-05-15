@@ -1290,8 +1290,8 @@ Value *DFSanFunction::combineOperandShadows(Instruction *Inst) {
     }
     // Print whether the block is a system call. A system call in this context
     // is a call to any external function that is opaque to DataFlowSanitizer
-    // (that is, functions discarded in the DataFlowSanitizer's ABI list). These
-    // are the only function calls that are observed here.
+    // (that is, non-functional system calls in the DataFlowSanitizer's ABI
+    // list). These are the only function calls that are observed here.
     if (isa<CallInst>(Inst)) {
       IRB.CreateCall(DFS.DFSanPrintBlockPropertyFn,
                      {CallEA, IRB.CreateGlobalStringPtr("SYSTEM"),
@@ -1703,22 +1703,26 @@ void DFSanVisitor::visitCallSite(CallSite CS) {
       DFSF.DFS.UnwrappedFnMap.find(CS.getCalledValue());
   if (i != DFSF.DFS.UnwrappedFnMap.end()) {
     Function *F = i->second;
+    // In ClDiscovery mode, we trace the input data-flow to system calls such as
+    // printf, to distinguish the computations that affect the behaviour of the
+    // program. An exception is "functional" system calls, which are treated as
+    // simple operations. After the execution, data-flow unreachable from the
+    // system calls is pruned and only the "essence" of the program is left (see
+    // "Redux" paper by Nethercote and Mycroft). If ClCombinePointerLabelsOnLoad
+    // and ClCombinePointerLabelsOnStore are set to false, address computations
+    // will also be pruned as in Redux.
     switch (DFSF.DFS.getWrapperKind(F)) {
     case DataFlowSanitizer::WK_Warning:
       CS.setCalledFunction(F);
+      if (ClDiscovery) {
+        DFSF.combineOperandShadows(CS.getInstruction());
+      }
       IRB.CreateCall(DFSF.DFS.DFSanUnimplementedFn,
                      IRB.CreateGlobalStringPtr(F->getName()));
       DFSF.setShadow(CS.getInstruction(), DFSF.DFS.ZeroShadow);
       return;
     case DataFlowSanitizer::WK_Discard:
       CS.setCalledFunction(F);
-      // In ClDiscovery mode, we trace the input data-flow to system calls such
-      // as printf, to distinguish the computations that affect the behaviour of
-      // the program. After the execution, data-flow unreachable from the system
-      // calls is pruned and only the "essence" of the program is left (see
-      // "Redux" paper by Nethercote and Mycroft). If
-      // ClCombinePointerLabelsOnLoad and ClCombinePointerLabelsOnStore are set
-      // to false, address computations will also be pruned as in Redux.
       if (ClDiscovery) {
         DFSF.combineOperandShadows(CS.getInstruction());
       }
@@ -1733,6 +1737,9 @@ void DFSanVisitor::visitCallSite(CallSite CS) {
       // Instead, invoke the dfsw$ wrapper, which will in turn call the __dfsw_
       // wrapper.
       if (CallInst *CI = dyn_cast<CallInst>(CS.getInstruction())) {
+        if (ClDiscovery) {
+          DFSF.combineOperandShadows(CI);
+        }
         FunctionType *FT = F->getFunctionType();
         TransformedFunction CustomFn = DFSF.DFS.getCustomFunctionType(FT);
         std::string CustomFName = "__dfsw_";
