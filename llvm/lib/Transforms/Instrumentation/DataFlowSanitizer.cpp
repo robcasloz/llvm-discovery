@@ -176,6 +176,11 @@ static cl::opt<bool> ClDiscoveryDebug(
     cl::desc("Refine the dynamic data-flow graph with debug information"),
     cl::Hidden, cl::init(false));
 
+static cl::opt<bool> ClDiscoveryMarkIterators(
+    "dfsan-discovery-mark-iterators",
+    cl::desc("Mark iterator code in the dynamic data-flow graph"),
+    cl::Hidden, cl::init(false));
+
 static StringRef GetGlobalTypeString(const GlobalValue &G) {
   // Types of GlobalVariables are always pointer types.
   Type *GType = G.getValueType();
@@ -1268,29 +1273,41 @@ Value *DFSanFunction::combineOperandShadows(Instruction *Inst) {
   // %x = call i64 @__dfsan_enter_assignment()
   // call void @__dfsan_print_data_flow(i16 zeroext %2, i64 %x)
   // call void @__dfsan_print_data_flow(i16 zeroext %1, i32 %x)
-  // %3 = call zeroext i16 @dfsan_union(i16 zeroext %2, i16 zeroext %1)
-  // call void @__dfsan_set_definer(i16 zeroext %3, i32 %x)
+  // %3 = call zeroext i16 @__dfsan_create_label_with_definer(i64 %x)
   // %add = add nsw i32 %a2, %a1
-  //
-  // TODO: do we even need the call to dfsan_union? can we simplify it? all we
-  //       need is to create a label and to mark it with the definer block.
-
 
   if (ClDiscovery) {
     IRBuilder<> IRB(Inst);
     // Enter assignment and get a new block ID.
     CallInst *CallEA = IRB.CreateCall(DFS.DFSanEnterAssignmentFn, {});
-    // Print whether the block is part of an iterator.
-    if (IRInsts.count(Inst)) {
+    // If asked for, print whether the block is part of an iterator.
+    if (ClDiscoveryMarkIterators) {
+      if (IRInsts.count(Inst)) {
+        IRB.CreateCall(DFS.DFSanPrintBlockPropertyFn,
+                       {CallEA, IRB.CreateGlobalStringPtr("ITERATOR"),
+                           IRB.CreateGlobalStringPtr("TRUE")});
+      }
+    }
+    // Print whether the block is a system call. A system call in this context
+    // is a call to any external function that is opaque to DataFlowSanitizer
+    // (that is, functions discarded in the DataFlowSanitizer's ABI list). These
+    // are the only function calls that are observed here.
+    if (isa<CallInst>(Inst)) {
       IRB.CreateCall(DFS.DFSanPrintBlockPropertyFn,
-                     {CallEA, IRB.CreateGlobalStringPtr("ITERATOR"),
+                     {CallEA, IRB.CreateGlobalStringPtr("SYSTEM"),
                          IRB.CreateGlobalStringPtr("TRUE")});
     }
     // In debug mode, print the name of each block for more readable graphs.
     if (ClDiscoveryDebug) {
+      StringRef Name;
+      if (isa<CallInst>(Inst)) {
+        Name = ((CallInst *)Inst)->getCalledFunction()->getName();
+      } else {
+        Name = Inst->getOpcodeName();
+      }
       IRB.CreateCall(DFS.DFSanPrintBlockNameFn,
                      {CallEA,
-                         IRB.CreateGlobalStringPtr(Inst->getOpcodeName())});
+                         IRB.CreateGlobalStringPtr(Name)});
     }
     // Print the data flow from each Inst operand's definer to the new block ID.
     for (unsigned i = 0, n = Inst->getNumOperands(); i != n; ++i) {
@@ -1695,6 +1712,16 @@ void DFSanVisitor::visitCallSite(CallSite CS) {
       return;
     case DataFlowSanitizer::WK_Discard:
       CS.setCalledFunction(F);
+      // In ClDiscovery mode, we trace the input data-flow to system calls such
+      // as printf, to distinguish the computations that affect the behaviour of
+      // the program. After the execution, data-flow unreachable from the system
+      // calls is pruned and only the "essence" of the program is left (see
+      // "Redux" paper by Nethercote and Mycroft). If
+      // ClCombinePointerLabelsOnLoad and ClCombinePointerLabelsOnStore are set
+      // to false, address computations will also be pruned as in Redux.
+      if (ClDiscovery) {
+        DFSF.combineOperandShadows(CS.getInstruction());
+      }
       DFSF.setShadow(CS.getInstruction(), DFSF.DFS.ZeroShadow);
       return;
     case DataFlowSanitizer::WK_Functional:
