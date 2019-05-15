@@ -415,10 +415,16 @@ __dfsan_create_label_with_definer(int id) {
   return dfsan_create_label("", data);
 }
 
+// Prints a property of the given block ID.
+extern "C" SANITIZER_INTERFACE_ATTRIBUTE void
+__dfsan_print_block_property(int id, const char * key, const char * value) {
+  printf ("BP %d %s %s\n", id, key, value);
+}
+
 // Prints the name of the given block ID for debugging purposes.
 extern "C" SANITIZER_INTERFACE_ATTRIBUTE void
 __dfsan_print_block_name(int id, const char * name) {
-  printf ("BN %d %s\n", id, name);
+  __dfsan_print_block_property(id, "NAME", name);
 }
 
 extern "C" SANITIZER_INTERFACE_ATTRIBUTE

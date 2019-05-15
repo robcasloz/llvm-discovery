@@ -91,6 +91,9 @@
 #include "llvm/Support/SpecialCaseList.h"
 #include "llvm/Transforms/Instrumentation.h"
 #include "llvm/Transforms/Utils/BasicBlockUtils.h"
+#include "llvm/Transforms/Utils.h"
+#include "IteratorRecognition/Analysis/Passes/IteratorRecognitionPass.hpp"
+
 #include <algorithm>
 #include <cassert>
 #include <cstddef>
@@ -103,6 +106,8 @@
 #include <vector>
 
 using namespace llvm;
+using namespace iteratorrecognition;
+using InstRefSet = DenseSet<const Instruction *>;
 
 // External symbol to be used when generating the shadow address for
 // architectures with multiple VMAs. Instead of using a constant integer
@@ -360,6 +365,7 @@ class DataFlowSanitizer : public ModulePass {
   FunctionType *DFSanEnterAssignmentFnTy;
   FunctionType *DFSanPrintDataFlowFnTy;
   FunctionType *DFSanCreateLabelWithDefinerFnTy;
+  FunctionType *DFSanPrintBlockPropertyFnTy;
   FunctionType *DFSanPrintBlockNameFnTy;
   Constant *DFSanUnionFn;
   Constant *DFSanCheckedUnionFn;
@@ -371,6 +377,7 @@ class DataFlowSanitizer : public ModulePass {
   Constant* DFSanEnterAssignmentFn;
   Constant* DFSanPrintDataFlowFn;
   Constant* DFSanCreateLabelWithDefinerFn;
+  Constant* DFSanPrintBlockPropertyFn;
   Constant* DFSanPrintBlockNameFn;
   MDNode *ColdCallWeights;
   DFSanABIList ABIList;
@@ -399,6 +406,7 @@ public:
       const std::vector<std::string> &ABIListFiles = std::vector<std::string>(),
       void *(*getArgTLS)() = nullptr, void *(*getRetValTLS)() = nullptr);
 
+  void getAnalysisUsage(AnalysisUsage &AU) const override;
   bool doInitialization(Module &M) override;
   bool runOnModule(Module &M) override;
 };
@@ -418,6 +426,7 @@ struct DFSanFunction {
   DenseSet<Instruction *> SkipInsts;
   std::vector<Value *> NonZeroChecks;
   bool AvoidNewBlocks;
+  InstRefSet IRInsts;
 
   struct CachedCombinedShadow {
     BasicBlock *Block;
@@ -427,8 +436,10 @@ struct DFSanFunction {
       CachedCombinedShadows;
   DenseMap<Value *, std::set<Value *>> ShadowElements;
 
-  DFSanFunction(DataFlowSanitizer &DFS, Function *F, bool IsNativeABI)
-      : DFS(DFS), F(F), IA(DFS.getInstrumentedABI()), IsNativeABI(IsNativeABI) {
+  DFSanFunction(DataFlowSanitizer &DFS, Function *F, bool IsNativeABI,
+                InstRefSet IRInsts)
+    : DFS(DFS), F(F), IA(DFS.getInstrumentedABI()), IsNativeABI(IsNativeABI),
+      IRInsts(IRInsts) {
     DT.recalculate(*F);
     // FIXME: Need to track down the register allocator issue which causes poor
     // performance in pathological cases with large numbers of basic blocks.
@@ -483,8 +494,11 @@ public:
 
 char DataFlowSanitizer::ID;
 
-INITIALIZE_PASS(DataFlowSanitizer, "dfsan",
-                "DataFlowSanitizer: dynamic data flow analysis.", false, false)
+INITIALIZE_PASS_BEGIN(DataFlowSanitizer, "dfsan",
+                     "DataFlowSanitizer: dynamic data flow analysis.", false, false)
+INITIALIZE_PASS_DEPENDENCY(IteratorRecognitionWrapperPass)
+INITIALIZE_PASS_END(DataFlowSanitizer, "dfsan",
+                     "DataFlowSanitizer: dynamic data flow analysis.", false, false)
 
 ModulePass *
 llvm::createDataFlowSanitizerPass(const std::vector<std::string> &ABIListFiles,
@@ -559,6 +573,10 @@ TransformedFunction DataFlowSanitizer::getCustomFunctionType(FunctionType *T) {
       ArgumentIndexMapping);
 }
 
+void DataFlowSanitizer::getAnalysisUsage(AnalysisUsage &AU) const {
+  AU.addRequiredTransitiveID(IteratorRecognitionID);
+}
+
 bool DataFlowSanitizer::doInitialization(Module &M) {
   Triple TargetTriple(M.getTargetTriple());
   bool IsX86_64 = TargetTriple.getArch() == Triple::x86_64;
@@ -610,6 +628,10 @@ bool DataFlowSanitizer::doInitialization(Module &M) {
     Type *DFSanCreateLabelWithDefinerArgs[1] = { BlockIdTy };
     DFSanCreateLabelWithDefinerFnTy = FunctionType::get(
         ShadowTy, DFSanCreateLabelWithDefinerArgs, /*isVarArg=*/false);
+    Type *DFSanPrintBlockPropertyArgs[3] =
+      { BlockIdTy, Type::getInt8PtrTy(*Ctx), Type::getInt8PtrTy(*Ctx) };
+    DFSanPrintBlockPropertyFnTy = FunctionType::get(
+        Type::getVoidTy(*Ctx), DFSanPrintBlockPropertyArgs, /*isVarArg=*/false);
     if (ClDiscoveryDebug) {
       Type *DFSanPrintBlockNameArgs[2] =
         { BlockIdTy, Type::getInt8PtrTy(*Ctx) };
@@ -734,7 +756,8 @@ Constant *DataFlowSanitizer::getOrBuildTrampolineFunction(FunctionType *FT,
     else
       RI = ReturnInst::Create(*Ctx, CI, BB);
 
-    DFSanFunction DFSF(*this, F, /*IsNativeABI=*/true);
+    InstRefSet IRInsts;
+    DFSanFunction DFSF(*this, F, /*IsNativeABI=*/true, IRInsts);
     Function::arg_iterator ValAI = F->arg_begin(), ShadowAI = AI; ++ValAI;
     for (unsigned N = FT->getNumParams(); N != 0; ++ValAI, ++ShadowAI, --N)
       DFSF.ValShadowMap[&*ValAI] = &*ShadowAI;
@@ -748,6 +771,19 @@ Constant *DataFlowSanitizer::getOrBuildTrampolineFunction(FunctionType *FT,
 }
 
 bool DataFlowSanitizer::runOnModule(Module &M) {
+  DenseMap<Function *, InstRefSet> IRIMap;
+  for (Function &i : M) {
+    if (i.isDeclaration())
+      continue;
+    auto& IRI = getAnalysis<IteratorRecognitionWrapperPass>(i)
+                  .getIteratorRecognitionInfo();
+    InstRefSet IRInsts;
+    for (auto & Iterator : IRI.getIteratorsInfo()) {
+      IRInsts.insert(Iterator.begin(), Iterator.end());
+    }
+    IRIMap[&i] = IRInsts;
+  }
+
   if (ABIList.isIn(M, "skip"))
     return false;
 
@@ -818,6 +854,9 @@ bool DataFlowSanitizer::runOnModule(Module &M) {
         Mod->getOrInsertFunction("__dfsan_create_label_with_definer",
                                  DFSanCreateLabelWithDefinerFnTy, AL);
     }
+    DFSanPrintBlockPropertyFn =
+        Mod->getOrInsertFunction("__dfsan_print_block_property",
+                                 DFSanPrintBlockPropertyFnTy);
     if (ClDiscoveryDebug) {
       DFSanPrintBlockNameFn =
         Mod->getOrInsertFunction("__dfsan_print_block_name",
@@ -838,7 +877,8 @@ bool DataFlowSanitizer::runOnModule(Module &M) {
       if (!ClDiscovery ||
           (&i != DFSanEnterAssignmentFn &&
            &i != DFSanPrintDataFlowFn &&
-           &i != DFSanCreateLabelWithDefinerFn)) {
+           &i != DFSanCreateLabelWithDefinerFn &&
+           &i != DFSanPrintBlockPropertyFn)) {
         if (!ClDiscoveryDebug ||
             (&i != DFSanPrintBlockNameFn))
           FnsToInstrument.push_back(&i);
@@ -980,7 +1020,7 @@ bool DataFlowSanitizer::runOnModule(Module &M) {
 
     removeUnreachableBlocks(*i);
 
-    DFSanFunction DFSF(*this, i, FnsWithNativeABI.count(i));
+    DFSanFunction DFSF(*this, i, FnsWithNativeABI.count(i), IRIMap[i]);
 
     // DFSanVisitor may create new basic blocks, which confuses df_iterator.
     // Build a copy of the list before iterating over it.
@@ -1240,6 +1280,12 @@ Value *DFSanFunction::combineOperandShadows(Instruction *Inst) {
     IRBuilder<> IRB(Inst);
     // Enter assignment and get a new block ID.
     CallInst *CallEA = IRB.CreateCall(DFS.DFSanEnterAssignmentFn, {});
+    // Print whether the block is part of an iterator.
+    if (IRInsts.count(Inst)) {
+      IRB.CreateCall(DFS.DFSanPrintBlockPropertyFn,
+                     {CallEA, IRB.CreateGlobalStringPtr("ITERATOR"),
+                         IRB.CreateGlobalStringPtr("TRUE")});
+    }
     // In debug mode, print the name of each block for more readable graphs.
     if (ClDiscoveryDebug) {
       IRB.CreateCall(DFS.DFSanPrintBlockNameFn,
