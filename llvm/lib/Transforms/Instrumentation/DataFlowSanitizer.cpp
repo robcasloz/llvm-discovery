@@ -84,6 +84,7 @@
 #include "llvm/IR/Type.h"
 #include "llvm/IR/User.h"
 #include "llvm/IR/Value.h"
+#include "llvm/IR/DebugInfoMetadata.h"
 #include "llvm/Pass.h"
 #include "llvm/Support/Casting.h"
 #include "llvm/Support/CommandLine.h"
@@ -1264,16 +1265,16 @@ Value *DFSanFunction::combineOperandShadows(Instruction *Inst) {
 
   // If the ClDiscovery flag is passed, instrument each assignment as follows:
   //
-  // (%2, %1 shadow addresses of %a2, %a1)
-  // %3 = call zeroext i16 @dfsan_union(i16 zeroext %2, i16 zeroext %1)
-  // %add = add nsw i32 %a2, %a1
-  //
-  // ->
-  //
   // %x = call i64 @__dfsan_enter_assignment()
   // call void @__dfsan_print_data_flow(i16 zeroext %2, i64 %x)
   // call void @__dfsan_print_data_flow(i16 zeroext %1, i32 %x)
   // %3 = call zeroext i16 @__dfsan_create_label_with_definer(i64 %x)
+  // %add = add nsw i32 %a2, %a1
+  //
+  // instead of the usual DataFlowSantizer sequence:
+  //
+  // (%2, %1 shadow addresses of %a2, %a1)
+  // %3 = call zeroext i16 @dfsan_union(i16 zeroext %2, i16 zeroext %1)
   // %add = add nsw i32 %a2, %a1
 
   if (ClDiscovery) {
@@ -1309,6 +1310,14 @@ Value *DFSanFunction::combineOperandShadows(Instruction *Inst) {
       IRB.CreateCall(DFS.DFSanPrintBlockNameFn,
                      {CallEA,
                          IRB.CreateGlobalStringPtr(Name)});
+      const DebugLoc &Loc = Inst->getDebugLoc();
+      if (Loc) {
+        std::stringstream LocString;
+        LocString << Loc->getFilename().str()  << ":" << Loc->getLine();
+        IRB.CreateCall(DFS.DFSanPrintBlockPropertyFn,
+                       {CallEA, IRB.CreateGlobalStringPtr("LOCATION"),
+                           IRB.CreateGlobalStringPtr(LocString.str())});
+      }
     }
     // Print the data flow from each Inst operand's definer to the new block ID.
     for (unsigned i = 0, n = Inst->getNumOperands(); i != n; ++i) {
@@ -1691,6 +1700,13 @@ void DFSanVisitor::visitReturnInst(ReturnInst &RI) {
 
 void DFSanVisitor::visitCallSite(CallSite CS) {
   Function *F = CS.getCalledFunction();
+
+  // Ignore debug intrinsics in ClDiscovery mode.
+  if (ClDiscovery && F && F->isIntrinsic() &&
+      (Intrinsic::ID)F->getIntrinsicID() == Intrinsic::dbg_declare) {
+    return;
+  }
+
   if ((F && F->isIntrinsic()) || isa<InlineAsm>(CS.getCalledValue())) {
     visitOperandShadowInst(*CS.getInstruction());
     return;
