@@ -50,8 +50,10 @@ add_custom_command(OUTPUT ${dfsan_abilist_filename}
                    COMMAND
                      cat ${CMAKE_CURRENT_SOURCE_DIR}/done_abilist.txt
                          ${CMAKE_CURRENT_SOURCE_DIR}/libc_ubuntu1404_abilist.txt
+                         ${CMAKE_CURRENT_SOURCE_DIR}/cxx_abilist.txt
+                         ${CMAKE_CURRENT_SOURCE_DIR}/pgpry_abilist.txt
                          > ${dfsan_abilist_filename}
-                   DEPENDS done_abilist.txt libc_ubuntu1404_abilist.txt)
+                   DEPENDS done_abilist.txt libc_ubuntu1404_abilist.txt cxx_abilist.txt pgpry_abilist.txt)
 add_dependencies(dfsan dfsan_abilist)
 install(FILES ${dfsan_abilist_filename}
         DESTINATION ${COMPILER_RT_INSTALL_PATH}/share)

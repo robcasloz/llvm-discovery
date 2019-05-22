@@ -1,0 +1,24 @@
+###############################################################################
+# OpenSSL functions dynamically linked to pgpry
+###############################################################################
+fun:AES_cfb128_encrypt=uninstrumented
+fun:AES_set_encrypt_key=uninstrumented
+fun:BF_cfb64_encrypt=uninstrumented
+fun:BF_set_key=uninstrumented
+fun:BN_bin2bn=uninstrumented
+fun:BN_dup=uninstrumented
+fun:BN_free=uninstrumented
+fun:BN_num_bits=uninstrumented
+fun:CAST_cfb64_encrypt=uninstrumented
+fun:CAST_set_key=uninstrumented
+fun:DSA_free=uninstrumented
+fun:DSA_new=uninstrumented
+fun:MD5_Final=uninstrumented
+fun:MD5_Init=uninstrumented
+fun:MD5_Update=uninstrumented
+fun:RAND_pseudo_bytes=uninstrumented
+fun:RSA_free=uninstrumented
+fun:RSA_new=uninstrumented
+fun:SHA1_Final=uninstrumented
+fun:SHA1_Init=uninstrumented
+fun:SHA1_Update=uninstrumented
