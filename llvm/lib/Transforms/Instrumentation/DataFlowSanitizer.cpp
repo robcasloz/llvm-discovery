@@ -580,7 +580,9 @@ TransformedFunction DataFlowSanitizer::getCustomFunctionType(FunctionType *T) {
 }
 
 void DataFlowSanitizer::getAnalysisUsage(AnalysisUsage &AU) const {
-  AU.addRequiredTransitiveID(IteratorRecognitionID);
+  if (ClDiscoveryMarkIterators) {
+    AU.addRequiredTransitiveID(IteratorRecognitionID);
+  }
 }
 
 bool DataFlowSanitizer::doInitialization(Module &M) {
@@ -779,6 +781,8 @@ Constant *DataFlowSanitizer::getOrBuildTrampolineFunction(FunctionType *FT,
 bool DataFlowSanitizer::runOnModule(Module &M) {
   DenseMap<Function *, InstRefSet> IRIMap;
   for (Function &i : M) {
+    if (!ClDiscoveryMarkIterators)
+      continue;
     if (i.isDeclaration())
       continue;
     auto& IRI = getAnalysis<IteratorRecognitionWrapperPass>(i)
