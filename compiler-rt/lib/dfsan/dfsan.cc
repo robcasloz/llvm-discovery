@@ -51,6 +51,7 @@ SANITIZER_INTERFACE_ATTRIBUTE uptr __dfsan_shadow_ptr_mask;
 
 // TODO: protect
 static int __dfsan_last_id = 0;
+static FILE *__dfsan_trace = NULL;
 
 // On Linux/x86_64, memory is laid out as follows:
 //
@@ -369,6 +370,20 @@ dfsan_dump_labels(int fd) {
   }
 }
 
+// Opens trace file.
+extern "C" SANITIZER_INTERFACE_ATTRIBUTE void
+__dfsan_open_trace() {
+  __dfsan_trace = fopen("trace", "a");
+  assert(__dfsan_trace != NULL);
+}
+
+// Closes trace file.
+extern "C" SANITIZER_INTERFACE_ATTRIBUTE void
+__dfsan_close_trace() {
+  int ret = fclose(__dfsan_trace);
+  assert(ret == 0);
+}
+
 // Returns a new block ID to be used in an assignment block.
 extern "C" SANITIZER_INTERFACE_ATTRIBUTE int
 __dfsan_enter_assignment() {
@@ -394,14 +409,15 @@ __dfsan_print_data_flow(dfsan_label l, int id) {
     __dfsan_print_data_flow(info->l2, id);
   }
   void * data = info->userdata;
+  assert(__dfsan_trace != NULL);
   // TODO: protect
   if (data == NULL) {
     // If l does not have a definer, assume it has been defined statically and
     // assign it the "source block ID" 0.
-    printf ("DF 0 %d\n", id);
+    fprintf(__dfsan_trace, "DF 0 %d\n", id);
   } else {
     int definer = *((int*)data);
-    printf ("DF %d %d\n", definer, id);
+    fprintf(__dfsan_trace, "DF %d %d\n", definer, id);
   }
   return;
 }
@@ -418,7 +434,8 @@ __dfsan_create_label_with_definer(int id) {
 // Prints a property of the given block ID.
 extern "C" SANITIZER_INTERFACE_ATTRIBUTE void
 __dfsan_print_block_property(int id, const char * key, const char * value) {
-  printf ("BP %d %s %s\n", id, key, value);
+  assert(__dfsan_trace != NULL);
+  fprintf(__dfsan_trace, "BP %d %s %s\n", id, key, value);
 }
 
 // Prints the name of the given block ID for debugging purposes.
@@ -435,7 +452,8 @@ void dfsan_highlight(void *addr, uptr size, const char * s) {
   void * data = info->userdata;
   if (data != NULL) {
     int definer = *((int*)data);
-    printf ("HL %d %s\n", definer, s);
+    assert(__dfsan_trace != NULL);
+    fprintf(__dfsan_trace, "HL %d %s\n", definer, s);
   }
 }
 

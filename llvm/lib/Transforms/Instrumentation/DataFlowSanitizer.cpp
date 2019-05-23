@@ -372,6 +372,8 @@ class DataFlowSanitizer : public ModulePass {
   FunctionType *DFSanPrintDataFlowFnTy;
   FunctionType *DFSanCreateLabelWithDefinerFnTy;
   FunctionType *DFSanPrintBlockPropertyFnTy;
+  FunctionType *DFSanOpenTraceFnTy;
+  FunctionType *DFSanCloseTraceFnTy;
   FunctionType *DFSanPrintBlockNameFnTy;
   Constant *DFSanUnionFn;
   Constant *DFSanCheckedUnionFn;
@@ -380,10 +382,12 @@ class DataFlowSanitizer : public ModulePass {
   Constant *DFSanSetLabelFn;
   Constant *DFSanNonzeroLabelFn;
   Constant *DFSanVarargWrapperFn;
-  Constant* DFSanEnterAssignmentFn;
-  Constant* DFSanPrintDataFlowFn;
-  Constant* DFSanCreateLabelWithDefinerFn;
-  Constant* DFSanPrintBlockPropertyFn;
+  Constant *DFSanEnterAssignmentFn;
+  Constant *DFSanPrintDataFlowFn;
+  Constant *DFSanCreateLabelWithDefinerFn;
+  Constant *DFSanPrintBlockPropertyFn;
+  Constant *DFSanOpenTraceFn;
+  Constant *DFSanCloseTraceFn;
   Constant* DFSanPrintBlockNameFn;
   MDNode *ColdCallWeights;
   DFSanABIList ABIList;
@@ -640,6 +644,10 @@ bool DataFlowSanitizer::doInitialization(Module &M) {
       { BlockIdTy, Type::getInt8PtrTy(*Ctx), Type::getInt8PtrTy(*Ctx) };
     DFSanPrintBlockPropertyFnTy = FunctionType::get(
         Type::getVoidTy(*Ctx), DFSanPrintBlockPropertyArgs, /*isVarArg=*/false);
+    DFSanOpenTraceFnTy = FunctionType::get(
+        Type::getVoidTy(*Ctx), {}, /*isVarArg=*/false);
+    DFSanCloseTraceFnTy = FunctionType::get(
+        Type::getVoidTy(*Ctx), {}, /*isVarArg=*/false);
     if (ClDiscoveryDebug) {
       Type *DFSanPrintBlockNameArgs[2] =
         { BlockIdTy, Type::getInt8PtrTy(*Ctx) };
@@ -867,6 +875,12 @@ bool DataFlowSanitizer::runOnModule(Module &M) {
     DFSanPrintBlockPropertyFn =
         Mod->getOrInsertFunction("__dfsan_print_block_property",
                                  DFSanPrintBlockPropertyFnTy);
+    DFSanOpenTraceFn =
+        Mod->getOrInsertFunction("__dfsan_open_trace",
+                                 DFSanOpenTraceFnTy);
+    DFSanCloseTraceFn =
+        Mod->getOrInsertFunction("__dfsan_close_trace",
+                                 DFSanCloseTraceFnTy);
     if (ClDiscoveryDebug) {
       DFSanPrintBlockNameFn =
         Mod->getOrInsertFunction("__dfsan_print_block_name",
@@ -888,7 +902,9 @@ bool DataFlowSanitizer::runOnModule(Module &M) {
           (&i != DFSanEnterAssignmentFn &&
            &i != DFSanPrintDataFlowFn &&
            &i != DFSanCreateLabelWithDefinerFn &&
-           &i != DFSanPrintBlockPropertyFn)) {
+           &i != DFSanPrintBlockPropertyFn &&
+           &i != DFSanOpenTraceFn &&
+           &i != DFSanCloseTraceFn)) {
         if (!ClDiscoveryDebug ||
             (&i != DFSanPrintBlockNameFn))
           FnsToInstrument.push_back(&i);
@@ -1088,6 +1104,33 @@ bool DataFlowSanitizer::runOnModule(Module &M) {
             Ne, Pos, /*Unreachable=*/false, ColdCallWeights));
         IRBuilder<> ThenIRB(BI);
         ThenIRB.CreateCall(DFSF.DFS.DFSanNonzeroLabelFn, {});
+      }
+    }
+
+    // In ClDiscovery mode, insert calls to open and close the trace file on
+    // entry to main(), return from main(), or any call to exit().
+    if (ClDiscovery) {
+      if (DFSF.F->getName() == "main") {
+        IRBuilder<> IRB(&DFSF.F->getEntryBlock().front());
+        IRB.CreateCall(DFSF.DFS.DFSanOpenTraceFn, {});
+        for (BasicBlock &B : *DFSF.F) {
+          Instruction *Term = B.getTerminator();
+          if (isa<ReturnInst>(Term)) {
+            IRBuilder<> IRT(Term);
+            IRT.CreateCall(DFSF.DFS.DFSanCloseTraceFn, {});
+          }
+        }
+      }
+      for (BasicBlock &B : *DFSF.F) {
+        for (Instruction &Inst : B) {
+          if (isa<CallInst>(Inst)) {
+            Function *CF = (cast<CallInst>(&Inst))->getCalledFunction();
+            if (CF && CF->getName() == "exit") {
+              IRBuilder<> IRC(&Inst);
+              IRC.CreateCall(DFSF.DFS.DFSanCloseTraceFn, {});
+            }
+          }
+        }
       }
     }
   }
@@ -1738,7 +1781,12 @@ void DFSanVisitor::visitCallSite(CallSite CS) {
     switch (DFSF.DFS.getWrapperKind(F)) {
     case DataFlowSanitizer::WK_Warning:
       CS.setCalledFunction(F);
-      if (ClDiscovery) {
+      // FIXME: rather than special-case here, create a new wrapper kind.
+      if (ClDiscovery &&
+          // std::ios_base::Init::Init()
+          F->getName() != "_ZNSt8ios_base4InitC1Ev" &&
+          // std::ios_base::Init::~Init()
+          F->getName() != "_ZNSt8ios_base4InitD1Ev") {
         DFSF.combineOperandShadows(CS.getInstruction());
       }
       IRB.CreateCall(DFSF.DFS.DFSanUnimplementedFn,
@@ -1747,7 +1795,10 @@ void DFSanVisitor::visitCallSite(CallSite CS) {
       return;
     case DataFlowSanitizer::WK_Discard:
       CS.setCalledFunction(F);
-      if (ClDiscovery) {
+      // FIXME: rather than special-case here, create a new wrapper kind.
+      if (ClDiscovery &&
+          F->getName() != "main" &&
+          F->getName() != "__cxa_atexit") {
         DFSF.combineOperandShadows(CS.getInstruction());
       }
       DFSF.setShadow(CS.getInstruction(), DFSF.DFS.ZeroShadow);
