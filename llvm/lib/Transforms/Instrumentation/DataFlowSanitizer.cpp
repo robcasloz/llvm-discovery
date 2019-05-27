@@ -498,6 +498,7 @@ public:
   void visitSelectInst(SelectInst &I);
   void visitMemSetInst(MemSetInst &I);
   void visitMemTransferInst(MemTransferInst &I);
+  void visitBranchInst(BranchInst &I);
 };
 
 } // end anonymous namespace
@@ -1336,14 +1337,17 @@ Value *DFSanFunction::combineOperandShadows(Instruction *Inst) {
                            IRB.CreateGlobalStringPtr("TRUE")});
       }
     }
-    // Print whether the block is a system call or the return from main(). A
-    // system call in this context is a call to any external function that is
-    // opaque to DataFlowSanitizer (that is, non-functional system calls in the
+    // Print whether the block is "impure", that is, it is a system call, a
+    // conditional branch, or a return from main(). A system call in this
+    // context is a call to any external function that is opaque to
+    // DataFlowSanitizer (that is, non-functional system calls in the
     // DataFlowSanitizer's ABI list). These are the only function calls that are
     // observed here.
-    if (isa<CallInst>(Inst) || isa<ReturnInst>(Inst)) {
+    if (isa<CallInst>(Inst) ||
+        isa<ReturnInst>(Inst) ||
+        isa<BranchInst>(Inst)) {
       IRB.CreateCall(DFS.DFSanPrintBlockPropertyFn,
-                     {CallEA, IRB.CreateGlobalStringPtr("SYSTEM"),
+                     {CallEA, IRB.CreateGlobalStringPtr("IMPURE"),
                          IRB.CreateGlobalStringPtr("TRUE")});
     }
     // In debug mode, print the name of each block for more readable graphs.
@@ -1369,7 +1373,10 @@ Value *DFSanFunction::combineOperandShadows(Instruction *Inst) {
     // Print the data flow from each Inst operand's definer to the new block ID.
     for (unsigned i = 0, n = Inst->getNumOperands(); i != n; ++i) {
       Value * Op = Inst->getOperand(i);
-      if (isa<Constant>(Op)) continue;
+      if (isa<Constant>(Op) ||
+          // FIXME: is there a higher-level way to detect labels?
+          Op->getType()->getTypeID() == Type::LabelTyID)
+        continue;
       CallInst *CallPDF = IRB.CreateCall(DFS.DFSanPrintDataFlowFn,
                                          {getShadow(Op), CallEA});
       CallPDF->addParamAttr(0, Attribute::ZExt);
@@ -1774,7 +1781,8 @@ void DFSanVisitor::visitCallSite(CallSite CS) {
     // printf, to distinguish the computations that affect the behaviour of the
     // program. An exception is "functional" system calls, which are treated as
     // simple operations. After the execution, data-flow unreachable from the
-    // system calls is pruned and only the "essence" of the program is left (see
+    // system calls and other impure blocks (conditional branches and return
+    // from "main") is pruned and only the "essence" of the program is left (see
     // "Redux" paper by Nethercote and Mycroft). If ClCombinePointerLabelsOnLoad
     // and ClCombinePointerLabelsOnStore are set to false, address computations
     // will also be pruned as in Redux.
@@ -2019,4 +2027,11 @@ void DFSanVisitor::visitPHINode(PHINode &PN) {
 
   DFSF.PHIFixups.push_back(std::make_pair(&PN, ShadowPN));
   DFSF.setShadow(&PN, ShadowPN);
+}
+
+void DFSanVisitor::visitBranchInst(BranchInst &I) {
+  // In ClDiscovery mode, the data reaching conditional branches is tracked.
+  if (ClDiscovery && I.isConditional()) {
+    visitOperandShadowInst(I);
+  }
 }
