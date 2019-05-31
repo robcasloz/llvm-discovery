@@ -86,6 +86,7 @@ add_llvm_library(LLVMTransformUtils
   IteratorRecognition/Support/FileSystem.cpp
   IteratorRecognition/Passes/RegisterPasses.cpp
   IteratorRecognition/Passes/PassCommandLineOptions.cpp
+  IteratorRecognition/Exchange/JSONFileIO.cpp
   IteratorRecognition/Exchange/JSONTransfer.cpp
   IteratorRecognition/Exchange/Passes/JSONExporterPass.cpp
   IteratorRecognition/Transforms/Utils/DemotePayloadPhis.cpp
