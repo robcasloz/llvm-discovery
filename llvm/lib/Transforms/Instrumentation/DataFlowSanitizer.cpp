@@ -1354,7 +1354,12 @@ Value *DFSanFunction::combineOperandShadows(Instruction *Inst) {
     if (ClDiscoveryDebug) {
       StringRef Name;
       if (isa<CallInst>(Inst)) {
-        Name = ((CallInst *)Inst)->getCalledFunction()->getName();
+        CallInst * CI = (CallInst *)Inst;
+        if (InlineAsm * IA = dyn_cast<InlineAsm>(CI->getCalledValue())) {
+          Name = IA->getAsmString();
+        } else {
+          Name = CI->getCalledFunction()->getName();
+        }
       } else {
         Name = Inst->getOpcodeName();
       }
