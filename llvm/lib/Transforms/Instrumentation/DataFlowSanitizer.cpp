@@ -1762,7 +1762,9 @@ void DFSanVisitor::visitCallSite(CallSite CS) {
 
   // Ignore debug intrinsics in ClDiscovery mode.
   if (ClDiscovery && F && F->isIntrinsic() &&
-      (Intrinsic::ID)F->getIntrinsicID() == Intrinsic::dbg_declare) {
+      ((Intrinsic::ID)F->getIntrinsicID() == Intrinsic::dbg_declare ||
+       (Intrinsic::ID)F->getIntrinsicID() == Intrinsic::dbg_value ||
+       (Intrinsic::ID)F->getIntrinsicID() == Intrinsic::dbg_addr)) {
     return;
   }
 
