@@ -49,8 +49,8 @@ SANITIZER_INTERFACE_ATTRIBUTE THREADLOCAL dfsan_label __dfsan_arg_tls[64];
 
 SANITIZER_INTERFACE_ATTRIBUTE uptr __dfsan_shadow_ptr_mask;
 
-// TODO: protect
-static int __dfsan_last_id = 0;
+typedef atomic_uint32_t atomic_dfsan_id;
+static atomic_dfsan_id __dfsan_last_id{0};
 static FILE *__dfsan_trace = NULL;
 
 // On Linux/x86_64, memory is laid out as follows:
@@ -387,8 +387,9 @@ __dfsan_close_trace() {
 // Returns a new block ID to be used in an assignment block.
 extern "C" SANITIZER_INTERFACE_ATTRIBUTE int
 __dfsan_enter_assignment() {
-  __dfsan_last_id++;
-  return __dfsan_last_id;
+  int last_id =
+    atomic_fetch_add(&__dfsan_last_id, 1, memory_order_relaxed) + 1;
+  return last_id;
 }
 
 // Prints a data-flow edge from the definer block of l to the given block ID.
