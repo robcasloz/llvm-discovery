@@ -75,6 +75,7 @@ add_llvm_library(LLVMTransformUtils
   Pedigree/RegisterPasses.cpp
   Pedigree/Debug.cpp
 
+  IteratorRecognition/Analysis/DispositionTracker.cpp
   IteratorRecognition/Analysis/Graphs/PDGCondensationGraph.cpp
   IteratorRecognition/Analysis/IteratorRecognition.cpp
   IteratorRecognition/Analysis/Passes/ValueClassificationPass.cpp
