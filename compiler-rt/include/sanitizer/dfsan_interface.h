@@ -108,6 +108,12 @@ void dfsan_weak_hook_strncmp(void *caller_pc, const char *s1, const char *s2,
 /// with the attribute s.
 void dfsan_highlight(void *addr, size_t size, const char *s);
 
+/// Turns tracing on globally (by default, tracing is enabled).
+void dfsan_on();
+
+/// Turns tracing off globally (by default, tracing is enabled).
+void dfsan_off();
+
 #ifdef __cplusplus
 }  // extern "C"
 

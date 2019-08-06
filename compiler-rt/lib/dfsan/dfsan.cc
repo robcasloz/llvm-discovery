@@ -53,6 +53,9 @@ typedef atomic_uint32_t atomic_dfsan_id;
 static atomic_dfsan_id __dfsan_last_id{0};
 static FILE *__dfsan_trace = NULL;
 
+typedef atomic_uint8_t atomic_bool;
+static atomic_bool __tracing{1};
+
 // On Linux/x86_64, memory is laid out as follows:
 //
 // +--------------------+ 0x800000000000 (top of memory)
@@ -387,6 +390,7 @@ __dfsan_close_trace() {
 // Returns a new block ID to be used in an assignment block.
 extern "C" SANITIZER_INTERFACE_ATTRIBUTE int
 __dfsan_enter_assignment() {
+  if (!atomic_load(&__tracing, memory_order_acquire)) return 0;
   int last_id =
     atomic_fetch_add(&__dfsan_last_id, 1, memory_order_relaxed) + 1;
   return last_id;
@@ -395,6 +399,7 @@ __dfsan_enter_assignment() {
 // Prints a data-flow edge from the definer block of l to the given block ID.
 extern "C" SANITIZER_INTERFACE_ATTRIBUTE void
 __dfsan_print_data_flow(dfsan_label l, int id) {
+  if (!atomic_load(&__tracing, memory_order_acquire)) return;
   const struct dfsan_label_info * info = dfsan_get_label_info(l);
   assert(info != NULL);
   // Non-base labels can be formed by the instrumentation code around loads and
@@ -426,6 +431,7 @@ __dfsan_print_data_flow(dfsan_label l, int id) {
 // Creates a new label l with the given definer.
 extern "C" SANITIZER_INTERFACE_ATTRIBUTE dfsan_label
 __dfsan_create_label_with_definer(int id) {
+  if (!atomic_load(&__tracing, memory_order_acquire)) return 0;
   // FIXME: improve this ugly thing, create a pool or something
   int * data = (int*) malloc(sizeof(int));
   data[0] = id;
@@ -435,6 +441,7 @@ __dfsan_create_label_with_definer(int id) {
 // Prints a property of the given block ID.
 extern "C" SANITIZER_INTERFACE_ATTRIBUTE void
 __dfsan_print_block_property(int id, const char * key, const char * value) {
+  if (!atomic_load(&__tracing, memory_order_acquire)) return;
   assert(__dfsan_trace != NULL);
   fprintf(__dfsan_trace, "BP %d %s %s\n", id, key, value);
 }
@@ -442,6 +449,7 @@ __dfsan_print_block_property(int id, const char * key, const char * value) {
 // Prints the name of the given block ID for debugging purposes.
 extern "C" SANITIZER_INTERFACE_ATTRIBUTE void
 __dfsan_print_block_name(int id, const char * name) {
+  if (!atomic_load(&__tracing, memory_order_acquire)) return;
   __dfsan_print_block_property(id, "NAME", name);
 }
 
@@ -456,6 +464,16 @@ void dfsan_highlight(void *addr, uptr size, const char * s) {
     assert(__dfsan_trace != NULL);
     fprintf(__dfsan_trace, "HL %d %s\n", definer, s);
   }
+}
+
+extern "C" SANITIZER_INTERFACE_ATTRIBUTE void
+dfsan_on() {
+  atomic_store(&__tracing, 1, memory_order_release);
+}
+
+extern "C" SANITIZER_INTERFACE_ATTRIBUTE void
+dfsan_off() {
+  atomic_store(&__tracing, 0, memory_order_release);
 }
 
 void Flags::SetDefaults() {
