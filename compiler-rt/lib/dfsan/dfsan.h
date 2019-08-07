@@ -19,10 +19,10 @@
 #include "dfsan_platform.h"
 
 using __sanitizer::uptr;
-using __sanitizer::u16;
+using __sanitizer::u32;
 
 // Copy declarations from public sanitizer/dfsan_interface.h header here.
-typedef u16 dfsan_label;
+typedef u32 dfsan_label;
 
 struct dfsan_label_info {
   dfsan_label l1;

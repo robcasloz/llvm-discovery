@@ -18,7 +18,7 @@
 ///
 /// The analysis is based on automatic propagation of data flow labels (also
 /// known as taint labels) through a program as it performs computation.  Each
-/// byte of application memory is backed by two bytes of shadow memory which
+/// byte of application memory is backed by four bytes of shadow memory which
 /// hold the label.  On Linux/x86_64, memory is laid out as follows:
 ///
 /// +--------------------+ 0x800000000000 (top of memory)
@@ -27,9 +27,9 @@
 /// |                    |
 /// |       unused       |
 /// |                    |
-/// +--------------------+ 0x200200000000 (kUnusedAddr)
+/// +--------------------+ 0x400200000000 (kUnusedAddr)
 /// |    union table     |
-/// +--------------------+ 0x200000000000 (kUnionTableAddr)
+/// +--------------------+ 0x400000000000 (kUnionTableAddr)
 /// |   shadow memory    |
 /// +--------------------+ 0x000000010000 (kShadowAddr)
 /// | reserved by kernel |
@@ -37,8 +37,8 @@
 ///
 /// To derive a shadow memory address from an application memory address,
 /// bits 44-46 are cleared to bring the address into the range
-/// [0x000000008000,0x100000000000).  Then the address is shifted left by 1 to
-/// account for the double byte representation of shadow labels and move the
+/// [0x000000008000,0x100000000000).  Then the address is shifted left by 2 to
+/// account for the four-byte representation of shadow labels and move the
 /// address into the shadow memory range.  See the function
 /// DataFlowSanitizer::getShadowAddress below.
 ///
@@ -303,7 +303,7 @@ class DataFlowSanitizer : public ModulePass {
   friend class DFSanVisitor;
 
   enum {
-    ShadowWidth = 16
+    ShadowWidth = 32
   };
 
   enum {

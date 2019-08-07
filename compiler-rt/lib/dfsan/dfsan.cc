@@ -34,10 +34,18 @@
 
 using namespace __dfsan;
 
-typedef atomic_uint16_t atomic_dfsan_label;
-static const dfsan_label kInitializingLabel = -1;
+typedef atomic_uint32_t atomic_dfsan_label;
 
-static const uptr kNumLabels = 1 << (sizeof(dfsan_label) * 8);
+// In Discovery mode, we create a new label for each LLVM IR instruction
+// execution. This means the original limit of 2^16 labels is insufficient.
+// 2^32 is too much static memory allocation, so we settle on a compromise.
+// Dynamic Data-Flow graphs of more than 1000000 nodes are unlikely to be
+// useful.
+// FIXME: update shadow memory areas for other platforms than Linux/x86_64.
+// FIXME: update union table memory areas (in Discovery mode, these are unused).
+static const uptr kNumLabels = 1000000;
+
+static const dfsan_label kInitializingLabel = kNumLabels - 1;
 
 static atomic_dfsan_label __dfsan_last_label;
 static dfsan_label_info __dfsan_label_info[kNumLabels];
@@ -88,7 +96,7 @@ static atomic_bool __tracing{1};
 // |                    |
 // +--------------------+ 0x2200000000 (kUnusedAddr)
 // |    union table     |
-// +--------------------+ 0x2000000000 (kUnionTableAddr)
+// +--------------------+ 0x4000000000 (kUnionTableAddr)
 // |   shadow memory    |
 // +--------------------+ 0x0000010000 (kShadowAddr)
 // | reserved by kernel |
