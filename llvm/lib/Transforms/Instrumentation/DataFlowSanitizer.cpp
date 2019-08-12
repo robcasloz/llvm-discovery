@@ -352,6 +352,7 @@ class DataFlowSanitizer : public ModulePass {
   PointerType *ShadowPtrTy;
   IntegerType *IntptrTy;
   IntegerType *BlockIdTy;
+  PointerType *StaticInstIdTy;
   ConstantInt *ZeroShadow;
   ConstantInt *ShadowPtrMask;
   ConstantInt *ShadowPtrMul;
@@ -372,9 +373,9 @@ class DataFlowSanitizer : public ModulePass {
   FunctionType *DFSanPrintDataFlowFnTy;
   FunctionType *DFSanCreateLabelWithDefinerFnTy;
   FunctionType *DFSanPrintBlockPropertyFnTy;
+  FunctionType *DFSanPrintInstructionPropertyFnTy;
   FunctionType *DFSanOpenTraceFnTy;
   FunctionType *DFSanCloseTraceFnTy;
-  FunctionType *DFSanPrintBlockNameFnTy;
   Constant *DFSanUnionFn;
   Constant *DFSanCheckedUnionFn;
   Constant *DFSanUnionLoadFn;
@@ -386,14 +387,16 @@ class DataFlowSanitizer : public ModulePass {
   Constant *DFSanPrintDataFlowFn;
   Constant *DFSanCreateLabelWithDefinerFn;
   Constant *DFSanPrintBlockPropertyFn;
+  Constant *DFSanPrintInstructionPropertyFn;
   Constant *DFSanOpenTraceFn;
   Constant *DFSanCloseTraceFn;
-  Constant* DFSanPrintBlockNameFn;
   MDNode *ColdCallWeights;
   DFSanABIList ABIList;
   DenseMap<Value *, Function *> UnwrappedFnMap;
   AttrBuilder ReadOnlyNoneAttrs;
   bool DFSanRuntimeShadowMask = false;
+  // Static instruction ID counter that is unique within the module.
+  unsigned int StaticInstID = 0;
 
   Value *getShadowAddress(Value *Addr, Instruction *Pos);
   bool isInstrumented(const Function *F);
@@ -436,6 +439,7 @@ struct DFSanFunction {
   DenseSet<Instruction *> SkipInsts;
   std::vector<Value *> NonZeroChecks;
   bool AvoidNewBlocks;
+  // Set of instructions marked as belonging to an iterator.
   InstRefSet IRInsts;
 
   struct CachedCombinedShadow {
@@ -605,6 +609,7 @@ bool DataFlowSanitizer::doInitialization(Module &M) {
   ShadowPtrTy = PointerType::getUnqual(ShadowTy);
   IntptrTy = DL.getIntPtrType(*Ctx);
   BlockIdTy = IntegerType::get(*Ctx, BlockIdWidth);
+  StaticInstIdTy = Type::getInt8PtrTy(*Ctx);
   ZeroShadow = ConstantInt::getSigned(ShadowTy, 0);
   ShadowPtrMul = ConstantInt::getSigned(IntptrTy, ShadowWidth / 8);
   if (IsX86_64)
@@ -645,16 +650,14 @@ bool DataFlowSanitizer::doInitialization(Module &M) {
       { BlockIdTy, Type::getInt8PtrTy(*Ctx), Type::getInt8PtrTy(*Ctx) };
     DFSanPrintBlockPropertyFnTy = FunctionType::get(
         Type::getVoidTy(*Ctx), DFSanPrintBlockPropertyArgs, /*isVarArg=*/false);
+    Type *DFSanPrintInstructionPropertyArgs[3] =
+      { StaticInstIdTy, Type::getInt8PtrTy(*Ctx), Type::getInt8PtrTy(*Ctx) };
+    DFSanPrintInstructionPropertyFnTy = FunctionType::get(
+        Type::getVoidTy(*Ctx), DFSanPrintInstructionPropertyArgs, /*isVarArg=*/false);
     DFSanOpenTraceFnTy = FunctionType::get(
         Type::getVoidTy(*Ctx), {}, /*isVarArg=*/false);
     DFSanCloseTraceFnTy = FunctionType::get(
         Type::getVoidTy(*Ctx), {}, /*isVarArg=*/false);
-    if (ClDiscoveryDebug) {
-      Type *DFSanPrintBlockNameArgs[2] =
-        { BlockIdTy, Type::getInt8PtrTy(*Ctx) };
-      DFSanPrintBlockNameFnTy = FunctionType::get(
-        Type::getVoidTy(*Ctx), DFSanPrintBlockNameArgs, /*isVarArg=*/false);
-    }
   }
 
   if (GetArgTLSPtr) {
@@ -876,17 +879,15 @@ bool DataFlowSanitizer::runOnModule(Module &M) {
     DFSanPrintBlockPropertyFn =
         Mod->getOrInsertFunction("__dfsan_print_block_property",
                                  DFSanPrintBlockPropertyFnTy);
+    DFSanPrintInstructionPropertyFn =
+        Mod->getOrInsertFunction("__dfsan_print_instruction_property",
+                                 DFSanPrintInstructionPropertyFnTy);
     DFSanOpenTraceFn =
         Mod->getOrInsertFunction("__dfsan_open_trace",
                                  DFSanOpenTraceFnTy);
     DFSanCloseTraceFn =
         Mod->getOrInsertFunction("__dfsan_close_trace",
                                  DFSanCloseTraceFnTy);
-    if (ClDiscoveryDebug) {
-      DFSanPrintBlockNameFn =
-        Mod->getOrInsertFunction("__dfsan_print_block_name",
-                                 DFSanPrintBlockNameFnTy);
-    }
   }
   std::vector<Function *> FnsToInstrument;
   SmallPtrSet<Function *, 2> FnsWithNativeABI;
@@ -904,11 +905,10 @@ bool DataFlowSanitizer::runOnModule(Module &M) {
            &i != DFSanPrintDataFlowFn &&
            &i != DFSanCreateLabelWithDefinerFn &&
            &i != DFSanPrintBlockPropertyFn &&
+           &i != DFSanPrintInstructionPropertyFn &&
            &i != DFSanOpenTraceFn &&
            &i != DFSanCloseTraceFn)) {
-        if (!ClDiscoveryDebug ||
-            (&i != DFSanPrintBlockNameFn))
-          FnsToInstrument.push_back(&i);
+        FnsToInstrument.push_back(&i);
       }
     }
   }
@@ -1113,7 +1113,9 @@ bool DataFlowSanitizer::runOnModule(Module &M) {
     if (ClDiscovery) {
       if (DFSF.F->getName() == "main") {
         IRBuilder<> IRB(&DFSF.F->getEntryBlock().front());
+        // Insert call to open the trace file.
         IRB.CreateCall(DFSF.DFS.DFSanOpenTraceFn, {});
+        // Insert call to close the trace file on return from main().
         for (BasicBlock &B : *DFSF.F) {
           Instruction *Term = B.getTerminator();
           if (isa<ReturnInst>(Term)) {
@@ -1122,6 +1124,7 @@ bool DataFlowSanitizer::runOnModule(Module &M) {
           }
         }
       }
+      // Insert call to close the trace file on any call to exit().
       for (BasicBlock &B : *DFSF.F) {
         for (Instruction &Inst : B) {
           if (isa<CallInst>(Inst)) {
@@ -1327,18 +1330,24 @@ Value *DFSanFunction::combineOperandShadows(Instruction *Inst) {
 
   if (ClDiscovery) {
     IRBuilder<> IRB(Inst);
-    // Enter assignment and get a new block ID.
-    CallInst *CallEA = IRB.CreateCall(DFS.DFSanEnterAssignmentFn, {});
-    // If asked for, print whether the block is part of an iterator.
+    // First, compute and print properties of the static instruction.
+    std::stringstream StaticInstIDString;
+    StaticInstIDString << F->getParent()->getModuleIdentifier() << ":"
+                       << DFS.StaticInstID;
+    Constant * StaticInstIDPtr =
+      IRB.CreateGlobalStringPtr(StaticInstIDString.str());
+    DFS.StaticInstID++;
+    // If asked for, print whether the instruction is part of an iterator.
     if (ClDiscoveryMarkIterators) {
       if (IRInsts.count(Inst)) {
-        IRB.CreateCall(DFS.DFSanPrintBlockPropertyFn,
-                       {CallEA, IRB.CreateGlobalStringPtr("ITERATOR"),
+        IRB.CreateCall(DFS.DFSanPrintInstructionPropertyFn,
+                       {StaticInstIDPtr,
+                           IRB.CreateGlobalStringPtr("ITERATOR"),
                            IRB.CreateGlobalStringPtr("TRUE")});
       }
     }
-    // Print whether the block is "impure", that is, it is a system call, a
-    // conditional branch, or a return from main(). A system call in this
+    // Print whether the instruction is "impure", that is, it is a system call,
+    // a conditional branch, or a return from main(). A system call in this
     // context is a call to any external function that is opaque to
     // DataFlowSanitizer (that is, non-functional system calls in the
     // DataFlowSanitizer's ABI list). These are the only function calls that are
@@ -1346,11 +1355,13 @@ Value *DFSanFunction::combineOperandShadows(Instruction *Inst) {
     if (isa<CallInst>(Inst) ||
         isa<ReturnInst>(Inst) ||
         isa<BranchInst>(Inst)) {
-      IRB.CreateCall(DFS.DFSanPrintBlockPropertyFn,
-                     {CallEA, IRB.CreateGlobalStringPtr("IMPURE"),
+      IRB.CreateCall(DFS.DFSanPrintInstructionPropertyFn,
+                     {StaticInstIDPtr,
+                         IRB.CreateGlobalStringPtr("IMPURE"),
                          IRB.CreateGlobalStringPtr("TRUE")});
     }
-    // In debug mode, print the name of each block for more readable graphs.
+    // In debug mode, mark the name and location of each instruction for more
+    // readable graphs.
     if (ClDiscoveryDebug) {
       StringRef Name;
       if (isa<CallInst>(Inst)) {
@@ -1363,18 +1374,27 @@ Value *DFSanFunction::combineOperandShadows(Instruction *Inst) {
       } else {
         Name = Inst->getOpcodeName();
       }
-      IRB.CreateCall(DFS.DFSanPrintBlockNameFn,
-                     {CallEA,
+      IRB.CreateCall(DFS.DFSanPrintInstructionPropertyFn,
+                     {StaticInstIDPtr,
+                         IRB.CreateGlobalStringPtr("NAME"),
                          IRB.CreateGlobalStringPtr(Name)});
       const DebugLoc &Loc = Inst->getDebugLoc();
       if (Loc) {
         std::stringstream LocString;
         LocString << Loc->getFilename().str()  << ":" << Loc->getLine();
-        IRB.CreateCall(DFS.DFSanPrintBlockPropertyFn,
-                       {CallEA, IRB.CreateGlobalStringPtr("LOCATION"),
-                           IRB.CreateGlobalStringPtr(LocString.str())});
+        IRB.CreateCall(DFS.DFSanPrintInstructionPropertyFn,
+                       {StaticInstIDPtr,
+                           IRB.CreateGlobalStringPtr("LOCATION"),
+                           IRB.CreateGlobalStringPtr
+                           (LocString.str())});
       }
     }
+    // Enter assignment and get a new block ID.
+    CallInst *CallEA = IRB.CreateCall(DFS.DFSanEnterAssignmentFn, {});
+    // Print the static instruction to which this block corresponds.
+    IRB.CreateCall(DFS.DFSanPrintBlockPropertyFn,
+                   {CallEA, IRB.CreateGlobalStringPtr("INSTRUCTION"),
+                       IRB.CreateGlobalStringPtr(StaticInstIDString.str())});
     // Print the data flow from each Inst operand's definer to the new block ID.
     for (unsigned i = 0, n = Inst->getNumOperands(); i != n; ++i) {
       Value * Op = Inst->getOperand(i);

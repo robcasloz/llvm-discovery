@@ -454,11 +454,14 @@ __dfsan_print_block_property(int id, const char * key, const char * value) {
   fprintf(__dfsan_trace, "BP %d %s %s\n", id, key, value);
 }
 
-// Prints the name of the given block ID for debugging purposes.
+// Prints a property of the given (static) instruction ID.
 extern "C" SANITIZER_INTERFACE_ATTRIBUTE void
-__dfsan_print_block_name(int id, const char * name) {
+__dfsan_print_instruction_property(const char * id, const char * key,
+                                   const char * value) {
   if (!atomic_load(&__tracing, memory_order_acquire)) return;
-  __dfsan_print_block_property(id, "NAME", name);
+  // TODO: keep a set of visited instructions, avoid printing twice.
+  assert(__dfsan_trace != NULL);
+  fprintf(__dfsan_trace, "IP %s %s %s\n", id, key, value);
 }
 
 extern "C" SANITIZER_INTERFACE_ATTRIBUTE
