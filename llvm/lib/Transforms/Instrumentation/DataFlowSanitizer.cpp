@@ -1381,7 +1381,9 @@ Value *DFSanFunction::combineOperandShadows(Instruction *Inst) {
       const DebugLoc &Loc = Inst->getDebugLoc();
       if (Loc) {
         std::stringstream LocString;
-        LocString << Loc->getFilename().str()  << ":" << Loc->getLine();
+        LocString << Loc->getFilename().str()  << ":"
+                  << Loc->getLine() << ":"
+                  << Loc->getColumn();
         IRB.CreateCall(DFS.DFSanPrintInstructionPropertyFn,
                        {StaticInstIDPtr,
                            IRB.CreateGlobalStringPtr("LOCATION"),
