@@ -1,0 +1,8 @@
+###############################################################################
+# FreeImage functions linked to Mandelbrot_set
+###############################################################################
+
+fun:FreeImage_Allocate=uninstrumented
+fun:FreeImage_SetPixelColor=uninstrumented
+fun:FreeImage_Save=uninstrumented
+fun:FreeImage_Unload=uninstrumented
