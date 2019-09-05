@@ -64,6 +64,9 @@ static FILE *__dfsan_trace = NULL;
 typedef atomic_uint8_t atomic_bool;
 static atomic_bool __tracing{1};
 
+static const uptr kNumMarks = 10;
+static atomic_bool __dfsan_marks[kNumMarks];
+
 // On Linux/x86_64, memory is laid out as follows:
 //
 // +--------------------+ 0x800000000000 (top of memory)
@@ -433,6 +436,12 @@ __dfsan_print_data_flow(dfsan_label l, int id) {
     int definer = *((int*)data);
     fprintf(__dfsan_trace, "DF %d %d\n", definer, id);
   }
+  // Print all marks.
+  for (unsigned i = 0; i < kNumMarks; i++) {
+    if (atomic_load(&__dfsan_marks[i], memory_order_acquire)) {
+        fprintf(__dfsan_trace, "BP %d MARK %d\n", id, i);
+    }
+  }
   return;
 }
 
@@ -485,6 +494,24 @@ dfsan_on() {
 extern "C" SANITIZER_INTERFACE_ATTRIBUTE void
 dfsan_off() {
   atomic_store(&__tracing, 0, memory_order_release);
+}
+
+extern "C" SANITIZER_INTERFACE_ATTRIBUTE void
+dfsan_begin_marking(unsigned i) {
+  if (i >= kNumMarks) {
+    Report("FATAL: DataFlowSanitizer: mark too large\n");
+    Die();
+  }
+  atomic_store(&__dfsan_marks[i], 1, memory_order_release);
+}
+
+extern "C" SANITIZER_INTERFACE_ATTRIBUTE void
+dfsan_end_marking(unsigned i) {
+  if (i >= kNumMarks) {
+    Report("FATAL: DataFlowSanitizer: mark too large\n");
+    Die();
+  }
+  atomic_store(&__dfsan_marks[i], 0, memory_order_release);
 }
 
 void Flags::SetDefaults() {

@@ -32,6 +32,10 @@ fun:dfsan_on=uninstrumented
 fun:dfsan_on=discard
 fun:dfsan_off=uninstrumented
 fun:dfsan_off=discard
+fun:dfsan_begin_marking=uninstrumented
+fun:dfsan_begin_marking=discard
+fun:dfsan_end_marking=uninstrumented
+fun:dfsan_end_marking=discard
 
 ###############################################################################
 # glibc

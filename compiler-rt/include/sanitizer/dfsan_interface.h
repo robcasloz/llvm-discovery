@@ -114,6 +114,12 @@ void dfsan_on();
 /// Turns tracing off globally (by default, tracing is enabled).
 void dfsan_off();
 
+/// Begins marking data-flow with the given identifier.
+void dfsan_begin_marking(unsigned i);
+
+/// Ends marking data-flow with the given identifier.
+void dfsan_end_marking(unsigned i);
+
 #ifdef __cplusplus
 }  // extern "C"
 
