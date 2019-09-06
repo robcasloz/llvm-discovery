@@ -66,6 +66,7 @@ static atomic_bool __tracing{1};
 
 static const uptr kNumMarks = 10;
 static atomic_bool __dfsan_marks[kNumMarks];
+static atomic_uint32_t __dfsan_mark_instances[kNumMarks];
 
 // On Linux/x86_64, memory is laid out as follows:
 //
@@ -439,7 +440,9 @@ __dfsan_print_data_flow(dfsan_label l, int id) {
   // Print all marks.
   for (unsigned i = 0; i < kNumMarks; i++) {
     if (atomic_load(&__dfsan_marks[i], memory_order_acquire)) {
-        fprintf(__dfsan_trace, "BP %d MARK %d\n", id, i);
+      unsigned int instance =
+        atomic_load(&__dfsan_mark_instances[i], memory_order_acquire);
+      fprintf(__dfsan_trace, "BP %d MARK %d-%d\n", id, i, instance);
     }
   }
   return;
@@ -503,6 +506,7 @@ dfsan_begin_marking(unsigned i) {
     Die();
   }
   atomic_store(&__dfsan_marks[i], 1, memory_order_release);
+  atomic_fetch_add(&__dfsan_mark_instances[i], 1, memory_order_release);
 }
 
 extern "C" SANITIZER_INTERFACE_ATTRIBUTE void
