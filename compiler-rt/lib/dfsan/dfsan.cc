@@ -48,6 +48,7 @@ static const uptr kNumLabels = 1000000;
 static const dfsan_label kInitializingLabel = kNumLabels - 1;
 
 static atomic_dfsan_label __dfsan_last_label;
+static atomic_dfsan_label __dfsan_last_execution;
 static dfsan_label_info __dfsan_label_info[kNumLabels];
 
 Flags __dfsan::flags_data;
@@ -402,6 +403,7 @@ __dfsan_close_trace() {
 // Returns a new block ID to be used in an assignment block.
 extern "C" SANITIZER_INTERFACE_ATTRIBUTE int
 __dfsan_enter_assignment() {
+  atomic_fetch_add(&__dfsan_last_execution, 1, memory_order_relaxed);
   if (!atomic_load(&__tracing, memory_order_acquire)) return 0;
   int last_id =
     atomic_fetch_add(&__dfsan_last_id, 1, memory_order_relaxed) + 1;
@@ -516,6 +518,11 @@ dfsan_end_marking(unsigned i) {
     Die();
   }
   atomic_store(&__dfsan_marks[i], 0, memory_order_release);
+}
+
+extern "C" SANITIZER_INTERFACE_ATTRIBUTE int
+dfsan_get_execution_count(void) {
+  return atomic_load(&__dfsan_last_execution, memory_order_relaxed);
 }
 
 void Flags::SetDefaults() {

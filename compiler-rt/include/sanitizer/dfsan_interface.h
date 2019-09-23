@@ -120,6 +120,9 @@ void dfsan_begin_marking(unsigned i);
 /// Ends marking data-flow with the given identifier.
 void dfsan_end_marking(unsigned i);
 
+/// Returns the number of potentially defined labels if tracing is on.
+int dfsan_get_execution_count();
+
 #ifdef __cplusplus
 }  // extern "C"
 
