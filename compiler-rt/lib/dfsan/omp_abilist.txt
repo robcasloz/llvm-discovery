@@ -1,0 +1,14 @@
+###############################################################################
+# OpenMP-specific functions
+###############################################################################
+
+fun:__kmpc_critical=uninstrumented
+fun:__kmpc_dispatch_init_*=uninstrumented
+fun:__kmpc_dispatch_next_*=uninstrumented
+fun:__kmpc_end_critical=uninstrumented
+fun:__kmpc_fork_call=uninstrumented
+fun:__kmpc_for_static_fini=uninstrumented
+fun:__kmpc_for_static_init_*=uninstrumented
+fun:__kmpc_global_thread_num=uninstrumented
+fun:omp_get_max_threads=uninstrumented
+fun:omp_get_thread_num=uninstrumented
