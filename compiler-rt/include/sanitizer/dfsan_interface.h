@@ -104,15 +104,13 @@ void dfsan_weak_hook_strncmp(void *caller_pc, const char *s1, const char *s2,
                              size_t n, dfsan_label s1_label,
                              dfsan_label s2_label, dfsan_label n_label);
 
-/// Marks the latest definer of [addr,addr+size) in the dynamic data-flow graph
-/// with the attribute s.
-void dfsan_highlight(void *addr, size_t size, const char *s);
+/// Switches to coarse-grained tracing, globally. This mode collapses all
+/// data-flow into a single region with the given name.
+void dfsan_trace_region(const char *name);
 
-/// Turns tracing on globally (by default, tracing is enabled).
-void dfsan_on();
-
-/// Turns tracing off globally (by default, tracing is enabled).
-void dfsan_off();
+/// Switches to fine-grained tracing, globally (default mode). This mode traces
+/// the data-flow of specific LLVM IR instructions.
+void dfsan_trace_instructions();
 
 /// Begins marking data-flow with the given identifier.
 void dfsan_begin_marking(unsigned i);

@@ -482,37 +482,26 @@ __dfsan_print_instruction_property(const char * id, const char * key,
   fprintf(__dfsan_trace, "IP %s %s %s\n", id, key, value);
 }
 
-extern "C" SANITIZER_INTERFACE_ATTRIBUTE
-void dfsan_highlight(void *addr, uptr size, const char * s) {
-  dfsan_label l = dfsan_read_label(addr, size);
-  const dfsan_label_info *info = dfsan_get_label_info(l);
-  assert(info != NULL);
-  void * data = info->userdata;
-  if (data != NULL) {
-    int definer = *((int*)data);
-    assert(__dfsan_trace != NULL);
-    fprintf(__dfsan_trace, "HL %d %s\n", definer, s);
-  }
-}
-
 extern "C" SANITIZER_INTERFACE_ATTRIBUTE void
-dfsan_on() {
-  atomic_store(&__tracing, 1, memory_order_release);
-}
-
-extern "C" SANITIZER_INTERFACE_ATTRIBUTE void
-dfsan_off() {
+dfsan_trace_region(const char *name) {
   int id = atomic_fetch_add(&__dfsan_last_id, 1, memory_order_relaxed) + 1;
   int * data = (int*) malloc(sizeof(int));
   data[0] = id;
   dfsan_create_label("", data);
-  // If tracing is off, annotate the trace blob it belongs to.
-  fprintf(__dfsan_trace, "BP %d INSTRUCTION %d\n", id, id);
-  fprintf(__dfsan_trace, "IP %d NAME blob\n", id);
-  fprintf(__dfsan_trace, "IP %d IMPURE TRUE\n", id);
-  // __dfsan_last_id is the ID of the next trace blob, not to be incremented
+  // If tracing is in coarse-grained mode, all subsequent blocks will belong to
+  // the region defined here.
+  fprintf(__dfsan_trace, "BP %d INSTRUCTION %s\n", id, name);
+  fprintf(__dfsan_trace, "IP %s NAME %s\n", name, name);
+  fprintf(__dfsan_trace, "IP %s IMPURE TRUE\n", name);
+  fprintf(__dfsan_trace, "IP %s REGION TRUE\n", name);
+  // __dfsan_last_id is the ID of the next trace region, not to be incremented
   // until __tracing is set to 1 again.
   atomic_store(&__tracing, 0, memory_order_release);
+}
+
+extern "C" SANITIZER_INTERFACE_ATTRIBUTE void
+dfsan_trace_instructions() {
+  atomic_store(&__tracing, 1, memory_order_release);
 }
 
 extern "C" SANITIZER_INTERFACE_ATTRIBUTE void
