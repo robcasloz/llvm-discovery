@@ -1,0 +1,26 @@
+###############################################################################
+# GSL functions linked to the transfil benchmark
+###############################################################################
+
+fun:gsl_blas_dtrmv=uninstrumented
+fun:gsl_cdf_gaussian_Pinv=uninstrumented
+fun:gsl_linalg_cholesky_decomp=uninstrumented
+fun:gsl_matrix_alloc=uninstrumented
+fun:gsl_matrix_free=uninstrumented
+fun:gsl_matrix_memcpy=uninstrumented
+fun:gsl_matrix_set=uninstrumented
+fun:gsl_ran_exponential=uninstrumented
+fun:gsl_ran_flat=uninstrumented
+fun:gsl_ran_gamma=uninstrumented
+fun:gsl_ran_gaussian=uninstrumented
+fun:gsl_ran_poisson=uninstrumented
+fun:gsl_ran_ugaussian=uninstrumented
+fun:gsl_rng_alloc=uninstrumented
+fun:gsl_rng_env_setup=uninstrumented
+fun:gsl_rng_free=uninstrumented
+fun:gsl_rng_set=uninstrumented
+fun:gsl_vector_add=uninstrumented
+fun:gsl_vector_alloc=uninstrumented
+fun:gsl_vector_free=uninstrumented
+fun:gsl_vector_get=uninstrumented
+fun:gsl_vector_set=uninstrumented

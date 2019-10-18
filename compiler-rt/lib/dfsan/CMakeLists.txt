@@ -54,8 +54,10 @@ add_custom_command(OUTPUT ${dfsan_abilist_filename}
                          ${CMAKE_CURRENT_SOURCE_DIR}/omp_abilist.txt
                          ${CMAKE_CURRENT_SOURCE_DIR}/pgpry_abilist.txt
                          ${CMAKE_CURRENT_SOURCE_DIR}/freeimage_abilist.txt
+                         ${CMAKE_CURRENT_SOURCE_DIR}/png_abilist.txt
+                         ${CMAKE_CURRENT_SOURCE_DIR}/gsl_abilist.txt
                          > ${dfsan_abilist_filename}
-                   DEPENDS done_abilist.txt libc_ubuntu1404_abilist.txt cxx_abilist.txt omp_abilist.txt pgpry_abilist.txt freeimage_abilist.txt)
+                   DEPENDS done_abilist.txt libc_ubuntu1404_abilist.txt cxx_abilist.txt omp_abilist.txt pgpry_abilist.txt freeimage_abilist.txt png_abilist.txt gsl_abilist.txt)
 add_dependencies(dfsan dfsan_abilist)
 install(FILES ${dfsan_abilist_filename}
         DESTINATION ${COMPILER_RT_INSTALL_PATH}/share)

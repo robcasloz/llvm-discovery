@@ -1,0 +1,14 @@
+###############################################################################
+# libpng functions linked to the Convolution benchmark
+###############################################################################
+
+fun:png_create_info_struct=uninstrumented
+fun:png_create_read_struct=uninstrumented
+fun:png_get_rowbytes=uninstrumented
+fun:png_init_io=uninstrumented
+fun:png_malloc=uninstrumented
+fun:png_read_info=uninstrumented
+fun:png_read_rows=uninstrumented
+fun:png_set_rows=uninstrumented
+fun:png_set_sig_bytes=uninstrumented
+fun:png_sig_cmp=uninstrumented
