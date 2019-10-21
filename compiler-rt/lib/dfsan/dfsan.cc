@@ -63,7 +63,7 @@ static atomic_dfsan_id __dfsan_last_id{0};
 static FILE *__dfsan_trace = NULL;
 
 typedef atomic_uint8_t atomic_bool;
-static atomic_bool __tracing{1};
+static atomic_bool __dfsan_instruction_tracing{0};
 
 static const uptr kNumMarks = 10;
 static atomic_bool __dfsan_marks[kNumMarks];
@@ -386,25 +386,11 @@ dfsan_dump_labels(int fd) {
   }
 }
 
-// Opens trace file.
-extern "C" SANITIZER_INTERFACE_ATTRIBUTE void
-__dfsan_open_trace() {
-  __dfsan_trace = fopen("trace", "a");
-  assert(__dfsan_trace != NULL);
-}
-
-// Closes trace file.
-extern "C" SANITIZER_INTERFACE_ATTRIBUTE void
-__dfsan_close_trace() {
-  int ret = fclose(__dfsan_trace);
-  assert(ret == 0);
-}
-
 // Returns a new block ID to be used in an assignment block.
 extern "C" SANITIZER_INTERFACE_ATTRIBUTE int
 __dfsan_enter_assignment() {
   atomic_fetch_add(&__dfsan_last_execution, 1, memory_order_relaxed);
-  if (atomic_load(&__tracing, memory_order_acquire)) {
+  if (atomic_load(&__dfsan_instruction_tracing, memory_order_acquire)) {
     return atomic_fetch_add(&__dfsan_last_id, 1, memory_order_relaxed) + 1;
   } else {
     return atomic_load(&__dfsan_last_id, memory_order_relaxed);
@@ -433,7 +419,7 @@ __dfsan_print_data_flow(dfsan_label l, int id) {
   // TODO: protect
   if (data == NULL) {
     // If l does not have a definer, assume it has been defined statically and
-    // assign it the "source block ID" 0.
+    // assign it the "source" region (0).
     fprintf(__dfsan_trace, "DF 0 %d\n", id);
   } else {
     int definer = *((int*)data);
@@ -452,22 +438,27 @@ __dfsan_print_data_flow(dfsan_label l, int id) {
   return;
 }
 
-// Creates a new label l with the given definer.
-extern "C" SANITIZER_INTERFACE_ATTRIBUTE dfsan_label
-__dfsan_create_label_with_definer(int id) {
-  if (!atomic_load(&__tracing, memory_order_acquire)) {
-    return atomic_load(&__dfsan_last_label, memory_order_relaxed);
-  }
+// Creates a label with id as associated data.
+dfsan_label __dfsan_create_id_label(int id) {
   // FIXME: improve this ugly thing, create a pool or something
   int * data = (int*) malloc(sizeof(int));
   data[0] = id;
   return dfsan_create_label("", data);
 }
 
+// Creates a new label l with the given definer.
+extern "C" SANITIZER_INTERFACE_ATTRIBUTE dfsan_label
+__dfsan_create_label_with_definer(int id) {
+  if (!atomic_load(&__dfsan_instruction_tracing, memory_order_acquire)) {
+    return atomic_load(&__dfsan_last_label, memory_order_relaxed);
+  }
+  return __dfsan_create_id_label(id);
+}
+
 // Prints a property of the given block ID.
 extern "C" SANITIZER_INTERFACE_ATTRIBUTE void
 __dfsan_print_block_property(int id, const char * key, const char * value) {
-  if (!atomic_load(&__tracing, memory_order_acquire)) return;
+  if (!atomic_load(&__dfsan_instruction_tracing, memory_order_acquire)) return;
   assert(__dfsan_trace != NULL);
   fprintf(__dfsan_trace, "BP %d %s %s\n", id, key, value);
 }
@@ -476,32 +467,33 @@ __dfsan_print_block_property(int id, const char * key, const char * value) {
 extern "C" SANITIZER_INTERFACE_ATTRIBUTE void
 __dfsan_print_instruction_property(const char * id, const char * key,
                                    const char * value) {
-  if (!atomic_load(&__tracing, memory_order_acquire)) return;
+  if (!atomic_load(&__dfsan_instruction_tracing, memory_order_acquire)) return;
   // TODO: keep a set of visited instructions, avoid printing twice.
   assert(__dfsan_trace != NULL);
   fprintf(__dfsan_trace, "IP %s %s %s\n", id, key, value);
 }
 
-extern "C" SANITIZER_INTERFACE_ATTRIBUTE void
-dfsan_trace_region(const char *name) {
-  int id = atomic_fetch_add(&__dfsan_last_id, 1, memory_order_relaxed) + 1;
-  int * data = (int*) malloc(sizeof(int));
-  data[0] = id;
-  dfsan_create_label("", data);
-  // If tracing is in coarse-grained mode, all subsequent blocks will belong to
-  // the region defined here.
+// Creates a region and defines its properties.
+void __dfsan_create_region(int id, const char *name) {
+  __dfsan_create_id_label(id);
   fprintf(__dfsan_trace, "BP %d INSTRUCTION %s\n", id, name);
   fprintf(__dfsan_trace, "IP %s NAME %s\n", name, name);
   fprintf(__dfsan_trace, "IP %s IMPURE TRUE\n", name);
   fprintf(__dfsan_trace, "IP %s REGION TRUE\n", name);
+}
+
+extern "C" SANITIZER_INTERFACE_ATTRIBUTE void
+dfsan_trace_region(const char *name) {
+  int id = atomic_fetch_add(&__dfsan_last_id, 1, memory_order_relaxed) + 1;
+  __dfsan_create_region(id, name);
   // __dfsan_last_id is the ID of the next trace region, not to be incremented
-  // until __tracing is set to 1 again.
-  atomic_store(&__tracing, 0, memory_order_release);
+  // until __dfsan_instruction_tracing is set to 1 again.
+  atomic_store(&__dfsan_instruction_tracing, 0, memory_order_release);
 }
 
 extern "C" SANITIZER_INTERFACE_ATTRIBUTE void
 dfsan_trace_instructions() {
-  atomic_store(&__tracing, 1, memory_order_release);
+  atomic_store(&__dfsan_instruction_tracing, 1, memory_order_release);
 }
 
 extern "C" SANITIZER_INTERFACE_ATTRIBUTE void
@@ -526,6 +518,21 @@ dfsan_end_marking(unsigned i) {
 extern "C" SANITIZER_INTERFACE_ATTRIBUTE int
 dfsan_get_execution_count(void) {
   return atomic_load(&__dfsan_last_execution, memory_order_relaxed);
+}
+
+// Opens trace file and sets up the "source" region.
+extern "C" SANITIZER_INTERFACE_ATTRIBUTE void
+__dfsan_open_trace() {
+  __dfsan_trace = fopen("trace", "a");
+  assert(__dfsan_trace != NULL);
+  __dfsan_create_region(0, "source");
+}
+
+// Closes trace file.
+extern "C" SANITIZER_INTERFACE_ATTRIBUTE void
+__dfsan_close_trace() {
+  int ret = fclose(__dfsan_trace);
+  assert(ret == 0);
 }
 
 void Flags::SetDefaults() {
