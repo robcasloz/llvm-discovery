@@ -1041,6 +1041,17 @@ bool DataFlowSanitizer::runOnModule(Module &M) {
     }
   }
 
+  // Whether the module has global static initializations (for trace opening).
+  bool StaticInits = false;
+  for (Function *i : FnsToInstrument) {
+    if (!i || i->isDeclaration())
+      continue;
+    if (i->getName().contains("_GLOBAL__sub_I_")) {
+      StaticInits = true;
+      break;
+    }
+  }
+
   for (Function *i : FnsToInstrument) {
     if (!i || i->isDeclaration())
       continue;
@@ -1109,12 +1120,16 @@ bool DataFlowSanitizer::runOnModule(Module &M) {
     }
 
     // In ClDiscovery mode, insert calls to open and close the trace file on
-    // entry to main(), return from main(), or any call to exit().
+    // entry to main() (or alternative on entry to _GLOBAL__sub_I_ if present),
+    // return from main(), or any call to exit().
     if (ClDiscovery) {
-      if (DFSF.F->getName() == "main") {
+      if (( StaticInits && DFSF.F->getName().contains("_GLOBAL__sub_I_")) ||
+          (!StaticInits && DFSF.F->getName() == "main")) {
         IRBuilder<> IRB(&DFSF.F->getEntryBlock().front());
         // Insert call to open the trace file.
         IRB.CreateCall(DFSF.DFS.DFSanOpenTraceFn, {});
+      }
+      if (DFSF.F->getName() == "main") {
         // Insert call to close the trace file on return from main().
         for (BasicBlock &B : *DFSF.F) {
           Instruction *Term = B.getTerminator();
