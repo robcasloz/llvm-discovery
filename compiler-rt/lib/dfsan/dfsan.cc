@@ -416,16 +416,12 @@ __dfsan_print_data_flow(dfsan_label l, int id) {
   }
   void * data = info->userdata;
   assert(__dfsan_trace != NULL);
+  // If l does not have a definer, assume it has been defined statically and
+  // assign it the "source" region (0).
   // TODO: protect
-  if (data == NULL) {
-    // If l does not have a definer, assume it has been defined statically and
-    // assign it the "source" region (0).
-    fprintf(__dfsan_trace, "DF 0 %d\n", id);
-  } else {
-    int definer = *((int*)data);
-    if (definer != id) { // Avoid printing self-loops within trace blobs.
-      fprintf(__dfsan_trace, "DF %d %d\n", definer, id);
-    }
+  int definer = (data ? *((int*)data) : 0);
+  if (definer != id) { // Avoid printing self-loops within trace blobs.
+    fprintf(__dfsan_trace, "DF %d %d\n", definer, id);
   }
   // Print all marks.
   for (unsigned i = 0; i < kNumMarks; i++) {
