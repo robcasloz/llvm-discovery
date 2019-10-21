@@ -1361,18 +1361,22 @@ Value *DFSanFunction::combineOperandShadows(Instruction *Inst) {
                            IRB.CreateGlobalStringPtr("TRUE")});
       }
     }
-    // Print whether the instruction is "impure", that is, it is a system call,
-    // a conditional branch, or a return from main(). A system call in this
-    // context is a call to any external function that is opaque to
-    // DataFlowSanitizer (that is, non-functional system calls in the
-    // DataFlowSanitizer's ABI list). These are the only function calls that are
-    // observed here.
-    if (isa<CallInst>(Inst) ||
-        isa<ReturnInst>(Inst) ||
-        isa<BranchInst>(Inst)) {
+    // Print whether the instruction is impure. A system call in this context is
+    // a call to any external function that is opaque to DataFlowSanitizer (that
+    // is, non-functional system calls in the DataFlowSanitizer's ABI
+    // list). These are the only function calls that are observed here.
+    if (isa<CallInst>(Inst)) {
       IRB.CreateCall(DFS.DFSanPrintInstructionPropertyFn,
                      {StaticInstIDPtr,
                          IRB.CreateGlobalStringPtr("IMPURE"),
+                         IRB.CreateGlobalStringPtr("TRUE")});
+    // Print whether the instruction has control-flow (a conditional branch or a
+    // return from main(), all other returns are not visible).
+    } else if (isa<ReturnInst>(Inst) ||
+               isa<BranchInst>(Inst)) {
+      IRB.CreateCall(DFS.DFSanPrintInstructionPropertyFn,
+                     {StaticInstIDPtr,
+                         IRB.CreateGlobalStringPtr("CONTROL"),
                          IRB.CreateGlobalStringPtr("TRUE")});
     }
     // In debug mode, mark the name and location of each instruction for more
@@ -1824,12 +1828,12 @@ void DFSanVisitor::visitCallSite(CallSite CS) {
     // In ClDiscovery mode, we trace the input data-flow to system calls such as
     // printf, to distinguish the computations that affect the behaviour of the
     // program. An exception is "functional" system calls, which are treated as
-    // simple operations. After the execution, data-flow unreachable from the
-    // system calls and other impure blocks (conditional branches and return
-    // from "main") is pruned and only the "essence" of the program is left (see
-    // "Redux" paper by Nethercote and Mycroft). If ClCombinePointerLabelsOnLoad
-    // and ClCombinePointerLabelsOnStore are set to false, address computations
-    // will also be pruned as in Redux.
+    // simple operations. After the execution, data-flow unreachable from system
+    // calls, conditional branches, and return from "main" is pruned and only
+    // the "essence" of the program is left (see "Redux" paper by Nethercote and
+    // Mycroft). If ClCombinePointerLabelsOnLoad and
+    // ClCombinePointerLabelsOnStore are set to false, address computations will
+    // also be pruned as in Redux.
     switch (DFSF.DFS.getWrapperKind(F)) {
     case DataFlowSanitizer::WK_Warning:
       CS.setCalledFunction(F);
