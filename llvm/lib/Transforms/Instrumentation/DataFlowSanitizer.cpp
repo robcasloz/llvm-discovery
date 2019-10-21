@@ -374,6 +374,7 @@ class DataFlowSanitizer : public ModulePass {
   FunctionType *DFSanCreateLabelWithDefinerFnTy;
   FunctionType *DFSanPrintBlockPropertyFnTy;
   FunctionType *DFSanPrintInstructionPropertyFnTy;
+  FunctionType *DFSanPrintRegionPropertyFnTy;
   FunctionType *DFSanOpenTraceFnTy;
   FunctionType *DFSanCloseTraceFnTy;
   Constant *DFSanUnionFn;
@@ -388,6 +389,7 @@ class DataFlowSanitizer : public ModulePass {
   Constant *DFSanCreateLabelWithDefinerFn;
   Constant *DFSanPrintBlockPropertyFn;
   Constant *DFSanPrintInstructionPropertyFn;
+  Constant *DFSanPrintRegionPropertyFn;
   Constant *DFSanOpenTraceFn;
   Constant *DFSanCloseTraceFn;
   MDNode *ColdCallWeights;
@@ -654,6 +656,8 @@ bool DataFlowSanitizer::doInitialization(Module &M) {
       { StaticInstIdTy, Type::getInt8PtrTy(*Ctx), Type::getInt8PtrTy(*Ctx) };
     DFSanPrintInstructionPropertyFnTy = FunctionType::get(
         Type::getVoidTy(*Ctx), DFSanPrintInstructionPropertyArgs, /*isVarArg=*/false);
+    DFSanPrintRegionPropertyFnTy = FunctionType::get(
+        Type::getVoidTy(*Ctx), DFSanPrintBlockPropertyArgs, /*isVarArg=*/false);
     DFSanOpenTraceFnTy = FunctionType::get(
         Type::getVoidTy(*Ctx), {}, /*isVarArg=*/false);
     DFSanCloseTraceFnTy = FunctionType::get(
@@ -882,6 +886,9 @@ bool DataFlowSanitizer::runOnModule(Module &M) {
     DFSanPrintInstructionPropertyFn =
         Mod->getOrInsertFunction("__dfsan_print_instruction_property",
                                  DFSanPrintInstructionPropertyFnTy);
+    DFSanPrintRegionPropertyFn =
+        Mod->getOrInsertFunction("__dfsan_print_region_property",
+                                 DFSanPrintRegionPropertyFnTy);
     DFSanOpenTraceFn =
         Mod->getOrInsertFunction("__dfsan_open_trace",
                                  DFSanOpenTraceFnTy);
@@ -906,6 +913,7 @@ bool DataFlowSanitizer::runOnModule(Module &M) {
            &i != DFSanCreateLabelWithDefinerFn &&
            &i != DFSanPrintBlockPropertyFn &&
            &i != DFSanPrintInstructionPropertyFn &&
+           &i != DFSanPrintRegionPropertyFn &&
            &i != DFSanOpenTraceFn &&
            &i != DFSanCloseTraceFn)) {
         FnsToInstrument.push_back(&i);
@@ -1416,6 +1424,14 @@ Value *DFSanFunction::combineOperandShadows(Instruction *Inst) {
     IRB.CreateCall(DFS.DFSanPrintBlockPropertyFn,
                    {CallEA, IRB.CreateGlobalStringPtr("INSTRUCTION"),
                        IRB.CreateGlobalStringPtr(StaticInstIDString.str())});
+    // Print whether the region to which the block belongs is impure (only has
+    // effect on regions). We print this on blocks rather than on the region
+    // instruction definition because the region instruction ID is not stored.
+    if (isa<CallInst>(Inst)) {
+      IRB.CreateCall(DFS.DFSanPrintRegionPropertyFn,
+                     {CallEA, IRB.CreateGlobalStringPtr("IMPURE"),
+                              IRB.CreateGlobalStringPtr("TRUE")});
+    }
     // Print the data flow from each Inst operand's definer to the new block ID.
     for (unsigned i = 0, n = Inst->getNumOperands(); i != n; ++i) {
       Value * Op = Inst->getOperand(i);

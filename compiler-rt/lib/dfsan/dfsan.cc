@@ -469,12 +469,19 @@ __dfsan_print_instruction_property(const char * id, const char * key,
   fprintf(__dfsan_trace, "IP %s %s %s\n", id, key, value);
 }
 
+// Prints a property that holds for the entire region of the given block ID.
+extern "C" SANITIZER_INTERFACE_ATTRIBUTE void
+__dfsan_print_region_property(int id, const char * key, const char * value) {
+  if (atomic_load(&__dfsan_instruction_tracing, memory_order_acquire)) return;
+  assert(__dfsan_trace != NULL);
+  fprintf(__dfsan_trace, "BP %d %s %s\n", id, key, value);
+}
+
 // Creates a region and defines its properties.
 void __dfsan_create_region(int id, const char *name) {
   __dfsan_create_id_label(id);
   fprintf(__dfsan_trace, "BP %d INSTRUCTION %s\n", id, name);
   fprintf(__dfsan_trace, "IP %s NAME %s\n", name, name);
-  fprintf(__dfsan_trace, "IP %s IMPURE TRUE\n", name);
   fprintf(__dfsan_trace, "IP %s REGION TRUE\n", name);
 }
 
