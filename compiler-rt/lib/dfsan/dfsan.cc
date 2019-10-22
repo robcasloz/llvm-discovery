@@ -538,6 +538,12 @@ __dfsan_close_trace() {
   assert(ret == 0);
 }
 
+// Emits a report.
+extern "C" SANITIZER_INTERFACE_ATTRIBUTE void
+__dfsan_report(const char * report) {
+  Report("NOTE: DataFlowSanitizer: %s\n", report);
+}
+
 void Flags::SetDefaults() {
 #define DFSAN_FLAG(Type, Name, DefaultValue, Description) Name = DefaultValue;
 #include "dfsan_flags.inc"

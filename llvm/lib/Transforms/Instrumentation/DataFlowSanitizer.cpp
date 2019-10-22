@@ -182,6 +182,11 @@ static cl::opt<bool> ClDiscoveryMarkIterators(
     cl::desc("Mark iterator code in the dynamic data-flow graph"),
     cl::Hidden, cl::init(false));
 
+static cl::list<std::string> ClDiscoveryCommutativityListFiles(
+    "dfsan-discovery-commutativity-list",
+    cl::desc("File listing commutative functions"),
+    cl::Hidden);
+
 static StringRef GetGlobalTypeString(const GlobalValue &G) {
   // Types of GlobalVariables are always pointer types.
   Type *GType = G.getValueType();
@@ -200,6 +205,27 @@ static StringRef getCalleeName(CallInst &CI) {
 }
 
 namespace {
+
+
+class DFSanCommutativityList {
+  std::unique_ptr<SpecialCaseList> SCL;
+
+  std::vector<StringRef> Always =
+    {"dfsan_trace_region",
+     "dfsan_trace_instructions"};
+
+ public:
+  DFSanCommutativityList() = default;
+
+  void set(std::unique_ptr<SpecialCaseList> List) { SCL = std::move(List); }
+
+  /// Returns whether this function is listed as commutative.
+  bool isIn(StringRef FunctionName) const {
+    if (std::find(Always.begin(), Always.end(), FunctionName) != Always.end())
+      return true;
+    return SCL->inSection("commutative", "fun", FunctionName, "commutative");
+  }
+};
 
 class DFSanABIList {
   std::unique_ptr<SpecialCaseList> SCL;
@@ -383,6 +409,7 @@ class DataFlowSanitizer : public ModulePass {
   FunctionType *DFSanPrintRegionPropertyFnTy;
   FunctionType *DFSanOpenTraceFnTy;
   FunctionType *DFSanCloseTraceFnTy;
+  FunctionType *DFSanReportFnTy;
   Constant *DFSanUnionFn;
   Constant *DFSanCheckedUnionFn;
   Constant *DFSanUnionLoadFn;
@@ -398,8 +425,10 @@ class DataFlowSanitizer : public ModulePass {
   Constant *DFSanPrintRegionPropertyFn;
   Constant *DFSanOpenTraceFn;
   Constant *DFSanCloseTraceFn;
+  Constant *DFSanReportFn;
   MDNode *ColdCallWeights;
   DFSanABIList ABIList;
+  DFSanCommutativityList CommutativityList;
   DenseMap<Value *, Function *> UnwrappedFnMap;
   AttrBuilder ReadOnlyNoneAttrs;
   bool DFSanRuntimeShadowMask = false;
@@ -419,6 +448,7 @@ class DataFlowSanitizer : public ModulePass {
                                  GlobalValue::LinkageTypes NewFLink,
                                  FunctionType *NewFT);
   Constant *getOrBuildTrampolineFunction(FunctionType *FT, StringRef FName);
+  bool isCommutative(CallInst *CI);
 
 public:
   static char ID;
@@ -538,6 +568,12 @@ DataFlowSanitizer::DataFlowSanitizer(
   AllABIListFiles.insert(AllABIListFiles.end(), ClABIListFiles.begin(),
                          ClABIListFiles.end());
   ABIList.set(SpecialCaseList::createOrDie(AllABIListFiles));
+  std::vector<std::string> AllCommutativityListFiles;
+  AllCommutativityListFiles.insert(AllCommutativityListFiles.end(),
+                                   ClDiscoveryCommutativityListFiles.begin(),
+                                   ClDiscoveryCommutativityListFiles.end());
+  CommutativityList.set(
+      SpecialCaseList::createOrDie(AllCommutativityListFiles));
 }
 
 FunctionType *DataFlowSanitizer::getArgsFunctionType(FunctionType *T) {
@@ -668,6 +704,8 @@ bool DataFlowSanitizer::doInitialization(Module &M) {
         Type::getVoidTy(*Ctx), {}, /*isVarArg=*/false);
     DFSanCloseTraceFnTy = FunctionType::get(
         Type::getVoidTy(*Ctx), {}, /*isVarArg=*/false);
+    DFSanReportFnTy = FunctionType::get(
+        Type::getVoidTy(*Ctx), {Type::getInt8PtrTy(*Ctx)}, /*isVarArg=*/false);
   }
 
   if (GetArgTLSPtr) {
@@ -800,6 +838,13 @@ Constant *DataFlowSanitizer::getOrBuildTrampolineFunction(FunctionType *FT,
   return C;
 }
 
+bool DataFlowSanitizer::isCommutative(CallInst *CI) {
+  if (isa<InlineAsm>(CI->getCalledValue())) return false;
+  Function * F = CI->getCalledFunction();
+  return (getWrapperKind(F) == WK_Functional ||
+          CommutativityList.isIn(F->getName()));
+}
+
 bool DataFlowSanitizer::runOnModule(Module &M) {
   DenseMap<Function *, InstRefSet> IRIMap;
   for (Function &i : M) {
@@ -901,6 +946,9 @@ bool DataFlowSanitizer::runOnModule(Module &M) {
     DFSanCloseTraceFn =
         Mod->getOrInsertFunction("__dfsan_close_trace",
                                  DFSanCloseTraceFnTy);
+    DFSanReportFn =
+        Mod->getOrInsertFunction("__dfsan_report",
+                                 DFSanReportFnTy);
   }
   std::vector<Function *> FnsToInstrument;
   SmallPtrSet<Function *, 2> FnsWithNativeABI;
@@ -921,7 +969,8 @@ bool DataFlowSanitizer::runOnModule(Module &M) {
            &i != DFSanPrintInstructionPropertyFn &&
            &i != DFSanPrintRegionPropertyFn &&
            &i != DFSanOpenTraceFn &&
-           &i != DFSanCloseTraceFn)) {
+           &i != DFSanCloseTraceFn &&
+           &i != DFSanReportFn)) {
         FnsToInstrument.push_back(&i);
       }
     }
@@ -1379,16 +1428,27 @@ Value *DFSanFunction::combineOperandShadows(Instruction *Inst) {
     // a call to any external function that is opaque to DataFlowSanitizer (that
     // is, non-functional system calls in the DataFlowSanitizer's ABI
     // list). These are the only function calls that are observed here.
-    if (isa<CallInst>(Inst)) {
+    if (CallInst *CI = dyn_cast<CallInst>(Inst)) {
       IRB.CreateCall(DFS.DFSanPrintInstructionPropertyFn,
                      {StaticInstIDPtr,
                          IRB.CreateGlobalStringPtr("IMPURE"),
                          IRB.CreateGlobalStringPtr("TRUE")});
-      // TODO: emit only if the callee's name matches a given specification.
-      IRB.CreateCall(DFS.DFSanPrintInstructionPropertyFn,
-                     {StaticInstIDPtr,
-                         IRB.CreateGlobalStringPtr("COMMUTATIVE"),
-                         IRB.CreateGlobalStringPtr("TRUE")});
+      // Print whether the called function is non-commutative.
+      if (!DFS.isCommutative(CI)) {
+        IRB.CreateCall(DFS.DFSanPrintInstructionPropertyFn,
+                       {StaticInstIDPtr,
+                           IRB.CreateGlobalStringPtr("NONCOMMUTATIVE"),
+                           IRB.CreateGlobalStringPtr("TRUE")});
+        // In debug mode, report it.
+        if (ClDiscoveryDebug) {
+          std::stringstream Report;
+          Report << "function \'"
+                 << getCalleeName(*CI).str()
+                 << "\' is not defined as commutative";
+          IRB.CreateCall(DFS.DFSanReportFn,
+                         {IRB.CreateGlobalStringPtr(Report.str())});
+        }
+      }
     // Print whether the instruction has control-flow (a conditional branch or a
     // return from main(), all other returns are not visible).
     } else if (isa<ReturnInst>(Inst) ||
@@ -1431,16 +1491,18 @@ Value *DFSanFunction::combineOperandShadows(Instruction *Inst) {
                    {CallEA, IRB.CreateGlobalStringPtr("INSTRUCTION"),
                        IRB.CreateGlobalStringPtr(StaticInstIDString.str())});
     // Print whether the region to which the block belongs is impure (only has
-    // effect on regions). We print this on blocks rather than on the region
-    // instruction definition because the region instruction ID is not stored.
-    if (isa<CallInst>(Inst)) {
+    // effect on regions) and non-commutative. We print this on blocks rather
+    // than on the region instruction definition because the region instruction
+    // ID is not stored.
+    if (CallInst *CI = dyn_cast<CallInst>(Inst)) {
       IRB.CreateCall(DFS.DFSanPrintRegionPropertyFn,
                      {CallEA, IRB.CreateGlobalStringPtr("IMPURE"),
-                              IRB.CreateGlobalStringPtr("TRUE")});
-      // TODO: emit only if the callee's name matches a given specification.
-      IRB.CreateCall(DFS.DFSanPrintRegionPropertyFn,
-                     {CallEA, IRB.CreateGlobalStringPtr("COMMUTATIVE"),
                          IRB.CreateGlobalStringPtr("TRUE")});
+      if (!DFS.isCommutative(CI)) {
+        IRB.CreateCall(DFS.DFSanPrintRegionPropertyFn,
+                       {CallEA, IRB.CreateGlobalStringPtr("NONCOMMUTATIVE"),
+                           IRB.CreateGlobalStringPtr("TRUE")});
+      }
     }
     // Print the data flow from each Inst operand's definer to the new block ID.
     for (unsigned i = 0, n = Inst->getNumOperands(); i != n; ++i) {
