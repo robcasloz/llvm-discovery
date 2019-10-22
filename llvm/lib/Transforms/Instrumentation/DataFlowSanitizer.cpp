@@ -193,6 +193,12 @@ static StringRef GetGlobalTypeString(const GlobalValue &G) {
   return "<unknown type>";
 }
 
+static StringRef getCalleeName(CallInst &CI) {
+  if (InlineAsm * IA = dyn_cast<InlineAsm>(CI.getCalledValue()))
+    return IA->getAsmString();
+  return CI.getCalledFunction()->getName();
+}
+
 namespace {
 
 class DFSanABIList {
@@ -1378,6 +1384,11 @@ Value *DFSanFunction::combineOperandShadows(Instruction *Inst) {
                      {StaticInstIDPtr,
                          IRB.CreateGlobalStringPtr("IMPURE"),
                          IRB.CreateGlobalStringPtr("TRUE")});
+      // TODO: emit only if the callee's name matches a given specification.
+      IRB.CreateCall(DFS.DFSanPrintInstructionPropertyFn,
+                     {StaticInstIDPtr,
+                         IRB.CreateGlobalStringPtr("COMMUTATIVE"),
+                         IRB.CreateGlobalStringPtr("TRUE")});
     // Print whether the instruction has control-flow (a conditional branch or a
     // return from main(), all other returns are not visible).
     } else if (isa<ReturnInst>(Inst) ||
@@ -1392,12 +1403,7 @@ Value *DFSanFunction::combineOperandShadows(Instruction *Inst) {
     if (ClDiscoveryDebug) {
       StringRef Name;
       if (isa<CallInst>(Inst)) {
-        CallInst * CI = (CallInst *)Inst;
-        if (InlineAsm * IA = dyn_cast<InlineAsm>(CI->getCalledValue())) {
-          Name = IA->getAsmString();
-        } else {
-          Name = CI->getCalledFunction()->getName();
-        }
+        Name = getCalleeName(*((CallInst *)Inst));
       } else {
         Name = Inst->getOpcodeName();
       }
@@ -1431,6 +1437,10 @@ Value *DFSanFunction::combineOperandShadows(Instruction *Inst) {
       IRB.CreateCall(DFS.DFSanPrintRegionPropertyFn,
                      {CallEA, IRB.CreateGlobalStringPtr("IMPURE"),
                               IRB.CreateGlobalStringPtr("TRUE")});
+      // TODO: emit only if the callee's name matches a given specification.
+      IRB.CreateCall(DFS.DFSanPrintRegionPropertyFn,
+                     {CallEA, IRB.CreateGlobalStringPtr("COMMUTATIVE"),
+                         IRB.CreateGlobalStringPtr("TRUE")});
     }
     // Print the data flow from each Inst operand's definer to the new block ID.
     for (unsigned i = 0, n = Inst->getNumOperands(); i != n; ++i) {
