@@ -31,6 +31,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <assert.h>
+#include <unistd.h>
+#include <sys/syscall.h>
 
 using namespace __dfsan;
 
@@ -62,9 +64,25 @@ typedef atomic_uint32_t atomic_dfsan_id;
 static atomic_dfsan_id __dfsan_last_id{0};
 static FILE *__dfsan_trace = NULL;
 
-typedef atomic_uint8_t atomic_bool;
-static atomic_bool __dfsan_instruction_tracing{0};
+// Linux thread ID of the initial thread.
+static pid_t base_tid{0};
 
+typedef unsigned int dfsan_id;
+// Maximum number of threads to trace.
+
+// NOTE: this models assumes Linux assigns consecutive IDs to new threads, which
+// requires tracing the program in isolation. The model could be generalized to
+// arbitrary IDs by using dictionaries, e.g.
+// https://stackoverflow.com/a/4384446 from K&R.
+static const uptr kNumThreads = 32;
+// Tracing mode (instruction or region-level) within each thread.
+static bool __dfsan_instruction_tracing[kNumThreads];
+// Current region ID within each thread.
+static dfsan_id __dfsan_region_id[kNumThreads];
+// Current region label within each thread.
+static dfsan_label __dfsan_region_label[kNumThreads];
+
+typedef atomic_uint8_t atomic_bool;
 static const uptr kNumMarks = 10;
 static atomic_bool __dfsan_marks[kNumMarks];
 static atomic_uint32_t __dfsan_mark_instances[kNumMarks];
@@ -386,14 +404,30 @@ dfsan_dump_labels(int fd) {
   }
 }
 
+// Returns the absolute Linux thread ID.
+pid_t dfsan_get_tid() {
+  return syscall( __NR_gettid );
+}
+
+// Returns the Linux thread ID relative to the base thread ID.
+pid_t dfsan_get_relative_tid() {
+  pid_t relative_tid = dfsan_get_tid() - base_tid;
+  if ((unsigned)relative_tid >= kNumThreads) {
+    Report("FATAL: DataFlowSanitizer: too many threads\n");
+    Die();
+  }
+  return relative_tid;
+}
+
 // Returns a new block ID to be used in an assignment block.
 extern "C" SANITIZER_INTERFACE_ATTRIBUTE int
 __dfsan_enter_assignment() {
   atomic_fetch_add(&__dfsan_last_execution, 1, memory_order_relaxed);
-  if (atomic_load(&__dfsan_instruction_tracing, memory_order_acquire)) {
+  pid_t rtid = dfsan_get_relative_tid();
+  if (__dfsan_instruction_tracing[rtid]) {
     return atomic_fetch_add(&__dfsan_last_id, 1, memory_order_relaxed) + 1;
   } else {
-    return atomic_load(&__dfsan_last_id, memory_order_relaxed);
+    return __dfsan_region_id[rtid];
   }
 }
 
@@ -445,16 +479,20 @@ dfsan_label __dfsan_create_id_label(int id) {
 // Creates a new label l with the given definer.
 extern "C" SANITIZER_INTERFACE_ATTRIBUTE dfsan_label
 __dfsan_create_label_with_definer(int id) {
-  if (!atomic_load(&__dfsan_instruction_tracing, memory_order_acquire)) {
-    return atomic_load(&__dfsan_last_label, memory_order_relaxed);
+  // TODO: the overhead can be reduced by making the client fetch the relative
+  // thread ID once and passing it as argument to all subsequent functions.
+  pid_t rtid = dfsan_get_relative_tid();
+  if (__dfsan_instruction_tracing[rtid]) {
+    return __dfsan_create_id_label(id);
+  } else {
+    return __dfsan_region_label[rtid];
   }
-  return __dfsan_create_id_label(id);
 }
 
 // Prints a property of the given block ID.
 extern "C" SANITIZER_INTERFACE_ATTRIBUTE void
 __dfsan_print_block_property(int id, const char * key, const char * value) {
-  if (!atomic_load(&__dfsan_instruction_tracing, memory_order_acquire)) return;
+  if (!__dfsan_instruction_tracing[dfsan_get_relative_tid()]) return;
   assert(__dfsan_trace != NULL);
   fprintf(__dfsan_trace, "BP %d %s %s\n", id, key, value);
 }
@@ -463,7 +501,7 @@ __dfsan_print_block_property(int id, const char * key, const char * value) {
 extern "C" SANITIZER_INTERFACE_ATTRIBUTE void
 __dfsan_print_instruction_property(const char * id, const char * key,
                                    const char * value) {
-  if (!atomic_load(&__dfsan_instruction_tracing, memory_order_acquire)) return;
+  if (!__dfsan_instruction_tracing[dfsan_get_relative_tid()]) return;
   // TODO: keep a set of visited instructions, avoid printing twice.
   assert(__dfsan_trace != NULL);
   fprintf(__dfsan_trace, "IP %s %s %s\n", id, key, value);
@@ -472,31 +510,35 @@ __dfsan_print_instruction_property(const char * id, const char * key,
 // Prints a property that holds for the entire region of the given block ID.
 extern "C" SANITIZER_INTERFACE_ATTRIBUTE void
 __dfsan_print_region_property(int id, const char * key, const char * value) {
-  if (atomic_load(&__dfsan_instruction_tracing, memory_order_acquire)) return;
+  if (__dfsan_instruction_tracing[dfsan_get_relative_tid()]) return;
   assert(__dfsan_trace != NULL);
   fprintf(__dfsan_trace, "BP %d %s %s\n", id, key, value);
 }
 
 // Creates a region and defines its properties.
-void __dfsan_create_region(int id, const char *name) {
-  __dfsan_create_id_label(id);
+dfsan_label __dfsan_create_region(int id, const char *name) {
+  dfsan_label region_label = __dfsan_create_id_label(id);
   fprintf(__dfsan_trace, "BP %d INSTRUCTION %s\n", id, name);
   fprintf(__dfsan_trace, "IP %s NAME %s\n", name, name);
   fprintf(__dfsan_trace, "IP %s REGION TRUE\n", name);
+  return region_label;
 }
 
 extern "C" SANITIZER_INTERFACE_ATTRIBUTE void
 dfsan_trace_region(const char *name) {
   int id = atomic_fetch_add(&__dfsan_last_id, 1, memory_order_relaxed) + 1;
-  __dfsan_create_region(id, name);
+  dfsan_label region_label = __dfsan_create_region(id, name);
   // __dfsan_last_id is the ID of the next trace region, not to be incremented
   // until __dfsan_instruction_tracing is set to 1 again.
-  atomic_store(&__dfsan_instruction_tracing, 0, memory_order_release);
+  pid_t rtid = dfsan_get_relative_tid();
+  __dfsan_instruction_tracing[rtid] = 0;
+  __dfsan_region_id[rtid] =  id;
+  __dfsan_region_label[rtid] =  region_label;
 }
 
 extern "C" SANITIZER_INTERFACE_ATTRIBUTE void
 dfsan_trace_instructions() {
-  atomic_store(&__dfsan_instruction_tracing, 1, memory_order_release);
+  __dfsan_instruction_tracing[dfsan_get_relative_tid()] = 1;
 }
 
 extern "C" SANITIZER_INTERFACE_ATTRIBUTE void
@@ -529,6 +571,15 @@ __dfsan_open_trace() {
   __dfsan_trace = fopen("trace", "a");
   assert(__dfsan_trace != NULL);
   __dfsan_create_region(0, "source");
+  // By convention, we define the source region as impure and non-commutative.
+  fprintf(__dfsan_trace, "IP source IMPURE TRUE\n");
+  fprintf(__dfsan_trace, "IP source NONCOMMUTATIVE TRUE\n");
+  // Set the base thread ID to the ID of the initial thread.
+  base_tid = dfsan_get_tid();
+  // Start tracing at instruction level by default.
+  for (pid_t rtid = 0; (unsigned)rtid < kNumThreads; rtid++) {
+    __dfsan_instruction_tracing[rtid] = 1;
+  }
 }
 
 // Closes trace file.
