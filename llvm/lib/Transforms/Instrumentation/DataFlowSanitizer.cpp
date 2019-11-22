@@ -58,6 +58,7 @@
 #include "llvm/ADT/Triple.h"
 #include "llvm/Transforms/Utils/Local.h"
 #include "llvm/Analysis/ValueTracking.h"
+#include "llvm/Analysis/LoopInfo.h"
 #include "llvm/IR/Argument.h"
 #include "llvm/IR/Attributes.h"
 #include "llvm/IR/BasicBlock.h"
@@ -187,6 +188,11 @@ cl::opt<bool> ClDiscoverySimplifyMinMax(
     "dfsan-discovery-simplify-minmax",
     cl::desc("Make min/max control-flow regions explicit using select instructions"),
     cl::Hidden, cl::init(false));
+
+static cl::opt<bool> ClDiscoveryTagLoops(
+    "dfsan-discovery-tag-loops",
+    cl::desc("Tag data-flow with corresponding loop information"),
+    cl::Hidden);
 
 static cl::list<std::string> ClDiscoveryCommutativityListFiles(
     "dfsan-discovery-commutativity-list",
@@ -416,6 +422,8 @@ class DataFlowSanitizer : public ModulePass {
   FunctionType *DFSanOpenTraceFnTy;
   FunctionType *DFSanCloseTraceFnTy;
   FunctionType *DFSanReportFnTy;
+  FunctionType *DFSanBeginTaggingFnTy;
+  FunctionType *DFSanEndTaggingFnTy;
   Constant *DFSanUnionFn;
   Constant *DFSanCheckedUnionFn;
   Constant *DFSanUnionLoadFn;
@@ -432,6 +440,8 @@ class DataFlowSanitizer : public ModulePass {
   Constant *DFSanOpenTraceFn;
   Constant *DFSanCloseTraceFn;
   Constant *DFSanReportFn;
+  Constant *DFSanBeginTaggingFn;
+  Constant *DFSanEndTaggingFn;
   MDNode *ColdCallWeights;
   DFSanABIList ABIList;
   DFSanCommutativityList CommutativityList;
@@ -715,6 +725,10 @@ bool DataFlowSanitizer::doInitialization(Module &M) {
         Type::getVoidTy(*Ctx), {}, /*isVarArg=*/false);
     DFSanReportFnTy = FunctionType::get(
         Type::getVoidTy(*Ctx), {Type::getInt8PtrTy(*Ctx)}, /*isVarArg=*/false);
+    DFSanBeginTaggingFnTy = FunctionType::get(
+        Type::getVoidTy(*Ctx), {Type::getInt8PtrTy(*Ctx)}, /*isVarArg=*/false);
+    DFSanEndTaggingFnTy = FunctionType::get(
+        Type::getVoidTy(*Ctx), {Type::getInt8PtrTy(*Ctx)}, /*isVarArg=*/false);
   }
 
   if (GetArgTLSPtr) {
@@ -958,6 +972,12 @@ bool DataFlowSanitizer::runOnModule(Module &M) {
     DFSanReportFn =
         Mod->getOrInsertFunction("__dfsan_report",
                                  DFSanReportFnTy);
+    DFSanBeginTaggingFn =
+        Mod->getOrInsertFunction("dfsan_begin_tagging",
+                                 DFSanBeginTaggingFnTy);
+    DFSanEndTaggingFn =
+        Mod->getOrInsertFunction("dfsan_end_tagging",
+                                 DFSanEndTaggingFnTy);
   }
   std::vector<Function *> FnsToInstrument;
   SmallPtrSet<Function *, 2> FnsWithNativeABI;
@@ -979,7 +999,9 @@ bool DataFlowSanitizer::runOnModule(Module &M) {
            &i != DFSanPrintRegionPropertyFn &&
            &i != DFSanOpenTraceFn &&
            &i != DFSanCloseTraceFn &&
-           &i != DFSanReportFn)) {
+           &i != DFSanReportFn &&
+           &i != DFSanBeginTaggingFn &&
+           &i != DFSanEndTaggingFn)) {
         FnsToInstrument.push_back(&i);
       }
     }
@@ -1222,6 +1244,42 @@ bool DataFlowSanitizer::runOnModule(Module &M) {
             }
           }
         }
+      }
+    }
+
+    // Insert calls to tag each block with loop information.
+    if (ClDiscovery && ClDiscoveryTagLoops) {
+      auto & LI = getAnalysis<LoopInfoWrapperPass>(*i).getLoopInfo();
+      for (LoopInfo::iterator I = LI.begin(), E = LI.end(); I != E; ++I) {
+        Loop * L = *I;
+        DebugLoc Loc = L->getStartLoc();
+        std::stringstream LocString;
+        LocString << Loc->getFilename().str()  << ":"
+                  << Loc->getLine() << ":"
+                  << Loc->getColumn();
+        // Begin tagging at the beginning of each successor of the header that
+        // is part of the loop.
+        for (auto BI = succ_begin(L->getHeader()),
+                  BE = succ_end(L->getHeader()); BI != BE; ++BI) {
+          if (L->getBlocksSet().count(*BI)) {
+            IRBuilder<> IRB(&((*BI)->front()));
+            IRB.CreateCall(DFSF.DFS.DFSanBeginTaggingFn,
+                           {IRB.CreateGlobalStringPtr(LocString.str())});
+          }
+        }
+        // End tagging at the end of each predecessor of each latch.
+        SmallVector<BasicBlock*, 16> LoopLatches;
+        L->getLoopLatches(LoopLatches);
+        for (BasicBlock *Latch : LoopLatches) {
+            for (auto BI = pred_begin(Latch),
+                      BE = pred_end(Latch); BI != BE; ++BI) {
+              Instruction *Term = (*BI)->getTerminator();
+              IRBuilder<> IRB(Term);
+              IRB.CreateCall(DFSF.DFS.DFSanEndTaggingFn,
+                             {IRB.CreateGlobalStringPtr(LocString.str())});
+            }
+        }
+        // TODO: End tagging at the end of each non-header, exiting block.
       }
     }
   }
