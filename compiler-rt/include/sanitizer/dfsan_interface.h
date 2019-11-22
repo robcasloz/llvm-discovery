@@ -118,6 +118,12 @@ void dfsan_begin_marking(unsigned i);
 /// Ends marking data-flow with the given identifier.
 void dfsan_end_marking(unsigned i);
 
+/// Begins tagging data-flow with the given identifier.
+void dfsan_begin_tagging(const char *t);
+
+/// Ends tagging data-flow with the given identifier.
+void dfsan_end_tagging(const char *t);
+
 /// Returns the number of potentially defined labels if tracing is on.
 int dfsan_get_execution_count();
 
