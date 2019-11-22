@@ -50,6 +50,7 @@ add_llvm_library(LLVMTransformUtils
   SimplifyCFG.cpp
   SimplifyIndVar.cpp
   SimplifyLibCalls.cpp
+  SimplifyMinMax.cpp
   SplitModule.cpp
   StripNonLineTableDebugInfo.cpp
   SymbolRewriter.cpp

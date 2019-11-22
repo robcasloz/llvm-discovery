@@ -64,6 +64,9 @@
 using namespace clang;
 using namespace llvm;
 
+extern cl::opt<bool> ClDiscoveryMarkIterators;
+extern cl::opt<bool> ClDiscoverySimplifyMinMax;
+
 namespace {
 
 // Default filename used for profile generation.
@@ -297,8 +300,13 @@ static void addDataFlowSanitizerPass(const PassManagerBuilder &Builder,
   const PassManagerBuilderWrapper &BuilderWrapper =
       static_cast<const PassManagerBuilderWrapper&>(Builder);
   const LangOptions &LangOpts = BuilderWrapper.getLangOpts();
-  //FIXME: Figure out why this pass is not initialized by the pass manager.
-  PM.add(createIteratorRecognitionWrapperPass());
+  //FIXME: Figure out why these passes are not initialized by the pass manager.
+  if (ClDiscoveryMarkIterators) {
+    PM.add(createIteratorRecognitionWrapperPass());
+  }
+  if (ClDiscoverySimplifyMinMax) {
+    PM.add(createSimplifyMinMaxPass());
+  }
   PM.add(createDataFlowSanitizerPass(LangOpts.SanitizerBlacklistFiles));
 }
 

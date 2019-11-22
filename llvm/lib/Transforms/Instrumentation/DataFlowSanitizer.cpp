@@ -93,6 +93,7 @@
 #include "llvm/Transforms/Instrumentation.h"
 #include "llvm/Transforms/Utils/BasicBlockUtils.h"
 #include "llvm/Transforms/Utils.h"
+#include "llvm/Transforms/Utils/SimplifyMinMax.h"
 #include "IteratorRecognition/Analysis/Passes/IteratorRecognitionPass.hpp"
 
 #include <algorithm>
@@ -177,9 +178,14 @@ static cl::opt<bool> ClDiscoveryDebug(
     cl::desc("Refine the dynamic data-flow graph with debug information"),
     cl::Hidden, cl::init(false));
 
-static cl::opt<bool> ClDiscoveryMarkIterators(
+cl::opt<bool> ClDiscoveryMarkIterators(
     "dfsan-discovery-mark-iterators",
     cl::desc("Mark iterator code in the dynamic data-flow graph"),
+    cl::Hidden, cl::init(false));
+
+cl::opt<bool> ClDiscoverySimplifyMinMax(
+    "dfsan-discovery-simplify-minmax",
+    cl::desc("Make min/max control-flow regions explicit using select instructions"),
     cl::Hidden, cl::init(false));
 
 static cl::list<std::string> ClDiscoveryCommutativityListFiles(
@@ -635,6 +641,9 @@ TransformedFunction DataFlowSanitizer::getCustomFunctionType(FunctionType *T) {
 void DataFlowSanitizer::getAnalysisUsage(AnalysisUsage &AU) const {
   if (ClDiscoveryMarkIterators) {
     AU.addRequiredTransitiveID(IteratorRecognitionID);
+  }
+  if (ClDiscoverySimplifyMinMax) {
+    AU.addRequiredID(SimplifyMinMaxPass::ID);
   }
 }
 

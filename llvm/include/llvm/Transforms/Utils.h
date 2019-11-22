@@ -114,6 +114,13 @@ extern char &LoopSimplifyID;
 /// module to line tables only.
 ModulePass *createStripNonLineTableDebugInfoPass();
 
+//===----------------------------------------------------------------------===//
+//
+// SimplifyMinMax - This pass simplifies specific min/max control-flow regions
+// using select instructions.
+//
+FunctionPass *createSimplifyMinMaxPass();
+
 /// Pedigree passes.
 FunctionPass *createPDGraphWrapperPass();
 extern char &PDGraphID;
