@@ -496,12 +496,15 @@ __dfsan_print_data_flow(dfsan_label l, int id) {
   if (definer != id) { // Avoid printing self-loops within trace blobs.
     fprintf(__dfsan_trace, "DF %d %d\n", definer, id);
   }
-  // Print all tags.
+  // Print all tags (in instruction-level tracing).
   pid_t rtid = dfsan_get_relative_tid();
-  struct tag* node = __dfsan_tags[rtid];
-  while (node != NULL) {
-    fprintf(__dfsan_trace, "BP %d TAG %s-%d\n", id, node->key, node->instance);
-    node = node->next;
+  if (__dfsan_instruction_tracing[rtid]) {
+    struct tag* node = __dfsan_tags[rtid];
+    while (node != NULL) {
+      fprintf(__dfsan_trace, "BP %d TAG %s-%d\n",
+              id, node->key, node->instance);
+      node = node->next;
+    }
   }
   return;
 }
