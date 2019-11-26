@@ -1250,22 +1250,29 @@ bool DataFlowSanitizer::runOnModule(Module &M) {
     // Insert calls to tag each block with loop information.
     if (ClDiscovery && ClDiscoveryTagLoops) {
       auto & LI = getAnalysis<LoopInfoWrapperPass>(*i).getLoopInfo();
-      for (LoopInfo::iterator I = LI.begin(), E = LI.end(); I != E; ++I) {
-        Loop * L = *I;
+      for (auto *L : LI.getLoopsInPreorder()) {
         DebugLoc Loc = L->getStartLoc();
         std::stringstream LocString;
         LocString << Loc->getFilename().str()  << ":"
                   << Loc->getLine() << ":"
                   << Loc->getColumn();
-        // Begin tagging at the beginning of each successor of the header that
-        // is part of the loop.
-        for (auto BI = succ_begin(L->getHeader()),
-                  BE = succ_end(L->getHeader()); BI != BE; ++BI) {
-          if (L->getBlocksSet().count(*BI)) {
-            IRBuilder<> IRB(&*(*BI)->getFirstInsertionPt());
-            IRB.CreateCall(DFSF.DFS.DFSanBeginTaggingFn,
-                           {IRB.CreateGlobalStringPtr(LocString.str())});
+        // If the header is exiting, begin tagging at the beginning of each
+        // successor that is part of the loop.
+        // Otherwise, beging tagging at the end of the header.
+        BasicBlock * H = L->getHeader();
+        if (L->isLoopExiting(H)) {
+          for (auto BI = succ_begin(H), BE = succ_end(H); BI != BE; ++BI) {
+            if (L->getBlocksSet().count(*BI)) {
+              IRBuilder<> IRB(&*(*BI)->getFirstInsertionPt());
+              IRB.CreateCall(DFSF.DFS.DFSanBeginTaggingFn,
+                             {IRB.CreateGlobalStringPtr(LocString.str())});
+            }
           }
+        } else {
+          Instruction *Term = H->getTerminator();
+          IRBuilder<> IRB(Term);
+          IRB.CreateCall(DFSF.DFS.DFSanBeginTaggingFn,
+                         {IRB.CreateGlobalStringPtr(LocString.str())});
         }
         // End tagging at the end of each latch. This will tag iterator
         // instructions (e.g. "i++") which introduce loop-carried
