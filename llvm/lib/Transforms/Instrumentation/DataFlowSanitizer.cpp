@@ -1219,7 +1219,7 @@ bool DataFlowSanitizer::runOnModule(Module &M) {
     if (ClDiscovery) {
       if (( StaticInits && DFSF.F->getName().contains("_GLOBAL__sub_I_")) ||
           (!StaticInits && DFSF.F->getName() == "main")) {
-        IRBuilder<> IRB(&DFSF.F->getEntryBlock().front());
+        IRBuilder<> IRB(&*DFSF.F->getEntryBlock().getFirstInsertionPt());
         // Insert call to open the trace file.
         IRB.CreateCall(DFSF.DFS.DFSanOpenTraceFn, {});
       }
@@ -1262,7 +1262,7 @@ bool DataFlowSanitizer::runOnModule(Module &M) {
         for (auto BI = succ_begin(L->getHeader()),
                   BE = succ_end(L->getHeader()); BI != BE; ++BI) {
           if (L->getBlocksSet().count(*BI)) {
-            IRBuilder<> IRB(&((*BI)->front()));
+            IRBuilder<> IRB(&*(*BI)->getFirstInsertionPt());
             IRB.CreateCall(DFSF.DFS.DFSanBeginTaggingFn,
                            {IRB.CreateGlobalStringPtr(LocString.str())});
           }
@@ -1279,7 +1279,26 @@ bool DataFlowSanitizer::runOnModule(Module &M) {
           IRB.CreateCall(DFSF.DFS.DFSanEndTaggingFn,
                          {IRB.CreateGlobalStringPtr(LocString.str())});
         }
-        // TODO: End tagging at the end of each non-header, exiting block.
+        // End tagging at the beginning of each exit that is not a successor of
+        // the header (corresponds to loop breaks).
+        SmallVector<BasicBlock*, 16> LoopExits;
+        // Cannot use 'getExitEdges' because it is const-qualified, tough luck.
+        L->getExitBlocks(LoopExits);
+        std::set<BasicBlock *> LoopBreaks;
+        for (BasicBlock *LEB : LoopExits) {
+          bool IsLoopBreak = true;
+          for (auto BI = pred_begin(LEB), BE = pred_end(LEB); BI != BE; ++BI) {
+            if (*BI == L->getHeader()) {
+              IsLoopBreak = false;
+              break;
+            }
+          }
+          if (IsLoopBreak) {
+            IRBuilder<> IRB(&*LEB->getFirstInsertionPt());
+            IRB.CreateCall(DFSF.DFS.DFSanEndTaggingFn,
+                           {IRB.CreateGlobalStringPtr(LocString.str())});
+          }
+        }
       }
     }
   }
