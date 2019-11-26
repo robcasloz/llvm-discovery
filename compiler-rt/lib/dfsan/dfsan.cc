@@ -123,6 +123,19 @@ void remove_tag(struct tag **head, const char *rem_key) {
   free(tmp);
 }
 
+bool exists_tag(struct tag **head, const char *find_key) {
+  struct tag* tmp = *head, *prev;
+  if (tmp != NULL && strcmp(tmp->key, find_key) == 0) {
+    return true;
+  }
+  while (tmp != NULL && strcmp(tmp->key, find_key) != 0) {
+    prev = tmp;
+    tmp = tmp->next;
+  }
+  if (tmp != NULL) return true;
+  return false;
+}
+
 // Active tags (linked list) within each thread.
 static struct tag* __dfsan_tags[kNumThreads];
 
@@ -584,18 +597,17 @@ dfsan_trace_instructions() {
 
 extern "C" SANITIZER_INTERFACE_ATTRIBUTE void
 dfsan_begin_tagging(const char *t) {
-  // TODO: assert t does not exist (add 'exists' function).
   tag_instance i =
     atomic_fetch_add(&__dfsan_last_tag_instance, 1, memory_order_relaxed) + 1;
   pid_t rtid = dfsan_get_relative_tid();
+  assert(!exists_tag(&__dfsan_tags[rtid], t));
   insert_tag(&__dfsan_tags[rtid], t, i);
-  // TODO: assert t exists (add 'exists' function).
 }
 
 extern "C" SANITIZER_INTERFACE_ATTRIBUTE void
 dfsan_end_tagging(const char *t) {
-  // TODO: assert t exists (add 'exists' function).
   pid_t rtid = dfsan_get_relative_tid();
+  assert(exists_tag(&__dfsan_tags[rtid], t));
   remove_tag(&__dfsan_tags[rtid], t);
 }
 
