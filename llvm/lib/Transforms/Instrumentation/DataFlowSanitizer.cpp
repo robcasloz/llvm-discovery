@@ -1267,17 +1267,17 @@ bool DataFlowSanitizer::runOnModule(Module &M) {
                            {IRB.CreateGlobalStringPtr(LocString.str())});
           }
         }
-        // End tagging at the end of each predecessor of each latch.
+        // End tagging at the end of each latch. This will tag iterator
+        // instructions (e.g. "i++") which introduce loop-carried
+        // dependencies. We rely on iteration recognition and the trace
+        // simplification phase to eliminate them.
         SmallVector<BasicBlock*, 16> LoopLatches;
         L->getLoopLatches(LoopLatches);
         for (BasicBlock *Latch : LoopLatches) {
-            for (auto BI = pred_begin(Latch),
-                      BE = pred_end(Latch); BI != BE; ++BI) {
-              Instruction *Term = (*BI)->getTerminator();
-              IRBuilder<> IRB(Term);
-              IRB.CreateCall(DFSF.DFS.DFSanEndTaggingFn,
-                             {IRB.CreateGlobalStringPtr(LocString.str())});
-            }
+          Instruction *Term = Latch->getTerminator();
+          IRBuilder<> IRB(Term);
+          IRB.CreateCall(DFSF.DFS.DFSanEndTaggingFn,
+                         {IRB.CreateGlobalStringPtr(LocString.str())});
         }
         // TODO: End tagging at the end of each non-header, exiting block.
       }
