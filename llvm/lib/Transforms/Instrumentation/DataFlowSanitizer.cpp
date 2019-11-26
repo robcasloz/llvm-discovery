@@ -1253,8 +1253,8 @@ bool DataFlowSanitizer::runOnModule(Module &M) {
       for (auto *L : LI.getLoopsInPreorder()) {
         DebugLoc Loc = L->getStartLoc();
         std::stringstream LocString;
-        LocString << Loc->getFilename().str()  << ":"
-                  << Loc->getLine() << ":"
+        LocString << Loc->getFilename().str()  << "-"
+                  << Loc->getLine() << "-"
                   << Loc->getColumn();
         // If the header is exiting, begin tagging at the beginning of each
         // successor that is part of the loop.
@@ -1503,7 +1503,7 @@ Value *DFSanFunction::combineOperandShadows(Instruction *Inst) {
     IRBuilder<> IRB(Inst);
     // First, compute and print properties of the static instruction.
     std::stringstream StaticInstIDString;
-    StaticInstIDString << F->getParent()->getModuleIdentifier() << ":"
+    StaticInstIDString << F->getParent()->getModuleIdentifier() << "-"
                        << DFS.StaticInstID;
     Constant * StaticInstIDPtr =
       IRB.CreateGlobalStringPtr(StaticInstIDString.str());
@@ -1567,8 +1567,8 @@ Value *DFSanFunction::combineOperandShadows(Instruction *Inst) {
       const DebugLoc &Loc = Inst->getDebugLoc();
       if (Loc) {
         std::stringstream LocString;
-        LocString << Loc->getFilename().str()  << ":"
-                  << Loc->getLine() << ":"
+        LocString << Loc->getFilename().str()  << "-"
+                  << Loc->getLine() << "-"
                   << Loc->getColumn();
         IRB.CreateCall(DFS.DFSanPrintInstructionPropertyFn,
                        {StaticInstIDPtr,
