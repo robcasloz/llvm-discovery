@@ -1252,28 +1252,27 @@ bool DataFlowSanitizer::runOnModule(Module &M) {
       auto & LI = getAnalysis<LoopInfoWrapperPass>(*i).getLoopInfo();
       for (auto *L : LI.getLoopsInPreorder()) {
         DebugLoc Loc = L->getStartLoc();
-        std::stringstream LocString;
-        LocString << Loc->getFilename().str()  << "-"
-                  << Loc->getLine() << "-"
-                  << Loc->getColumn();
-        // If the header is exiting, begin tagging at the beginning of each
-        // successor that is part of the loop.
-        // Otherwise, beging tagging at the end of the header.
-        BasicBlock * H = L->getHeader();
-        if (L->isLoopExiting(H)) {
-          for (auto BI = succ_begin(H), BE = succ_end(H); BI != BE; ++BI) {
-            if (L->getBlocksSet().count(*BI)) {
-              IRBuilder<> IRB(&*(*BI)->getFirstInsertionPt());
-              IRB.CreateCall(DFSF.DFS.DFSanBeginTaggingFn,
-                             {IRB.CreateGlobalStringPtr(LocString.str())});
-            }
-          }
+        // The (template-specialized) function name needs to be part of the tag
+        // to distinguish loops in different specializations of the same
+        // original function.
+        StringRef FunName;
+        if (i->getName().startswith("dfs$")) {
+          FunName = i->getName().substr(4);
         } else {
-          Instruction *Term = H->getTerminator();
-          IRBuilder<> IRB(Term);
-          IRB.CreateCall(DFSF.DFS.DFSanBeginTaggingFn,
-                         {IRB.CreateGlobalStringPtr(LocString.str())});
+          FunName = i->getName();
         }
+        std::stringstream LoopTag;
+        LoopTag << Loc->getFilename().str()  << ":"
+                << FunName.str() << ":"
+                << Loc->getLine() << ":"
+                << Loc->getColumn();
+        // Begin tagging at the beginning of the header. Since the header
+        // dominates all basic blocks in the loop, a new tag instance will be
+        // created for each loop iteration.
+        BasicBlock * H = L->getHeader();
+        IRBuilder<> IRB(&*H->getFirstInsertionPt());
+        IRB.CreateCall(DFSF.DFS.DFSanBeginTaggingFn,
+                       {IRB.CreateGlobalStringPtr(LoopTag.str())});
         // End tagging at the end of each latch. This will tag iterator
         // instructions (e.g. "i++") which introduce loop-carried
         // dependencies. We rely on iteration recognition and the trace
@@ -1284,27 +1283,25 @@ bool DataFlowSanitizer::runOnModule(Module &M) {
           Instruction *Term = Latch->getTerminator();
           IRBuilder<> IRB(Term);
           IRB.CreateCall(DFSF.DFS.DFSanEndTaggingFn,
-                         {IRB.CreateGlobalStringPtr(LocString.str())});
+                         {IRB.CreateGlobalStringPtr(LoopTag.str())});
         }
-        // End tagging at the beginning of each exit that is not a successor of
-        // the header (corresponds to loop breaks).
+        // End tagging at the beginning of each exit. There might be some
+        // overlap with end tagging instructions in latches or other exit
+        // blocks. This might lead to repeated calls to end the same tag, which
+        // is allowed (the second end tagging calls will just be ignored). The
+        // important thing is to prevent two consecutive begin tagging calls
+        // with the same tag.
+        // Examples of loops where double-ending might happen are do-while loops
+        // (where the "condition" block is both latch and exiting) and loops
+        // with break statements (where the "break" exit block is a predecessor
+        // of the "regular" exit block).
         SmallVector<BasicBlock*, 16> LoopExits;
         // Cannot use 'getExitEdges' because it is const-qualified, tough luck.
         L->getExitBlocks(LoopExits);
-        std::set<BasicBlock *> LoopBreaks;
         for (BasicBlock *LEB : LoopExits) {
-          bool IsLoopBreak = true;
-          for (auto BI = pred_begin(LEB), BE = pred_end(LEB); BI != BE; ++BI) {
-            if (*BI == L->getHeader()) {
-              IsLoopBreak = false;
-              break;
-            }
-          }
-          if (IsLoopBreak) {
-            IRBuilder<> IRB(&*LEB->getFirstInsertionPt());
-            IRB.CreateCall(DFSF.DFS.DFSanEndTaggingFn,
-                           {IRB.CreateGlobalStringPtr(LocString.str())});
-          }
+          IRBuilder<> IRB(&*LEB->getFirstInsertionPt());
+          IRB.CreateCall(DFSF.DFS.DFSanEndTaggingFn,
+                         {IRB.CreateGlobalStringPtr(LoopTag.str())});
         }
       }
     }
@@ -1503,7 +1500,7 @@ Value *DFSanFunction::combineOperandShadows(Instruction *Inst) {
     IRBuilder<> IRB(Inst);
     // First, compute and print properties of the static instruction.
     std::stringstream StaticInstIDString;
-    StaticInstIDString << F->getParent()->getModuleIdentifier() << "-"
+    StaticInstIDString << F->getParent()->getModuleIdentifier() << ":"
                        << DFS.StaticInstID;
     Constant * StaticInstIDPtr =
       IRB.CreateGlobalStringPtr(StaticInstIDString.str());
@@ -1567,8 +1564,8 @@ Value *DFSanFunction::combineOperandShadows(Instruction *Inst) {
       const DebugLoc &Loc = Inst->getDebugLoc();
       if (Loc) {
         std::stringstream LocString;
-        LocString << Loc->getFilename().str()  << "-"
-                  << Loc->getLine() << "-"
+        LocString << Loc->getFilename().str()  << ":"
+                  << Loc->getLine() << ":"
                   << Loc->getColumn();
         IRB.CreateCall(DFS.DFSanPrintInstructionPropertyFn,
                        {StaticInstIDPtr,

@@ -118,7 +118,11 @@ void remove_tag(struct tag **head, const char *rem_key) {
     prev = tmp;
     tmp = tmp->next;
   }
-  if (tmp == NULL) return;
+  if (tmp == NULL) {
+    Report("NOTE: DataFlowSanitizer: ignoring removal of nonexistent tag %s\n",
+           rem_key);
+    return;
+  }
   prev->next = tmp->next;
   free(tmp);
 }
@@ -607,7 +611,6 @@ dfsan_begin_tagging(const char *t) {
 extern "C" SANITIZER_INTERFACE_ATTRIBUTE void
 dfsan_end_tagging(const char *t) {
   pid_t rtid = dfsan_get_relative_tid();
-  assert(exists_tag(&__dfsan_tags[rtid], t));
   remove_tag(&__dfsan_tags[rtid], t);
 }
 
