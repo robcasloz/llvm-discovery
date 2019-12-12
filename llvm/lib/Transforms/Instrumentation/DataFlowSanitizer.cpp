@@ -194,6 +194,11 @@ static cl::opt<bool> ClDiscoveryTagLoops(
     cl::desc("Tag data-flow with corresponding loop information"),
     cl::Hidden);
 
+static cl::opt<bool> ClDiscoveryTagSTL(
+    "dfsan-discovery-tag-stl",
+    cl::desc("Tag loops from STL header files"),
+    cl::Hidden, cl::init(false));
+
 static cl::list<std::string> ClDiscoveryCommutativityListFiles(
     "dfsan-discovery-commutativity-list",
     cl::desc("File listing commutative functions"),
@@ -1252,6 +1257,9 @@ bool DataFlowSanitizer::runOnModule(Module &M) {
       auto & LI = getAnalysis<LoopInfoWrapperPass>(*i).getLoopInfo();
       for (auto *L : LI.getLoopsInPreorder()) {
         DebugLoc Loc = L->getStartLoc();
+        // Possibly skip loop if it belongs to a STL header.
+        if (!ClDiscoveryTagSTL && Loc->getFilename().contains("include/c++"))
+          continue;
         // The (template-specialized) function name needs to be part of the tag
         // to distinguish loops in different specializations of the same
         // original function.
