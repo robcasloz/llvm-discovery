@@ -194,6 +194,11 @@ static cl::opt<bool> ClDiscoveryTagLoops(
     cl::desc("Tag data-flow with corresponding loop information"),
     cl::Hidden);
 
+static cl::opt<bool> ClDiscoveryTagIterationExpressions(
+    "dfsan-discovery-tag-iteration-expressions",
+    cl::desc("Tag data-flow corresponding to iteration expressions in for loops, requires setting -fno-discard-value-names to true"),
+    cl::Hidden, cl::init(true));
+
 static cl::opt<bool> ClDiscoveryTagSTL(
     "dfsan-discovery-tag-stl",
     cl::desc("Tag loops from STL header files"),
@@ -1281,15 +1286,31 @@ bool DataFlowSanitizer::runOnModule(Module &M) {
         IRBuilder<> IRB(&*H->getFirstInsertionPt());
         IRB.CreateCall(DFSF.DFS.DFSanBeginTaggingFn,
                        {IRB.CreateGlobalStringPtr(LoopTag.str())});
-        // End tagging at the end of each latch. This will tag iterator
-        // instructions (e.g. "i++") which introduce loop-carried
-        // dependencies. We rely on iteration recognition and the trace
-        // simplification phase to eliminate them.
+        // End tagging at the beginning or end of each latch (depending on
+        // ClDiscoveryTagIterationExpressions and the loop type).
         SmallVector<BasicBlock*, 16> LoopLatches;
         L->getLoopLatches(LoopLatches);
         for (BasicBlock *Latch : LoopLatches) {
-          Instruction *Term = Latch->getTerminator();
-          IRBuilder<> IRB(Term);
+          Instruction *InsertionPt;
+          // FIXME: This test relies on basic block names (preserved with the
+          // flag '-fno-discard-value-names'), which is not very robust. A
+          // better way would be to mark latch basic blocks in for loops using
+          // metadata in Clang at LLVM IR emission.
+          bool IsForLoop = L->getName().startswith("for.");
+          if (!ClDiscoveryTagIterationExpressions && IsForLoop) {
+            // Do not tag the data-flow of iteration expressions (which in for
+            // loops are placed in latch basic blocks). This is useful for the
+            // collapsing heuristic, whenever iterator recognition cannot detect
+            // and simplify away the header code (e.g. the inner loop in the
+            // "rotate" benchmark, method 'run').
+            InsertionPt = &*Latch->getFirstInsertionPt();
+          } else {
+            // This will tag iteration expressions in for loops (e.g. "i++")
+            // which introduce loop-carried dependencies. We rely on iteration
+            // recognition and the trace simplification phase to eliminate them.
+            InsertionPt = Latch->getTerminator();
+          }
+          IRBuilder<> IRB(InsertionPt);
           IRB.CreateCall(DFSF.DFS.DFSanEndTaggingFn,
                          {IRB.CreateGlobalStringPtr(LoopTag.str())});
         }
