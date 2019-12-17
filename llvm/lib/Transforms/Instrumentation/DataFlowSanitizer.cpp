@@ -153,7 +153,7 @@ static cl::opt<bool> ClCombinePointerLabelsOnLoad(
     "dfsan-combine-pointer-labels-on-load",
     cl::desc("Combine the label of the pointer with the label of the data when "
              "loading from memory."),
-    cl::Hidden, cl::init(true));
+    cl::Hidden, cl::init(false));
 
 // Controls whether the pass includes or ignores the labels of pointers in
 // stores instructions.
@@ -172,17 +172,17 @@ static cl::opt<bool> ClDebugNonzeroLabels(
 static cl::opt<bool> ClDiscovery(
     "dfsan-discovery",
     cl::desc("Use DataFlowSanitizer to build the dynamic data-flow graph"),
-    cl::Hidden);
+    cl::Hidden, cl::init(false));
 
 static cl::opt<bool> ClDiscoveryDebug(
     "dfsan-discovery-debug",
     cl::desc("Refine the dynamic data-flow graph with debug information"),
-    cl::Hidden, cl::init(false));
+    cl::Hidden, cl::init(true));
 
 cl::opt<bool> ClDiscoveryMarkIterators(
     "dfsan-discovery-mark-iterators",
     cl::desc("Mark iterator code in the dynamic data-flow graph"),
-    cl::Hidden, cl::init(false));
+    cl::Hidden, cl::init(true));
 
 cl::opt<bool> ClDiscoverySimplifyMinMax(
     "dfsan-discovery-simplify-minmax",
@@ -192,12 +192,12 @@ cl::opt<bool> ClDiscoverySimplifyMinMax(
 static cl::opt<bool> ClDiscoveryTagLoops(
     "dfsan-discovery-tag-loops",
     cl::desc("Tag data-flow with corresponding loop information"),
-    cl::Hidden);
+    cl::Hidden, cl::init(true));
 
 static cl::opt<bool> ClDiscoveryTagIterationExpressions(
     "dfsan-discovery-tag-iteration-expressions",
     cl::desc("Tag data-flow corresponding to iteration expressions in for loops, requires setting -fno-discard-value-names to true"),
-    cl::Hidden, cl::init(true));
+    cl::Hidden, cl::init(false));
 
 static cl::opt<bool> ClDiscoveryTagSTL(
     "dfsan-discovery-tag-stl",
