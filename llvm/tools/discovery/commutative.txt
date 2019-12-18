@@ -1,0 +1,15 @@
+###############################################################################
+# Commutative functions for the test cases.
+###############################################################################
+
+fun:printf=commutative
+
+# pthread functions are defined as cummutative.
+fun:pthread_mutex_lock=commutative
+fun:pthread_mutex_unlock=commutative
+fun:pthread_mutex_init=commutative
+fun:pthread_mutex_destroy=commutative
+fun:pthread_attr_init=commutative
+fun:pthread_attr_setscope=commutative
+fun:pthread_join=commutative
+fun:*pthread_create=commutative
