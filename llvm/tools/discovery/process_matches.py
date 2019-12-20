@@ -84,7 +84,7 @@ def process_loop_matches(szn_files, simple):
     csvwriter.writerow(([] if simple else ["benchmark", "mode", "loop", "nodes"]) + \
                        ["location"] + \
                        ([] if simple else ["function"]) + \
-                       [u.pat_map, u.pat_reduction])
+                       [u.pat_map, u.pat_reduction, u.pat_scan])
     for (benchmark, benchmark_data) in sorted(data.iteritems()):
         for (mode, mode_data) in sorted(benchmark_data.iteritems()):
             nodes_inv = lambda x: -x[1][2]
@@ -95,12 +95,13 @@ def process_loop_matches(szn_files, simple):
                       [location] + \
                        ([] if simple else [function]) + \
                       [match_to_digit(matches[u.pat_map]),
-                       match_to_digit(matches[u.pat_reduction])]
+                       match_to_digit(matches[u.pat_reduction]),
+                       match_to_digit(matches[u.pat_scan])]
                 csvwriter.writerow(row)
 
 def process_instruction_matches(szn_files, simple):
 
-    # Multi-level map: benchmark -> mode -> pattern match entries.
+    # Multi-level map: benchmark -> mode -> location -> pattern match entries.
     data = {}
 
     # Populate the map loading each solution file. A solution file is expected
@@ -112,7 +113,6 @@ def process_instruction_matches(szn_files, simple):
     #
     # For each solution file, a corresponding trace called
     # [BENCHMARK]-[MODE] ... .trace is expected.
-    m = 0
     for filename in szn_files:
         if os.path.isfile(filename) and filename.endswith(".szn"):
             # Gather all data.
@@ -135,31 +135,37 @@ def process_instruction_matches(szn_files, simple):
                                 ",".join(map(str, sorted(loc_lines)))
                                 for (loc_basefile, loc_lines)
                                 in lines.iteritems()])
-                m += 1
                 # Create keys at all levels first if not present.
                 if not benchmark in data:
                     data[benchmark] = dict()
                 if not mode in data[benchmark]:
                     data[benchmark][mode] = dict()
+                if not loc in data[benchmark][mode]:
+                    data[benchmark][mode][loc] = set()
                 # Finally populate.
-                data[benchmark][mode][m] = (loc, pattern)
+                data[benchmark][mode][loc].add(pattern)
 
     # Print the CSV table.
     csvwriter = csv.writer(sys.stdout, delimiter=",", quoting=csv.QUOTE_MINIMAL)
     csvwriter.writerow(([] if simple else ["benchmark", "mode", "pattern"]) + \
-                       ["location", u.pat_map, u.pat_reduction, u.pat_pipeline])
+                       ["location",
+                        u.pat_map, u.pat_reduction, u.pat_scan, u.pat_pipeline])
+    m = 0
     for (benchmark, benchmark_data) in sorted(data.iteritems()):
         for (mode, mode_data) in sorted(benchmark_data.iteritems()):
-            for (pattern, (loc, match)) in mode_data.iteritems():
-                def match_digit(pattern):
-                    return match_to_digit((match == pattern,
+            for (loc, matches) in sorted(mode_data.iteritems(),
+                                         cmp=lambda t1, t2: cmp(t1[0], t2[0])):
+                def match_digit(p):
+                    return match_to_digit((p in matches,
                                            u.tk_sol_status_normal))
-                row = ([] if simple else [benchmark, mode, pattern]) + \
+                row = ([] if simple else [benchmark, mode, m]) + \
                       [loc,
                        match_digit(u.pat_map),
                        match_digit(u.pat_reduction),
+                       match_digit(u.pat_scan),
                        match_digit(u.pat_pipeline)]
                 csvwriter.writerow(row)
+                m += 1
 
 def main(args):
 

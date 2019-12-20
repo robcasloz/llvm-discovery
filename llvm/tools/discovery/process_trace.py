@@ -160,10 +160,10 @@ def instance_nodes_map((DDG, PB, _, __), tag):
 
 # Returns a legend and a color map to be applied to a match visualization.
 def format_match(pattern, match):
-    if pattern in [u.pat_map, u.pat_reduction]:
+    if pattern in [u.pat_map, u.pat_reduction, u.pat_scan]:
         if pattern == u.pat_map:
             unit = "runs"
-        elif pattern == u.pat_reduction:
+        elif pattern in [u.pat_reduction, u.pat_scan]:
             unit = "steps"
         legend = "(" + str(len(match)) + " " + unit + ")"
         color_map = {node: colors[(step % len(colors))]

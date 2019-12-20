@@ -11,7 +11,7 @@ parser.add_argument('RESULTS_FILE')
 parser.add_argument('BENCHMARK_MODE')
 parser.add_argument('LOCATION')
 parser.add_argument('FUNCTION')
-parser.add_argument('--matches', nargs="*", help='patterns (map, reduction) expected to be matched')
+parser.add_argument('--matches', nargs="*", help='patterns (map, reduction, scan) expected to be matched')
 args = parser.parse_args()
 
 expected_matches = set(args.matches if args.matches else [])
@@ -24,6 +24,7 @@ location_index = legend.index("location")
 function_index = legend.index("function")
 map_index = legend.index(u.pat_map)
 reduction_index = legend.index(u.pat_reduction)
+scan_index = legend.index(u.pat_scan)
 found = False
 for line in r:
     benchmark = line[benchmark_index]
@@ -36,8 +37,10 @@ for line in r:
         found = True
         map_matched = bool(int(line[map_index]))
         reduction_matched = bool(int(line[reduction_index]))
+        scan_matched = bool(int(line[scan_index]))
         actual_results = [(u.pat_map, map_matched),
-                          (u.pat_reduction, reduction_matched)]
+                          (u.pat_reduction, reduction_matched),
+                          (u.pat_scan, scan_matched)]
         actual_matches = set(p for (p, m) in actual_results if m)
         assert actual_matches == expected_matches, \
             "the matched patterns " + str(list(actual_matches)) + \

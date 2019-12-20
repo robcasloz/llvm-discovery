@@ -43,6 +43,7 @@ tk_sol_status_unknown = "unknown"
 
 pat_map = "map"
 pat_reduction = "reduction"
+pat_scan = "scan"
 pat_pipeline = "pipeline"
 
 arg_loop = "loop"
@@ -143,7 +144,7 @@ def index_map(array):
 def insts_to_steps((_, PB, PI, __), pattern, matches):
     i_to_s = dict()
     for match in matches:
-        if pattern in [pat_map, pat_reduction]:
+        if pattern in [pat_map, pat_reduction, pat_scan]:
             steps = len(match)
             nodes = index_map(match).keys()
         elif pattern == pat_pipeline:

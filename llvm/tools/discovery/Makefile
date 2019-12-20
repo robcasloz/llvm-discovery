@@ -85,6 +85,18 @@ OPT_VIEWER = $(DISCOVERY_DIR)/../opt-viewer/opt-viewer.py
 %.reductions.yaml: %.reductions.szn %.trace
 	$(PROCESS_TRACE) report $^ > $@
 
+# Scan pattern matches in MiniZinc solution format.
+%.scans.szn: %.dzn $(DISCOVERY_DIR)/scan.mzn $(DISCOVERY_DIR)/common.mzn
+	-minizinc $(MINIZINC_FLAGS) $(DISCOVERY_DIR)/scan.mzn $< > $@
+
+# Scan pattern matches in PDF format.
+%.scans.pdf: %.scans.szn %.trace
+	$(PROCESS_TRACE) -o $@ visualize $^ $(GRAPHVIZ_FLAGS)
+
+# Scan pattern matches in YAML LLVM remarks format.
+%.scans.yaml: %.scans.szn %.trace
+	$(PROCESS_TRACE) report $^ > $@
+
 # Pipeline pattern matches in MiniZinc solution format.
 %.pipelines.szn: %.dzn $(DISCOVERY_DIR)/pipeline.mzn $(DISCOVERY_DIR)/common.mzn
 	minizinc $(MINIZINC_FLAGS) $(DISCOVERY_DIR)/pipeline.mzn $< > $@
@@ -98,7 +110,7 @@ OPT_VIEWER = $(DISCOVERY_DIR)/../opt-viewer/opt-viewer.py
 	$(PROCESS_TRACE) report $^ > $@
 
 # Combined pattern matches in YAML LLVM remarks format.
-%.patterns.yaml: %.maps.yaml %.reductions.yaml %.pipelines.yaml
+%.patterns.yaml: %.maps.yaml %.reductions.yaml %.scans.yaml %.pipelines.yaml
 	cat $^ > $@
 
 # Instrumented LLVM IR for single C++ source file.
@@ -142,23 +154,10 @@ all-collapsed-maps-szn: $(addsuffix .collapsed.maps.szn, $(ALL_TRACES))
 all-collapsed-reductions-szn: TAG=all
 all-collapsed-reductions-szn: $(addsuffix .collapsed.reductions.szn, $(ALL_TRACES))
 
-# CSV list of all map and reduction patterns found in the given trace.
-# This applies a loop-based heuristic, examining one loop at a time and
-# concentrating on finding patterns within its iteration space.
-%.csv: %.trace
-# Simplify and extract all loop traces.
-	$(MAKE) $*.simple.traces
-# Clean tags base traces.
-	rm -f $*.simple.tags $*.trace $*.simple.trace
-# Collapse loops and match patterns.
-	$(MAKE) BASENAME=$* all-collapsed-maps-szn all-collapsed-reductions-szn
-# Clean intermediate files.
-	rm -f $*.*.dzn
-# Finally, build table with results.
-	$(PROCESS_MATCHES) $*.*.szn > $@
-# Clean intermediate files from last step.
-	rm -f $*.*.szn $*.*.trace
+# Scan patterns found by collapsing the nodes in each trace.
+all-collapsed-scans-szn: TAG=all
+all-collapsed-scans-szn: $(addsuffix .collapsed.scans.szn, $(ALL_TRACES))
 
 # Clean all intermediate files.
 clean:
-	rm -rf trace *.bin *.trace *.gv *.pdf *.ll *.html *.yaml *.dzn *.szn *.tags *.aliases *.csv examples/*.csv *~
+	rm -rf trace *.bin *.trace *.gv *.pdf *.ll *.html *.yaml *.dzn *.szn *.tags *.aliases *~
