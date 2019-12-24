@@ -379,7 +379,8 @@ def collapse_tags((DDG, PB, PI, PT), tag):
     for instance, nodes in instance_nodes.items():
         group_block = max(DDGc.nodes()) + 1
         DDGc.add_node(group_block)
-        for (source, target) in DDGc.edges():
+        # The list() conversion is needed since we may add new edges to DDGc.
+        for (source, target) in list(DDGc.edges()):
             # Add incoming arcs.
             if (not source in nodes) and (target in nodes):
                 DDGc.add_edge(source, group_block)
