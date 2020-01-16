@@ -498,6 +498,37 @@ def collapse_group_by((DDG, PB, PI, PT), p, instruction_properties):
     PIs = clean_instruction_properties(PIc, PBc)
     return (DDGc, PBc, PIs, PT)
 
+# Remove instances of the given tag that only contain compare and branch nodes,
+# where the compare has the branch as its only successor.
+def untag_header_instances((DDG, PB, PI, PT), tag):
+    instance_nodes = instance_nodes_map((DDG, PB, PI, PT), tag)
+    for (instance, nodes) in instance_nodes.iteritems():
+        node_list = list(nodes)
+        if len(node_list) != 2:
+            continue
+        if node_list[0] in DDG.predecessors(node_list[1]):
+            p = node_list[0]
+            s = node_list[1]
+        elif node_list[1] in DDG.predecessors(node_list[0]):
+            p = node_list[1]
+            s = node_list[0]
+        else:
+            continue
+        if properties(p, PB, PI).get(u.tk_name) != "icmp":
+            continue
+        if properties(s, PB, PI).get(u.tk_name) != "br":
+            continue
+        succ = list(DDG.successors(p))
+        if succ != [s]:
+            continue
+        # If all the above conditions hold, untag the two nodes.
+        for b in [p, s]:
+            PB[b][u.tk_tags] = [(t, i) for (t, i) in PB[b][u.tk_tags]
+                                if t != tag]
+            if not PB[b][u.tk_tags]:
+                PB[b].pop(u.tk_tags, None)
+    return (DDG, PB, PI, PT)
+
 # Remove the given tag from nodes identified as induction dataflow.
 def untag_induction_nodes((DDG, PB, PI, PT), tag):
     instance_nodes = instance_nodes_map((DDG, PB, PI, PT), tag)
@@ -783,7 +814,10 @@ def main(args):
     parser_simplify.add_argument('--remove-aggregates', dest='remove_aggregates', action='store_true', help='remove LLVM IR aggregate operations')
     parser_simplify.add_argument('--no-remove-aggregates', dest='remove_aggregates', action='store_false')
     parser_simplify.set_defaults(remove_aggregates=True)
-    parser_simplify.add_argument('--untag-inductions', dest='untag_inductions', help='remove tags from induction nodes')
+    parser_simplify.add_argument('--untag-header-instances', dest='untag_header_instances', action='store_true', help='remove tag instances that only contain compare and branch nodes')
+    parser_simplify.add_argument('--no-untag-header-instances', dest='untag_header_instances', action='store_false')
+    parser_simplify.set_defaults(untag_header_instances=True)
+    parser_simplify.add_argument('--untag-inductions', dest='untag_inductions', action='store_true', help='remove tags from induction nodes')
     parser_simplify.set_defaults(untag_inductions=False)
 
     parser_transform = subparsers.add_parser(arg_transform, help='apply filter and collapse operations to the trace')
@@ -836,6 +870,9 @@ def main(args):
             G = remove_instructions(G, is_gep)
         if args.remove_aggregates:
             G = remove_instructions(G, is_aggregate)
+        if args.untag_header_instances:
+            for tag in u.tag_set(G):
+                G = untag_header_instances(G, (get_tag_id(tag, G)))
         if args.untag_inductions:
             for tag in u.tag_set(G):
                 G = untag_induction_nodes(G, (get_tag_id(tag, G)))
