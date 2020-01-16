@@ -93,6 +93,26 @@ forall (i1 in steps, i2 in steps where i2 <= Last /\ i2 = i1 + 1)
  )
 );
 
+% Ensure that all steps have an incoming arc.
+constraint
+forall (i in steps where i <= Last)
+(exists (a in index_set_1of2(arcs))
+ (
+  let {int: s = arcs[a, 0];
+       int: t = arcs[a, 1]} in
+  ((not (s in R)) /\ (t in S[i]))
+ )
+);
+
+% Ensure that the last step has an outgoing arc.
+constraint
+exists (a in index_set_1of2(arcs))
+(
+ let {int: s = arcs[a, 0];
+      int: t = arcs[a, 1]} in
+ ((s in S[Last]) /\ (not (t in R)))
+);
+
 % Ensure that there are no holes in the reduction. A hole is a node that is
 % reachable and reaches two reduction nodes but is not part of the reduction.
 constraint
@@ -111,6 +131,11 @@ forall (s in nodes, t in nodes where t in reachable[s])
 constraint assert(n > 1, "The DDG should contain at least two nodes");
 constraint card(S[0]) > 0;
 constraint card(S[1]) > 0;
+
+% Enforce that no step exceeds the maximum number of nodes of each instruction.
+constraint
+forall (k in insts)
+(Count[k] <= max_count[k]);
 
 % Enforce that all steps contain the same number of nodes and cover the same
 % instructions the same number of times.

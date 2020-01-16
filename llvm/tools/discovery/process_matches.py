@@ -80,21 +80,30 @@ def process_loop_matches(szn_files, simple):
             data[benchmark][mode][tag][3][pattern] = match
 
     # Print the CSV table.
+    pattern_list = [u.pat_doall, u.pat_map, u.pat_reduction, u.pat_scan]
     csvwriter = csv.writer(sys.stdout, delimiter=",", quoting=csv.QUOTE_MINIMAL)
     csvwriter.writerow(([] if simple else ["benchmark", "mode", "loop", "nodes"]) + \
                        ["location"] + \
                        ([] if simple else ["function"]) + \
-                       [u.pat_map, u.pat_reduction, u.pat_scan])
+                       pattern_list)
     for (benchmark, benchmark_data) in sorted(data.iteritems()):
         for (mode, mode_data) in sorted(benchmark_data.iteritems()):
             nodes_inv = lambda x: -x[1][2]
             for (tag, (location, function, nodes, matches)) in \
                 sorted(mode_data.iteritems(),
                        cmp=lambda t1, t2: cmp(nodes_inv(t1), nodes_inv(t2))):
+                # If minizinc fails with a 'model inconsistency warning', it
+                # does not honor the -o flag and does not create a .szn file. In
+                # that case, assume there is no match (equivalent to MiniZinc's
+                # =====UNSATISFIABLE=====).
+                for p in pattern_list:
+                    if not p in matches:
+                        matches[p] = (False, u.tk_sol_status_normal)
                 row = ([] if simple else [benchmark, mode, tag, nodes]) + \
                       [location] + \
                        ([] if simple else [function]) + \
-                      [match_to_digit(matches[u.pat_map]),
+                      [match_to_digit(matches[u.pat_doall]),
+                       match_to_digit(matches[u.pat_map]),
                        match_to_digit(matches[u.pat_reduction]),
                        match_to_digit(matches[u.pat_scan])]
                 csvwriter.writerow(row)
@@ -149,7 +158,8 @@ def process_instruction_matches(szn_files, simple):
     csvwriter = csv.writer(sys.stdout, delimiter=",", quoting=csv.QUOTE_MINIMAL)
     csvwriter.writerow(([] if simple else ["benchmark", "mode", "pattern"]) + \
                        ["location",
-                        u.pat_map, u.pat_reduction, u.pat_scan, u.pat_pipeline])
+                        u.pat_doall, u.pat_map, u.pat_reduction, u.pat_scan,
+                        u.pat_pipeline])
     m = 0
     for (benchmark, benchmark_data) in sorted(data.iteritems()):
         for (mode, mode_data) in sorted(benchmark_data.iteritems()):
@@ -160,6 +170,7 @@ def process_instruction_matches(szn_files, simple):
                                            u.tk_sol_status_normal))
                 row = ([] if simple else [benchmark, mode, m]) + \
                       [loc,
+                       match_digit(u.pat_doall),
                        match_digit(u.pat_map),
                        match_digit(u.pat_reduction),
                        match_digit(u.pat_scan),

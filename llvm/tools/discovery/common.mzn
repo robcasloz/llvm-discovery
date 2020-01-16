@@ -23,6 +23,9 @@ array[0..n-1] of set of 0..n-1: reachable;
 % Set of branch instructions.
 set of 0..c-1: branches;
 
+% Maximum number of nodes of the same instruction in each pattern component.
+array[0..c-1] of 0..n: max_count;
+
 %%% AUXILIARY DEFINITIONS
 
 % Set of nodes in the DDG.

@@ -1,6 +1,5 @@
-% MiniZinc model for finding maps. Work in progress.
-% Run like this:
-% $ minizinc -a map.mzn map-reduction.dzn
+% MiniZinc model for finding DOALL blocks of instructions (instructions that are
+% executed repeatedly and independently). Work in progress.
 
 include "partition_set.mzn";
 include "disjoint.mzn";
@@ -11,37 +10,37 @@ include "common.mzn";
 %%% AUXILIARY DEFINITIONS
 
 % Number of non-control nodes. This can be used as an upper bound on the number
-% of map runs (setting m = nnc below).
+% of DOALL runs (setting m = nnc below).
 % TODO: a potentially stronger bound would be the maximum number of nodes that
 % are not weakly connected.
 int: nnc = card({n | i in 0..c-1, n in static_classes[i]
                  where not (i in branches)});
 
-% Upper bound on number of map runs.
+% Upper bound on number of DOALL runs.
 int: m = n;
 
-% Set of potential map runs.
+% Set of potential DOALL runs.
 set of int: runs = 0..m-1;
 
 %%% VARIABLES
 
-% M is the set of nodes in the map pattern.
+% M is the set of nodes in the DOALL pattern.
 var set of nodes: M;
 
-% Mc is the complement of M (nodes not in the map pattern).
+% Mc is the complement of M (nodes not in the DOALL pattern).
 var set of nodes: Mc;
 
-% R[i] is the set of nodes of run i in the map.
+% R[i] is the set of nodes of run i in the DOALL.
 array[runs] of var set of nodes: R;
 
 % Run[j] is the run of node j (or m if j does not belong to M).
 array[nodes] of var 0..m: Run;
 
-% Last run in the map.
+% Last run in the DOALL.
 var runs: Last;
 
 % Count[k] is the number of nodes that correspond to instruction k in a
-% map run.
+% DOALL run.
 %
 % These variables and the corresponding constraints enforce, by construction,
 % that all runs contain the same number of nodes and cover the same
@@ -59,7 +58,7 @@ constraint M subset matchable;
 % Ensure that M and Mc are complementary.
 constraint partition_set([M, Mc], nodes);
 
-% Ensure that the map runs form a partition of M.
+% Ensure that the DOALL runs form a partition of M.
 constraint partition_set(R ++ [Mc], nodes);
 
 % Ensure that the run of a node j is set to i if j in R[i], or to m otherwise.
@@ -90,29 +89,29 @@ forall (a in index_set_1of2(arcs))
 );
 
 % Ensure that all runs have an incoming arc.
-constraint
-forall (i in runs where i <= Last)
-(exists (a in index_set_1of2(arcs))
- (
-  let {int: s = arcs[a, 0];
-       int: t = arcs[a, 1]} in
-  ((not (s in M)) /\ (t in R[i]))
- )
-);
+% constraint
+% forall (i in runs where i <= Last)
+% (exists (a in index_set_1of2(arcs))
+%  (
+%   let {int: s = arcs[a, 0];
+%        int: t = arcs[a, 1]} in
+%   ((not (s in M)) /\ (t in R[i]))
+%  )
+% );
 
 % Ensure that all runs have an outgoing arc.
-constraint
-forall (i in runs where i <= Last)
-(exists (a in index_set_1of2(arcs))
- (
-  let {int: s = arcs[a, 0];
-       int: t = arcs[a, 1]} in
-  ((s in R[i]) /\ (not (t in M)))
- )
-);
+% constraint
+% forall (i in runs where i <= Last)
+% (exists (a in index_set_1of2(arcs))
+%  (
+%   let {int: s = arcs[a, 0];
+%        int: t = arcs[a, 1]} in
+%   ((s in R[i]) /\ (not (t in M)))
+%  )
+% );
 
-% Ensure that there are no holes in the map. A hole is a node that is
-% reachable and reaches two map nodes but is not part of the map.
+% Ensure that there are no holes in the DOALL pattern. A hole is a node that is
+% reachable and reaches two DOALL nodes but is not part of the DOALL.
 constraint
 forall (s in nodes, t in nodes where card(between(s, t)) > 0)
 (((s in M) /\ (t in M)) -> between(s, t) subset M);
@@ -130,7 +129,7 @@ constraint
 forall (s in nodes, t in nodes where s != t /\ not weakly_connected(s, t))
 (((s in M) /\ (t in M)) -> Run[t] != Run[s]);
 
-% Ensure that the map has at least two runs.
+% Ensure that the DOALL has at least two runs.
 constraint assert(n > 1, "The DDG should contain at least two nodes");
 constraint card(R[0]) > 0;
 constraint card(R[1]) > 0;
@@ -165,4 +164,4 @@ increasing([if card(R[i]) > 0 then min(R[i]) else n + 1 endif | i in runs]);
 
 solve satisfy;
 
-output ["map: "] ++ [ show(R[i]) ++ " " | i in runs ];
+output ["doall: "] ++ [ show(R[i]) ++ " " | i in runs ];

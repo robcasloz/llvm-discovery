@@ -138,6 +138,11 @@ constraint card(S[1]) > 0;
 constraint card(R[0]) > 0;
 constraint card(R[1]) > 0;
 
+% Enforce that no step exceeds the maximum number of nodes of each instruction.
+constraint
+forall (i in stages, p in insts)
+(Count[i, p] <= max_count[p]);
+
 % Enforce that all steps within a stage contain the same number of nodes and
 % cover the same static operations the same number of times.
 constraint

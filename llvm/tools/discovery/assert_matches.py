@@ -6,12 +6,18 @@ import sys
 
 import trace_utils as u
 
+def char2int(c):
+    if c == '?':
+        return 0
+    else:
+        return int(c)
+
 parser = argparse.ArgumentParser(description='Asserts that an expected pattern is found.')
 parser.add_argument('RESULTS_FILE')
 parser.add_argument('BENCHMARK_MODE')
 parser.add_argument('LOCATION')
 parser.add_argument('FUNCTION')
-parser.add_argument('--matches', nargs="*", help='patterns (map, reduction, scan) expected to be matched')
+parser.add_argument('--matches', nargs="*", help='patterns (doall, map, reduction, scan) expected to be matched')
 args = parser.parse_args()
 
 expected_matches = set(args.matches if args.matches else [])
@@ -22,6 +28,7 @@ benchmark_index = legend.index("benchmark")
 mode_index = legend.index("mode")
 location_index = legend.index("location")
 function_index = legend.index("function")
+doall_index = legend.index(u.pat_doall)
 map_index = legend.index(u.pat_map)
 reduction_index = legend.index(u.pat_reduction)
 scan_index = legend.index(u.pat_scan)
@@ -35,10 +42,12 @@ for line in r:
        location == args.LOCATION and \
        function == args.FUNCTION:
         found = True
-        map_matched = bool(int(line[map_index]))
-        reduction_matched = bool(int(line[reduction_index]))
-        scan_matched = bool(int(line[scan_index]))
-        actual_results = [(u.pat_map, map_matched),
+        map_matched = bool(char2int(line[map_index]))
+        doall_matched = bool(char2int(line[doall_index]))
+        reduction_matched = bool(char2int(line[reduction_index]))
+        scan_matched = bool(char2int(line[scan_index]))
+        actual_results = [(u.pat_doall, doall_matched),
+                          (u.pat_map, map_matched),
                           (u.pat_reduction, reduction_matched),
                           (u.pat_scan, scan_matched)]
         actual_matches = set(p for (p, m) in actual_results if m)

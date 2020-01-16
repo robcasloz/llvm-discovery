@@ -140,6 +140,8 @@ def get_tag_id(tag, (_, __, ___, PT)):
 
 # Gives the instance of a tag within a list of tag-instance pairs.
 def find_tag_instance(tag, tags):
+    if tags == None:
+        return None
     for tag_inst in tags:
         t = u.tag_name(tag_inst)
         if t == tag:
@@ -150,8 +152,7 @@ def find_tag_instance(tag, tags):
 def instance_nodes_map((DDG, PB, _, __), tag):
     instance_nodes = {}
     for block in [b for b in DDG.nodes()]:
-        if PB[block].get(u.tk_tags) and \
-           is_tagged_with(tag, PB[block].get(u.tk_tags)):
+        if is_tagged_with(tag, PB[block].get(u.tk_tags)):
             instance = find_tag_instance(tag, PB[block].get(u.tk_tags))
             if not instance in instance_nodes:
                 instance_nodes[instance] = Set()
@@ -160,8 +161,8 @@ def instance_nodes_map((DDG, PB, _, __), tag):
 
 # Returns a legend and a color map to be applied to a match visualization.
 def format_match(pattern, match):
-    if pattern in [u.pat_map, u.pat_reduction, u.pat_scan]:
-        if pattern == u.pat_map:
+    if pattern in [u.pat_doall, u.pat_map, u.pat_reduction, u.pat_scan]:
+        if pattern in [u.pat_doall, u.pat_map]:
             unit = "runs"
         elif pattern in [u.pat_reduction, u.pat_scan]:
             unit = "steps"
@@ -346,12 +347,43 @@ def filter_tag((DDG, PB, PI, PT), tag):
     DDGf = DDG.copy()
     PBf = copy.deepcopy(PB)
     for block in [b for b in DDG.nodes()]:
-        if not PB[block].get(u.tk_tags) or \
-           not is_tagged_with(tag, PB[block].get(u.tk_tags)):
+        if not is_tagged_with(tag, PB[block].get(u.tk_tags)):
             DDGf.remove_node(block)
             PBf.pop(block, None)
     PIf = clean_instruction_properties(PI, PBf)
+    # Add arcs into and from the filtered nodes, for context.
+    entries = set()
+    exits = set()
+    for (source, target) in DDG.edges():
+        source_tag = is_tagged_with(tag, PB[source].get(u.tk_tags))
+        target_tag = is_tagged_with(tag, PB[target].get(u.tk_tags))
+        if not source_tag and target_tag:
+            entries.add(target)
+        elif source_tag and not target_tag:
+            exits.add(source)
+    if entries:
+        source = add_region_instruction("source", PIf)
+        source_block = max(PBf.keys()) + 1
+        PBf[source_block] = {u.tk_instruction : source}
+        for ent in entries:
+            DDGf.add_edge(source_block, ent)
+    if exits:
+        sink = add_region_instruction("sink", PIf)
+        sink_block = max(PBf.keys()) + 1
+        PBf[sink_block] = {u.tk_instruction : sink}
+        for ex in exits:
+            DDGf.add_edge(ex, sink_block)
     return (DDGf, PBf, PIf, PT)
+
+# Adds a new region instruction with the given name.
+def add_region_instruction(name, PI):
+    instruction = max(PI.keys()) + 1
+    PI[instruction] = \
+        {u.tk_impure : u.tk_true,
+         u.tk_noncommutative : u.tk_true,
+         u.tk_name : name,
+         u.tk_region : u.tk_true}
+    return instruction
 
 # Removes the given tags from the labeled DDG.
 def remove_tags((DDG, PB, PI, PT), tags):
@@ -687,9 +719,11 @@ def print_minizinc((DDG, PB, PI, PT), match_regions_only):
         print >>out, (str(source) + ","), (str(target) + ",")
     print >>out, "]);"
     print >>out, "static_classes = array1d(0.." + str(c - 1) + ", [";
+    instr2blocks = {}
     for instr in PIp.keys():
         instr_blocks = [b for b in sorted(DDG.nodes())
                         if PB[b].get(u.tk_instruction) == instr]
+        instr2blocks[instr] = instr_blocks
         print >>out, "{" + ", ".join(map(str, instr_blocks)) + "},"
     print >>out, "]);"
     print >>out, "reachable = array1d(0.." + str(n - 1) + ", [";
@@ -699,6 +733,14 @@ def print_minizinc((DDG, PB, PI, PT), match_regions_only):
     branches = [instr for instr in PIp.keys()
                 if PIp[instr].get(u.tk_name, "") == "br"]
     print >>out, "branches = {" + ", ".join(map(str, branches)) + "};"
+    max_count = []
+    for instr in PIp.keys():
+        mc = len(instr2blocks[instr]) / 2
+        if match_regions_only:
+            mc = min(mc, 1)
+        max_count.append(mc)
+    print >>out, "max_count = array1d(0.." + str(c - 1) + ", [" \
+        + ", ".join(map(str, max_count)) + "]);"
     dzn = out.getvalue()
     out.close()
     return dzn
@@ -742,7 +784,7 @@ def main(args):
     parser_simplify.add_argument('--no-remove-aggregates', dest='remove_aggregates', action='store_false')
     parser_simplify.set_defaults(remove_aggregates=True)
     parser_simplify.add_argument('--untag-inductions', dest='untag_inductions', help='remove tags from induction nodes')
-    parser_simplify.set_defaults(untag_inductions=True)
+    parser_simplify.set_defaults(untag_inductions=False)
 
     parser_transform = subparsers.add_parser(arg_transform, help='apply filter and collapse operations to the trace')
     parser_transform.add_argument('--filter-location', help='filters blocks by location according to a regexp')

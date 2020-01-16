@@ -12,6 +12,7 @@ PROCESS_TRACE = $(DISCOVERY_DIR)/process_trace.py
 PROCESS_MATCHES = $(DISCOVERY_DIR)/process_matches.py
 GRAPHVIZ_FLAGS = --simplify-loc
 MINIZINC_FLAGS ?= -a --solver chuffed
+MINIZINC_DZN_FLAGS ?=
 OPT_VIEWER = $(DISCOVERY_DIR)/../opt-viewer/opt-viewer.py
 
 # Do not remove intermediate files.
@@ -44,7 +45,7 @@ OPT_VIEWER = $(DISCOVERY_DIR)/../opt-viewer/opt-viewer.py
 
 # Trace as input to the MiniZinc pattern finder.
 %.dzn: %.trace
-	$(PROCESS_TRACE) --output-format=minizinc print $< > $@
+	$(PROCESS_TRACE) --output-format=minizinc $(MINIZINC_DZN_FLAGS) print $< > $@
 
 # List of tags in a trace.
 %.tags: %.trace
@@ -60,6 +61,18 @@ OPT_VIEWER = $(DISCOVERY_DIR)/../opt-viewer/opt-viewer.py
 		$(MAKE) $*.filtered.trace TAG=$$TAG; \
 		mv $*.filtered.trace $*.$$TAG.trace; \
 	done < $*.tags
+
+# DOALL pattern matches in MiniZinc solution format.
+%.doalls.szn: %.dzn $(DISCOVERY_DIR)/doall.mzn $(DISCOVERY_DIR)/common.mzn
+	-minizinc $(MINIZINC_FLAGS) $(DISCOVERY_DIR)/doall.mzn $< > $@
+
+# DOALL pattern matches in PDF format.
+%.doalls.pdf: %.doalls.szn %.trace
+	$(PROCESS_TRACE) -o $@ visualize $^ $(GRAPHVIZ_FLAGS)
+
+# DOALL pattern matches in YAML LLVM remarks format.
+%.doalls.yaml: %.doalls.szn %.trace
+	$(PROCESS_TRACE) report $^ > $@
 
 # Map pattern matches in MiniZinc solution format.
 %.maps.szn: %.dzn $(DISCOVERY_DIR)/map.mzn $(DISCOVERY_DIR)/common.mzn
@@ -145,6 +158,10 @@ OPT_VIEWER = $(DISCOVERY_DIR)/../opt-viewer/opt-viewer.py
 
 # Prefix of all .trace files under BASENAME.
 ALL_TRACES = $(basename $(wildcard $(BASENAME)*.trace))
+
+# DO-ALL patterns found by collapsing the nodes in each trace.
+all-collapsed-doalls-szn: TAG=all
+all-collapsed-doalls-szn: $(addsuffix .collapsed.doalls.szn, $(ALL_TRACES))
 
 # Map patterns found by collapsing the nodes in each trace.
 all-collapsed-maps-szn: TAG=all

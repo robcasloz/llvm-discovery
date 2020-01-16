@@ -93,7 +93,7 @@ if args.level == u.arg_loop:
 
     list(ex.map(make_dzn, tags))
 
-    patterns = [u.pat_map, u.pat_reduction, u.pat_scan]
+    patterns = [u.pat_doall, u.pat_map, u.pat_reduction, u.pat_scan]
 
     def make_szn((tag, pattern)):
         t = str(tag)
@@ -116,7 +116,8 @@ elif args.level == u.arg_instruction:
     run_process_trace(["-o", simple_dzn, "--output-format=minizinc", "print",
                        simple_trace])
 
-    patterns = [u.pat_map, u.pat_reduction, u.pat_scan, u.pat_pipeline]
+    patterns = [u.pat_doall, u.pat_map, u.pat_reduction, u.pat_scan,
+                u.pat_pipeline]
 
     def make_szn(pattern):
         simple_pattern_szn = temp(["simple", pattern + "s", "szn"])
