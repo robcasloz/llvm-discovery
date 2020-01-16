@@ -18,10 +18,10 @@ Take the following steps (beware that compiling LLVM consumes a significant amou
 
 ```
 git clone --recursive https://github.com/robcasloz/llvm-discovery.git
-cd llvm-project
+cd llvm-discovery
 mkdir build
 cd build
-cmake -DLLVM_CCACHE_BUILD=1 -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DBUILD_SHARED_LIBS=1 -DLLVM_ENABLE_PROJECTS="clang;compiler-rt" -DLLVM_TARGETS_TO_BUILD="X86" -DCMAKE_CXX_STANDARD=14 -DCMAKE_BUILD_TYPE=Release -G "Ninja" ../llvm
+cmake -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DBUILD_SHARED_LIBS=1 -DLLVM_ENABLE_PROJECTS="clang;compiler-rt" -DLLVM_TARGETS_TO_BUILD="X86" -DCMAKE_CXX_STANDARD=14 -DCMAKE_BUILD_TYPE=Release -G "Ninja" ../llvm
 ninja compiler-rt clang
 ```
 
