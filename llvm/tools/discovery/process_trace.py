@@ -148,16 +148,25 @@ def find_tag_data(tag, tags):
             return u.tag_data(tag_data)
     return None
 
-# Returns a map from instances of the given tag to nodes.
-def instance_nodes_map((DDG, PB, _, __), tag):
-    instance_nodes = {}
+# Returns a map from a property of the given tag to nodes.
+def tag_nodes_map((DDG, PB, _, __), tag, f):
+    tag_nodes = {}
     for block in [b for b in DDG.nodes()]:
         if is_tagged_with(tag, PB[block].get(u.tk_tags)):
-            (_group, instance) = find_tag_data(tag, PB[block].get(u.tk_tags))
-            if not instance in instance_nodes:
-                instance_nodes[instance] = Set()
-            instance_nodes[instance].add(block)
-    return instance_nodes
+            # p is either a tag group or a tag instance
+            p = f(find_tag_data(tag, PB[block].get(u.tk_tags)))
+            if not p in tag_nodes:
+                tag_nodes[p] = Set()
+            tag_nodes[p].add(block)
+    return tag_nodes
+
+# Returns a map from groups of the given tag to nodes.
+def group_nodes_map(G, tag):
+    return tag_nodes_map(G, tag, lambda (g, i) : g)
+
+# Returns a map from instances of the given tag to nodes.
+def instance_nodes_map(G, tag):
+    return tag_nodes_map(G, tag, lambda (g, i) : i)
 
 # Returns a legend and a color map to be applied to a match visualization.
 def format_match(pattern, match):
@@ -189,12 +198,13 @@ def format_match(pattern, match):
         sys.exit(-1)
     return (legend, color_map)
 
-# Returns a color map over tagged nodes.
-def format_tag((DDG, PB, PI, PT), tag):
-    instance_nodes = instance_nodes_map((DDG, PB, PI, PT), tag)
+# Returns a color map over tagged nodes with different colors for each property
+# (group or instance).
+def format_tags(G, tag, f):
+    tag_nodes = tag_nodes_map(G, tag, f)
     color_map = {}
-    for instance, nodes in instance_nodes.items():
-        color = colors[(instance - 1) % len(colors)]
+    for p, nodes in tag_nodes.items():
+        color = colors[(p - 1) % len(colors)]
         color_map.update(dict(zip(list(nodes), itertools.repeat(color))))
     return color_map
 
@@ -792,7 +802,8 @@ def main(args):
     parser.add_argument('--print-ids', dest='print_ids', action='store_true', help='print block identifiers in Graphviz format')
     parser.add_argument('--no-print-ids', dest='print_ids', action='store_false')
     parser.set_defaults(print_ids=False)
-    parser.add_argument('--color-tag', help='color all tagged nodes')
+    parser.add_argument('--color-tag-groups', help='color the different groups of all tagged nodes')
+    parser.add_argument('--color-tag-instances', help='color the different instances of all tagged nodes')
     parser.add_argument('--match-regions-only', dest='match_regions_only', action='store_true', help='define region nodes as the only matchable nodes in the MiniZinc format')
 
     parser_query = subparsers.add_parser(arg_query, help='query about properties of the trace')
@@ -898,10 +909,13 @@ def main(args):
 
     if args.subparser not in [arg_query, arg_visualize, arg_report]:
         if args.output_format == arg_graphviz:
-            if args.color_tag:
-                tag = (list(u.tag_set(G))[0] if args.color_tag == "all"
-                       else args.color_tag)
-                color_map = format_tag(G, get_tag_id(tag, G))
+            select_tag = lambda t : list(u.tag_set(G))[0] if t == "all" else t
+            if args.color_tag_groups:
+                tag = select_tag(args.color_tag_groups)
+                color_map = format_tags(G, get_tag_id(tag, G), lambda (g, _) : g)
+            elif args.color_tag_instances:
+                tag = select_tag(args.color_tag_instances)
+                color_map = format_tags(G, get_tag_id(tag, G), lambda (_, i) : i)
             else:
                 color_map = None
             out = print_graphviz(G, args.print_ids, args.simplify_loc,

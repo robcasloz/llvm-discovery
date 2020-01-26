@@ -14,6 +14,7 @@ GRAPHVIZ_FLAGS = --simplify-loc
 MINIZINC_FLAGS ?= -a --solver chuffed
 MINIZINC_DZN_FLAGS ?=
 OPT_VIEWER = $(DISCOVERY_DIR)/../opt-viewer/opt-viewer.py
+TAG ?= 0
 
 # Do not remove intermediate files.
 .SECONDARY:
@@ -140,9 +141,13 @@ OPT_VIEWER = $(DISCOVERY_DIR)/../opt-viewer/opt-viewer.py
 	$(OPT_VIEWER) $<
 	mv html $@
 
-# Trace in GraphViz format where instances of the tag get different colors.
-%.colored.trace.gv: %.trace
-	$(PROCESS_TRACE) $(GRAPHVIZ_FLAGS) --output-format=graphviz --color-tag $(TAG) print $< > $@
+# Trace in GraphViz format where tag instances get different colors.
+%.instances.trace.gv: %.trace
+	$(PROCESS_TRACE) $(GRAPHVIZ_FLAGS) --output-format=graphviz --color-tag-instances $(TAG) print $< > $@
+
+# Trace in GraphViz format where tag groups get different colors.
+%.groups.trace.gv: %.trace
+	$(PROCESS_TRACE) $(GRAPHVIZ_FLAGS) --output-format=graphviz --color-tag-groups $(TAG) print $< > $@
 
 # Trace in GraphViz format.
 %.trace.gv: %.trace
