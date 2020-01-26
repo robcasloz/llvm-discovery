@@ -115,14 +115,14 @@ def is_dispensable(b, PB, PI):
     name = properties(b, PB, PI).get(u.tk_name)
     return name in ["dfsw$pthread_create"]
 
-# Tells whether a list of tag-instance pairs contains the given tag.
+# Tells whether a list of tag-data pairs contains the given tag.
 def is_tagged_with(tag, tags):
-    return find_tag_instance(tag, tags) != None
+    return find_tag_data(tag, tags) != None
 
-# Gives a tag-instance string out of a tag tuple:
-def tag_tuple_to_str((t, i)):
+# Gives a tag-data string out of a tag tuple:
+def tag_tuple_to_str((t, (g, i))):
     # t can be a string or an int (if the tag has been normalized).
-    return str(t) + u.tk_tag_sep + str(i)
+    return str(t) + u.tk_tag_sep + str(g) + u.tk_tag_sep + str(i)
 
 # Gives the numeric tag id of the given tag string (which can also be an alias).
 def get_tag_id(tag, (_, __, ___, PT)):
@@ -138,14 +138,14 @@ def get_tag_id(tag, (_, __, ___, PT)):
         sys.stderr.write("Error: could not find tag or tag alias '" + tag + "'\n")
         sys.exit(-1)
 
-# Gives the instance of a tag within a list of tag-instance pairs.
-def find_tag_instance(tag, tags):
+# Gives the data of a tag within a list of tag-data pairs.
+def find_tag_data(tag, tags):
     if tags == None:
         return None
-    for tag_inst in tags:
-        t = u.tag_name(tag_inst)
+    for tag_data in tags:
+        t = u.tag_name(tag_data)
         if t == tag:
-            return u.tag_instance(tag_inst)
+            return u.tag_data(tag_data)
     return None
 
 # Returns a map from instances of the given tag to nodes.
@@ -153,7 +153,7 @@ def instance_nodes_map((DDG, PB, _, __), tag):
     instance_nodes = {}
     for block in [b for b in DDG.nodes()]:
         if is_tagged_with(tag, PB[block].get(u.tk_tags)):
-            instance = find_tag_instance(tag, PB[block].get(u.tk_tags))
+            (_group, instance) = find_tag_data(tag, PB[block].get(u.tk_tags))
             if not instance in instance_nodes:
                 instance_nodes[instance] = Set()
             instance_nodes[instance].add(block)
@@ -254,13 +254,14 @@ def normalize_tags((DDG, PB, PI, PT)):
         tag_blocks = 0
         for block, value in PB.iteritems():
             new_tags = []
-            for (old_name, old_instance) in PB[block].get(u.tk_tags, []):
+            for (old_name, (old_group, old_instance)) in \
+                PB[block].get(u.tk_tags, []):
                 if old_name == tag:
                     new_instance = instance_rename[old_instance]
-                    new_tags += [(new_tag_name, new_instance)]
+                    new_tags += [(new_tag_name, (old_group, new_instance))]
                     tag_blocks += 1
                 else:
-                    new_tags += [(old_name, old_instance)]
+                    new_tags += [(old_name, (old_group, old_instance))]
             if new_tags:
                 PB[block][u.tk_tags] = new_tags
         PT[new_tag_name][u.tk_original_blocks] = tag_blocks
@@ -523,7 +524,7 @@ def untag_header_instances((DDG, PB, PI, PT), tag):
             continue
         # If all the above conditions hold, untag the two nodes.
         for b in [p, s]:
-            PB[b][u.tk_tags] = [(t, i) for (t, i) in PB[b][u.tk_tags]
+            PB[b][u.tk_tags] = [(t, (g, i)) for (t, (g, i)) in PB[b][u.tk_tags]
                                 if t != tag]
             if not PB[b][u.tk_tags]:
                 PB[b].pop(u.tk_tags, None)

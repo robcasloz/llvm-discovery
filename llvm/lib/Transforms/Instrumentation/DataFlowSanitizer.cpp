@@ -434,6 +434,7 @@ class DataFlowSanitizer : public ModulePass {
   FunctionType *DFSanReportFnTy;
   FunctionType *DFSanBeginTaggingFnTy;
   FunctionType *DFSanEndTaggingFnTy;
+  FunctionType *DFSanNewGroupFnTy;
   Constant *DFSanUnionFn;
   Constant *DFSanCheckedUnionFn;
   Constant *DFSanUnionLoadFn;
@@ -452,6 +453,7 @@ class DataFlowSanitizer : public ModulePass {
   Constant *DFSanReportFn;
   Constant *DFSanBeginTaggingFn;
   Constant *DFSanEndTaggingFn;
+  Constant *DFSanNewGroupFn;
   MDNode *ColdCallWeights;
   DFSanABIList ABIList;
   DFSanCommutativityList CommutativityList;
@@ -739,6 +741,8 @@ bool DataFlowSanitizer::doInitialization(Module &M) {
         Type::getVoidTy(*Ctx), {Type::getInt8PtrTy(*Ctx)}, /*isVarArg=*/false);
     DFSanEndTaggingFnTy = FunctionType::get(
         Type::getVoidTy(*Ctx), {Type::getInt8PtrTy(*Ctx)}, /*isVarArg=*/false);
+    DFSanNewGroupFnTy = FunctionType::get(
+        Type::getVoidTy(*Ctx), {Type::getInt8PtrTy(*Ctx)}, /*isVarArg=*/false);
   }
 
   if (GetArgTLSPtr) {
@@ -988,6 +992,9 @@ bool DataFlowSanitizer::runOnModule(Module &M) {
     DFSanEndTaggingFn =
         Mod->getOrInsertFunction("dfsan_end_tagging",
                                  DFSanEndTaggingFnTy);
+    DFSanNewGroupFn =
+        Mod->getOrInsertFunction("dfsan_new_group",
+                                 DFSanNewGroupFnTy);
   }
   std::vector<Function *> FnsToInstrument;
   SmallPtrSet<Function *, 2> FnsWithNativeABI;
@@ -1011,7 +1018,8 @@ bool DataFlowSanitizer::runOnModule(Module &M) {
            &i != DFSanCloseTraceFn &&
            &i != DFSanReportFn &&
            &i != DFSanBeginTaggingFn &&
-           &i != DFSanEndTaggingFn)) {
+           &i != DFSanEndTaggingFn &&
+           &i != DFSanNewGroupFn)) {
         FnsToInstrument.push_back(&i);
       }
     }
@@ -1324,12 +1332,23 @@ bool DataFlowSanitizer::runOnModule(Module &M) {
         // (where the "condition" block is both latch and exiting) and loops
         // with break statements (where the "break" exit block is a predecessor
         // of the "regular" exit block).
+        //
+        // Also, increment the group counter at the beginning of each exit as
+        // well. The next time the loop is entered, it is thus tagged with a new
+        // group identifier. As discussed above, double-group-increments may
+        // happen in loops where one exit block is a predecessor of another exit
+        // block.
+        // FIXME: ignore subsequent calls to 'dfsan_new_group' without
+        // interleaved 'dfsan_beging_tagging' calls (e.g. by adding a guard to
+        // the tag structure).
         SmallVector<BasicBlock*, 16> LoopExits;
         // Cannot use 'getExitEdges' because it is const-qualified, tough luck.
         L->getExitBlocks(LoopExits);
         for (BasicBlock *LEB : LoopExits) {
           IRBuilder<> IRB(&*LEB->getFirstInsertionPt());
           IRB.CreateCall(DFSF.DFS.DFSanEndTaggingFn,
+                         {IRB.CreateGlobalStringPtr(LoopTag.str())});
+          IRB.CreateCall(DFSF.DFS.DFSanNewGroupFn,
                          {IRB.CreateGlobalStringPtr(LoopTag.str())});
         }
       }

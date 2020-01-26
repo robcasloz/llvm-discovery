@@ -95,9 +95,9 @@ def read_trace(trace_file):
         if key == tk_tag:
             # Compress multiple values of tk_tag into a tk_tags list.
             tags = PB[block].get(tk_tags, [])
-            (t, i) = tag_str_to_tuple(value)
-            if not (t,i) in tags:
-                tags.append((t,i))
+            tag = tag_str_to_tuple(value)
+            if not tag in tags:
+                tags.append(tag)
             PB[block][tk_tags] = tags
         elif key == tk_tags:
             PB[block][key] = map(tag_str_to_tuple, value.split(tk_list_sep))
@@ -166,27 +166,35 @@ def insts_to_steps((_, PB, PI, __), pattern, matches):
             i_to_s[si] = set([steps])
     return i_to_s
 
-# Gives a tag tuple out of a tag-instance string.
-def tag_str_to_tuple(tag_instance):
-    [t,i] = tag_instance.rsplit(tk_tag_sep, 1)
+# Gives a tag tuple out of a tag-data string.
+def tag_str_to_tuple(tag_data):
+    [t,g,i] = tag_data.rsplit(tk_tag_sep, 2)
     try:
         tag = int(t)
     except ValueError:
         tag = t
-    return (tag, int(i))
+    return (tag, (int(g), int(i)))
 
-# Gives the tag in a tag-instance pair.
+# Gives the tag in a tag-data pair.
 def tag_name((t, _)):
     return t
 
-# Gives the instance in a tag-instance pair.
-def tag_instance((_, i)):
+# Gives the tag data a tag-data pair.
+def tag_data((_, d)):
+    return d
+
+# Gives the group in a tag-data pair.
+def tag_group((_, (g, _i))):
+    return g
+
+# Gives the instance in a tag-data pair.
+def tag_instance((_, (_g, i))):
     return i
 
 # Returns a set with all different tags in the trace.
 def tag_set((_, PB, __, ___)):
     return set(itertools.chain.from_iterable(
-        [[tag_name(tag_ins) for tag_ins in PB[block].get(tk_tags, [])]
+        [[tag_name(tag_data) for tag_data in PB[block].get(tk_tags, [])]
          for block in PB]))
 
 # Transforms a MiniZinc set of ints into a Python one.

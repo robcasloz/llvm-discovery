@@ -83,65 +83,85 @@ static dfsan_id __dfsan_region_id[kNumThreads];
 // Current region label within each thread.
 static dfsan_label __dfsan_region_label[kNumThreads];
 
-typedef unsigned int tag_instance;
-typedef atomic_uint32_t atomic_tag_instance;
+// Tag counters are used to count tag groups and instances.
+typedef unsigned int tag_counter;
+typedef atomic_uint32_t atomic_tag_counter;
 
 // Last tag instance (this is global, as the specific instance assigned does not
 // matter, only that they differ among instances).
-static atomic_tag_instance __dfsan_last_tag_instance{0};
+static atomic_tag_counter __dfsan_last_tag_instance{0};
 
 struct tag {
   const char *key;
-  tag_instance instance;
+  tag_counter group;
+  tag_counter instance;
   struct tag *next;
 };
 
 
-void insert_tag(struct tag **head, const char *ins_key,
-                tag_instance ins_instance) {
+void insert_tag(struct tag **head, const char *_key, tag_counter _group,
+                tag_counter _instance) {
   struct tag *node = (struct tag *) malloc(sizeof(struct tag));
   assert(node);
-  node->key = ins_key;
-  node->instance = ins_instance;
+  node->key = _key;
+  node->group = _group;
+  node->instance = _instance;
   node->next = *head;
   *head = node;
 }
 
-void remove_tag(struct tag **head, const char *rem_key) {
+void remove_tag(struct tag **head, const char *_key) {
   struct tag* tmp = *head, *prev;
-  if (tmp != NULL && strcmp(tmp->key, rem_key) == 0) {
+  if (tmp != NULL && strcmp(tmp->key, _key) == 0) {
     *head = tmp->next;
     free(tmp);
     return;
   }
-  while (tmp != NULL && strcmp(tmp->key, rem_key) != 0) {
+  while (tmp != NULL && strcmp(tmp->key, _key) != 0) {
     prev = tmp;
     tmp = tmp->next;
   }
   if (tmp == NULL) {
     Report("NOTE: DataFlowSanitizer: ignoring removal of nonexistent tag %s\n",
-           rem_key);
+           _key);
     return;
   }
   prev->next = tmp->next;
   free(tmp);
 }
 
-bool exists_tag(struct tag **head, const char *find_key) {
+struct tag *find_tag(struct tag **head, const char *_key) {
   struct tag* tmp = *head, *prev;
-  if (tmp != NULL && strcmp(tmp->key, find_key) == 0) {
-    return true;
+  if (tmp != NULL && strcmp(tmp->key, _key) == 0) {
+    return tmp;
   }
-  while (tmp != NULL && strcmp(tmp->key, find_key) != 0) {
+  while (tmp != NULL && strcmp(tmp->key, _key) != 0) {
     prev = tmp;
     tmp = tmp->next;
   }
-  if (tmp != NULL) return true;
-  return false;
+  return tmp;
+}
+
+bool exists_tag(struct tag **head, const char *_key) {
+  return find_tag(head, _key) != NULL;
+}
+
+void increment_tag_group(struct tag **head, const char *_key) {
+  struct tag* t = find_tag(head, _key);
+  if (t == NULL) {
+    // The tag instance (last element) is irrelevant and set arbitrarily to 0.
+    insert_tag(head, _key, 1, 0);
+  } else {
+    t->group++;
+  }
 }
 
 // Active tags (linked list) within each thread.
 static struct tag* __dfsan_tags[kNumThreads];
+
+// Current group of each seen tag (linked list) within each thread. The tag
+// instance field of each tag struct is ignored.
+static struct tag* __dfsan_tag_groups[kNumThreads];
 
 // On Linux/x86_64, memory is laid out as follows:
 //
@@ -518,8 +538,8 @@ __dfsan_print_data_flow(dfsan_label l, int id) {
   if (__dfsan_instruction_tracing[rtid]) {
     struct tag* node = __dfsan_tags[rtid];
     while (node != NULL) {
-      fprintf(__dfsan_trace, "BP %d TAG %s-%d\n",
-              id, node->key, node->instance);
+      fprintf(__dfsan_trace, "BP %d TAG %s-%d-%d\n", id, node->key, node->group,
+              node->instance);
       node = node->next;
     }
   }
@@ -601,17 +621,26 @@ dfsan_trace_instructions() {
 
 extern "C" SANITIZER_INTERFACE_ATTRIBUTE void
 dfsan_begin_tagging(const char *t) {
-  tag_instance i =
+  tag_counter i =
     atomic_fetch_add(&__dfsan_last_tag_instance, 1, memory_order_relaxed) + 1;
   pid_t rtid = dfsan_get_relative_tid();
   assert(!exists_tag(&__dfsan_tags[rtid], t));
-  insert_tag(&__dfsan_tags[rtid], t, i);
+  struct tag* tag = find_tag(&__dfsan_tag_groups[rtid], t);
+  // If the group of this tag is not yet registered, assume it is 0.
+  tag_counter g = tag == NULL ? 0 : tag->group;
+  insert_tag(&__dfsan_tags[rtid], t, g, i);
 }
 
 extern "C" SANITIZER_INTERFACE_ATTRIBUTE void
 dfsan_end_tagging(const char *t) {
   pid_t rtid = dfsan_get_relative_tid();
   remove_tag(&__dfsan_tags[rtid], t);
+}
+
+extern "C" SANITIZER_INTERFACE_ATTRIBUTE void
+dfsan_new_group(const char *t) {
+  pid_t rtid = dfsan_get_relative_tid();
+  increment_tag_group(&__dfsan_tag_groups[rtid], t);
 }
 
 extern "C" SANITIZER_INTERFACE_ATTRIBUTE int
