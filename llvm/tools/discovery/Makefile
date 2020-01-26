@@ -15,6 +15,7 @@ MINIZINC_FLAGS ?= -a --solver chuffed
 MINIZINC_DZN_FLAGS ?=
 OPT_VIEWER = $(DISCOVERY_DIR)/../opt-viewer/opt-viewer.py
 TAG ?= 0
+GROUP ?= 0
 
 # Do not remove intermediate files.
 .SECONDARY:
@@ -37,8 +38,12 @@ TAG ?= 0
 	$(PROCESS_TRACE) --output-format=plain simplify $< > $@
 
 # Filtered trace for a given tag.
-%.filtered.trace: %.trace
+%.tag-filtered.trace: %.trace
 	$(PROCESS_TRACE) --output-format=plain transform --filter-tags $(TAG) $< > $@
+
+# Filtered trace for a given tag and group.
+%.group-filtered.trace: %.trace
+	$(PROCESS_TRACE) --output-format=plain transform --filter-tags $(TAG) --filter-group $(GROUP) $< > $@
 
 # Collapsed trace for a given tag.
 %.collapsed.trace: %.trace
@@ -56,12 +61,23 @@ TAG ?= 0
 %.aliases: %.trace
 	$(PROCESS_TRACE) query --print-tag-aliases $< > $@
 
+# List of tag groups in a trace.
+%.groups: %.trace
+	$(PROCESS_TRACE) query --print-tag-groups $(TAG) $< > $@
+
 # One trace file for each tag in the %.tags file.
-%.traces: %.trace %.tags
+%.tag-traces: %.trace %.tags
 	while read TAG; do \
-		$(MAKE) $*.filtered.trace TAG=$$TAG; \
-		mv $*.filtered.trace $*.$$TAG.trace; \
+		$(MAKE) $*.tag-filtered.trace TAG=$$TAG; \
+		mv $*.tag-filtered.trace $*.$$TAG.trace; \
 	done < $*.tags
+
+# One trace file for each group in the %.groups file.
+%.group-traces: %.trace %.groups
+	while read GROUP; do \
+		$(MAKE) $*.group-filtered.trace GROUP=$$GROUP; \
+		mv $*.group-filtered.trace $*.$$GROUP.trace; \
+	done < $*.groups
 
 # DOALL pattern matches in MiniZinc solution format.
 %.doalls.szn: %.dzn $(DISCOVERY_DIR)/doall.mzn $(DISCOVERY_DIR)/common.mzn

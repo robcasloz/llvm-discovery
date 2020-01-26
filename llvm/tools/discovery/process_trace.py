@@ -362,12 +362,17 @@ def filter_location((DDG, PB, PI, PT), pattern):
     PIf = clean_instruction_properties(PI, PBf)
     return (DDGf, PBf, PIf, PT)
 
+# Whether the given block is to be preserved when filtering.
+def is_preserved(block, tag, group, PB):
+    tag_data = find_tag_data(tag, PB[block].get(u.tk_tags))
+    return (tag_data != None) and (not group or tag_data[0] == int(group))
+
 # Filters tagged nodes in the labeled DDG.
-def filter_tag((DDG, PB, PI, PT), tag):
+def filter_tag((DDG, PB, PI, PT), tag, group):
     DDGf = DDG.copy()
     PBf = copy.deepcopy(PB)
     for block in [b for b in DDG.nodes()]:
-        if not is_tagged_with(tag, PB[block].get(u.tk_tags)):
+        if not is_preserved(block, tag, group, PB):
             DDGf.remove_node(block)
             PBf.pop(block, None)
     PIf = clean_instruction_properties(PI, PBf)
@@ -375,8 +380,8 @@ def filter_tag((DDG, PB, PI, PT), tag):
     entries = set()
     exits = set()
     for (source, target) in DDG.edges():
-        source_tag = is_tagged_with(tag, PB[source].get(u.tk_tags))
-        target_tag = is_tagged_with(tag, PB[target].get(u.tk_tags))
+        source_tag = is_preserved(source, tag, group, PB)
+        target_tag = is_preserved(target, tag, group, PB)
         if not source_tag and target_tag:
             entries.add(target)
         elif source_tag and not target_tag:
@@ -845,6 +850,7 @@ def main(args):
     parser_transform = subparsers.add_parser(arg_transform, help='apply filter and collapse operations to the trace')
     parser_transform.add_argument('--filter-location', help='filters blocks by location according to a regexp')
     parser_transform.add_argument('--filter-tags', nargs="*", help='filters tagged blocks')
+    parser_transform.add_argument('--filter-group', help='filters a specific group (used together with --filter-tags)')
     parser_transform.add_argument('--clean-tags', dest='clean_tags', action='store_true', help='filter out non-specified tags (works only together with --filter-tags)')
     parser_transform.add_argument('--no-clean-tags', dest='clean_tags', action='store_false')
     parser_transform.set_defaults(clean_tags=True)
@@ -906,7 +912,7 @@ def main(args):
             G = filter_location(G, args.filter_location)
         if args.filter_tags:
             for tag in args.filter_tags:
-                G = filter_tag(G, (get_tag_id(tag, G)))
+                G = filter_tag(G, (get_tag_id(tag, G)), args.filter_group)
             if args.clean_tags:
                 rem_tags = u.tag_set(G) - \
                            set([get_tag_id(tag, G) for tag in args.filter_tags])
