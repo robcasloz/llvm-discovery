@@ -278,9 +278,9 @@ def normalize_tags((DDG, PB, PI, PT)):
     return (DDG, PB, PI, PT)
 
 # Prints all different tags in the trace, one per line.
-def print_tags((DDG, PB, PI, PT)):
+def print_tags(G):
     out = sio.StringIO()
-    for tag in u.tag_set((DDG, PB, PI, PT)):
+    for tag in u.tag_set(G):
         print >>out, tag
     tags = out.getvalue()
     out.close()
@@ -294,6 +294,15 @@ def print_tag_aliases((DDG, PB, PI, PT)):
     aliases = out.getvalue()
     out.close()
     return aliases
+
+# Prints all groups in the given tag, one per line.
+def print_tag_groups(G, tag):
+    out = sio.StringIO()
+    for group in group_nodes_map(G, tag).keys():
+        print >>out, group
+    groups = out.getvalue()
+    out.close()
+    return groups
 
 # Returns a labeled DDG where non-region, effectful blocks only connected to the
 # source are removed.
@@ -809,6 +818,7 @@ def main(args):
     parser_query = subparsers.add_parser(arg_query, help='query about properties of the trace')
     parser_query.add_argument('--print-tags', dest='print_tags', action='store_true', help='print all different tags in the trace, one per line')
     parser_query.add_argument('--print-tag-aliases', dest='print_tag_aliases', action='store_true', help='print all different tag aliases in the trace, one per line')
+    parser_query.add_argument('--print-tag-groups', help='print the groups of the given tag, one per line')
 
     parser_simplify = subparsers.add_parser(arg_simplify, help='simplify the trace')
     parser_simplify.add_argument('--prune', dest='prune', action='store_true', help='remove data-flow that does not lead to impure or control blocks')
@@ -865,6 +875,8 @@ def main(args):
             out = print_tags(G)
         elif args.print_tag_aliases:
             out = print_tag_aliases(G)
+        elif args.print_tag_groups:
+            out = print_tag_groups(G, get_tag_id(args.print_tag_groups, G))
         if args.output_file:
             outfile = open(args.output_file ,"w+")
             outfile.write(out)
