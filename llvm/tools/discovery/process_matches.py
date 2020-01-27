@@ -26,37 +26,42 @@ def file_info(szn_filename):
         benchmark = base_file_components[0]
         mode = "unknown"
     pattern = base_file_components[-2][0:-1]
-    maybe_tag = map(int, [component for component in base_file_components
-                          if component.isdigit()])
-    if maybe_tag:
-        tag = maybe_tag[0]
+    maybe_tag_group = map(int, [component for component in base_file_components
+                                if component.isdigit()])
+    if len(maybe_tag_group) > 0:
+        tag = maybe_tag_group[0]
     else:
         tag = None
+    if len(maybe_tag_group) > 1:
+        group = maybe_tag_group[1]
+    else:
+        group = None
     trace_filename = ".".join(file_components[0:-2]) + ".trace"
-    return (benchmark, mode, tag, pattern, trace_filename)
+    return (benchmark, mode, tag, group, pattern, trace_filename)
 
 def process_loop_matches(szn_files, simple):
 
     # Cache of demangled function names.
     demangled_cache = {}
 
-    # Multi-level map: benchmark -> mode -> tag -> pattern match entries.
+    # Multi-level map: benchmark -> mode -> tag -> group -> pattern match entries.
     data = {}
 
     # Populate the map loading each solution file. A solution file is expected
-    # to be called [BENCHMARK]-[MODE] ... [TAG_ID] ... [PATTERN].szn, where:
+    # to be called [BENCHMARK]-[MODE] ... [TAG_ID].[GROUP_ID] ... [PATTERN].szn, where:
     #
     # BENCHMARK is the benchmark name (e.g. c-ray)
     # MODE is the benchmark mode (e.g. pthread)
     # TAG_ID is the loop tag id (e.g. 5)
+    # GROUP_ID is the loop group id (e.g. 2)
     # PATTERN is the pattern that is matched (e.g. reductions)
     #
     # For each solution file, a corresponding trace called
-    # [BENCHMARK]-[MODE] ... [TAG_ID] ... .trace is expected.
+    # [BENCHMARK]-[MODE] ... [TAG_ID].[GROUP_ID] ... .trace is expected.
     for filename in szn_files:
         if os.path.isfile(filename) and filename.endswith(".szn"):
             # Gather all data.
-            (benchmark, mode, tag, pattern, trace_filename) = \
+            (benchmark, mode, tag, group, pattern, trace_filename) = \
                 file_info(filename)
             G = u.read_trace(trace_filename)
             [internal_tag_id] = list(u.tag_set(G))
@@ -125,7 +130,7 @@ def process_instruction_matches(szn_files, simple):
     for filename in szn_files:
         if os.path.isfile(filename) and filename.endswith(".szn"):
             # Gather all data.
-            (benchmark, mode, tag, pattern, trace_filename) = \
+            (benchmark, mode, _tag, _group, pattern, trace_filename) = \
                 file_info(filename)
             G = u.read_trace(trace_filename)
             (_, matches, status) = u.read_matches(filename)
