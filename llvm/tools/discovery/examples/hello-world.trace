@@ -8,51 +8,51 @@ IP examples/hello-world.c:0 NAME icmp
 IP examples/hello-world.c:0 LOCATION examples/hello-world.c:10:17
 BP 1 INSTRUCTION examples/hello-world.c:0
 DF 0 1
-BP 1 TAG examples/hello-world.c:main:10:3-1
+BP 1 TAG examples/hello-world.c:main:10:3-0-1
 IP examples/hello-world.c:1 ITERATOR TRUE
 IP examples/hello-world.c:1 CONTROL TRUE
 IP examples/hello-world.c:1 NAME br
 IP examples/hello-world.c:1 LOCATION examples/hello-world.c:10:3
 BP 2 INSTRUCTION examples/hello-world.c:1
 DF 1 2
-BP 2 TAG examples/hello-world.c:main:10:3-1
+BP 2 TAG examples/hello-world.c:main:10:3-0-1
 IP examples/hello-world.c:2 NAME zext
 IP examples/hello-world.c:2 LOCATION examples/hello-world.c:11:14
 BP 3 INSTRUCTION examples/hello-world.c:2
 DF 0 3
-BP 3 TAG examples/hello-world.c:main:10:3-1
+BP 3 TAG examples/hello-world.c:main:10:3-0-1
 IP examples/hello-world.c:3 NAME getelementptr
 IP examples/hello-world.c:3 LOCATION examples/hello-world.c:11:14
 BP 4 INSTRUCTION examples/hello-world.c:3
 DF 3 4
-BP 4 TAG examples/hello-world.c:main:10:3-1
+BP 4 TAG examples/hello-world.c:main:10:3-0-1
 IP examples/hello-world.c:4 NAME zext
 IP examples/hello-world.c:4 LOCATION examples/hello-world.c:11:22
 BP 5 INSTRUCTION examples/hello-world.c:4
 DF 0 5
-BP 5 TAG examples/hello-world.c:main:10:3-1
+BP 5 TAG examples/hello-world.c:main:10:3-0-1
 IP examples/hello-world.c:5 NAME getelementptr
 IP examples/hello-world.c:5 LOCATION examples/hello-world.c:11:22
 BP 6 INSTRUCTION examples/hello-world.c:5
 DF 5 6
-BP 6 TAG examples/hello-world.c:main:10:3-1
+BP 6 TAG examples/hello-world.c:main:10:3-0-1
 IP examples/hello-world.c:6 NAME mul
 IP examples/hello-world.c:6 LOCATION examples/hello-world.c:11:20
 BP 7 INSTRUCTION examples/hello-world.c:6
 DF 0 7
-BP 7 TAG examples/hello-world.c:main:10:3-1
+BP 7 TAG examples/hello-world.c:main:10:3-0-1
 DF 0 7
-BP 7 TAG examples/hello-world.c:main:10:3-1
+BP 7 TAG examples/hello-world.c:main:10:3-0-1
 IP examples/hello-world.c:7 NAME zext
 IP examples/hello-world.c:7 LOCATION examples/hello-world.c:11:5
 BP 8 INSTRUCTION examples/hello-world.c:7
 DF 0 8
-BP 8 TAG examples/hello-world.c:main:10:3-1
+BP 8 TAG examples/hello-world.c:main:10:3-0-1
 IP examples/hello-world.c:8 NAME getelementptr
 IP examples/hello-world.c:8 LOCATION examples/hello-world.c:11:5
 BP 9 INSTRUCTION examples/hello-world.c:8
 DF 8 9
-BP 9 TAG examples/hello-world.c:main:10:3-1
+BP 9 TAG examples/hello-world.c:main:10:3-0-1
 IP examples/hello-world.c:9 NAME add
 IP examples/hello-world.c:9 LOCATION examples/hello-world.c:10:23
 BP 10 INSTRUCTION examples/hello-world.c:9
@@ -62,51 +62,51 @@ IP examples/hello-world.c:0 NAME icmp
 IP examples/hello-world.c:0 LOCATION examples/hello-world.c:10:17
 BP 11 INSTRUCTION examples/hello-world.c:0
 DF 10 11
-BP 11 TAG examples/hello-world.c:main:10:3-2
+BP 11 TAG examples/hello-world.c:main:10:3-0-2
 IP examples/hello-world.c:1 ITERATOR TRUE
 IP examples/hello-world.c:1 CONTROL TRUE
 IP examples/hello-world.c:1 NAME br
 IP examples/hello-world.c:1 LOCATION examples/hello-world.c:10:3
 BP 12 INSTRUCTION examples/hello-world.c:1
 DF 11 12
-BP 12 TAG examples/hello-world.c:main:10:3-2
+BP 12 TAG examples/hello-world.c:main:10:3-0-2
 IP examples/hello-world.c:2 NAME zext
 IP examples/hello-world.c:2 LOCATION examples/hello-world.c:11:14
 BP 13 INSTRUCTION examples/hello-world.c:2
 DF 10 13
-BP 13 TAG examples/hello-world.c:main:10:3-2
+BP 13 TAG examples/hello-world.c:main:10:3-0-2
 IP examples/hello-world.c:3 NAME getelementptr
 IP examples/hello-world.c:3 LOCATION examples/hello-world.c:11:14
 BP 14 INSTRUCTION examples/hello-world.c:3
 DF 13 14
-BP 14 TAG examples/hello-world.c:main:10:3-2
+BP 14 TAG examples/hello-world.c:main:10:3-0-2
 IP examples/hello-world.c:4 NAME zext
 IP examples/hello-world.c:4 LOCATION examples/hello-world.c:11:22
 BP 15 INSTRUCTION examples/hello-world.c:4
 DF 10 15
-BP 15 TAG examples/hello-world.c:main:10:3-2
+BP 15 TAG examples/hello-world.c:main:10:3-0-2
 IP examples/hello-world.c:5 NAME getelementptr
 IP examples/hello-world.c:5 LOCATION examples/hello-world.c:11:22
 BP 16 INSTRUCTION examples/hello-world.c:5
 DF 15 16
-BP 16 TAG examples/hello-world.c:main:10:3-2
+BP 16 TAG examples/hello-world.c:main:10:3-0-2
 IP examples/hello-world.c:6 NAME mul
 IP examples/hello-world.c:6 LOCATION examples/hello-world.c:11:20
 BP 17 INSTRUCTION examples/hello-world.c:6
 DF 0 17
-BP 17 TAG examples/hello-world.c:main:10:3-2
+BP 17 TAG examples/hello-world.c:main:10:3-0-2
 DF 0 17
-BP 17 TAG examples/hello-world.c:main:10:3-2
+BP 17 TAG examples/hello-world.c:main:10:3-0-2
 IP examples/hello-world.c:7 NAME zext
 IP examples/hello-world.c:7 LOCATION examples/hello-world.c:11:5
 BP 18 INSTRUCTION examples/hello-world.c:7
 DF 10 18
-BP 18 TAG examples/hello-world.c:main:10:3-2
+BP 18 TAG examples/hello-world.c:main:10:3-0-2
 IP examples/hello-world.c:8 NAME getelementptr
 IP examples/hello-world.c:8 LOCATION examples/hello-world.c:11:5
 BP 19 INSTRUCTION examples/hello-world.c:8
 DF 18 19
-BP 19 TAG examples/hello-world.c:main:10:3-2
+BP 19 TAG examples/hello-world.c:main:10:3-0-2
 IP examples/hello-world.c:9 NAME add
 IP examples/hello-world.c:9 LOCATION examples/hello-world.c:10:23
 BP 20 INSTRUCTION examples/hello-world.c:9
@@ -116,51 +116,51 @@ IP examples/hello-world.c:0 NAME icmp
 IP examples/hello-world.c:0 LOCATION examples/hello-world.c:10:17
 BP 21 INSTRUCTION examples/hello-world.c:0
 DF 20 21
-BP 21 TAG examples/hello-world.c:main:10:3-3
+BP 21 TAG examples/hello-world.c:main:10:3-0-3
 IP examples/hello-world.c:1 ITERATOR TRUE
 IP examples/hello-world.c:1 CONTROL TRUE
 IP examples/hello-world.c:1 NAME br
 IP examples/hello-world.c:1 LOCATION examples/hello-world.c:10:3
 BP 22 INSTRUCTION examples/hello-world.c:1
 DF 21 22
-BP 22 TAG examples/hello-world.c:main:10:3-3
+BP 22 TAG examples/hello-world.c:main:10:3-0-3
 IP examples/hello-world.c:2 NAME zext
 IP examples/hello-world.c:2 LOCATION examples/hello-world.c:11:14
 BP 23 INSTRUCTION examples/hello-world.c:2
 DF 20 23
-BP 23 TAG examples/hello-world.c:main:10:3-3
+BP 23 TAG examples/hello-world.c:main:10:3-0-3
 IP examples/hello-world.c:3 NAME getelementptr
 IP examples/hello-world.c:3 LOCATION examples/hello-world.c:11:14
 BP 24 INSTRUCTION examples/hello-world.c:3
 DF 23 24
-BP 24 TAG examples/hello-world.c:main:10:3-3
+BP 24 TAG examples/hello-world.c:main:10:3-0-3
 IP examples/hello-world.c:4 NAME zext
 IP examples/hello-world.c:4 LOCATION examples/hello-world.c:11:22
 BP 25 INSTRUCTION examples/hello-world.c:4
 DF 20 25
-BP 25 TAG examples/hello-world.c:main:10:3-3
+BP 25 TAG examples/hello-world.c:main:10:3-0-3
 IP examples/hello-world.c:5 NAME getelementptr
 IP examples/hello-world.c:5 LOCATION examples/hello-world.c:11:22
 BP 26 INSTRUCTION examples/hello-world.c:5
 DF 25 26
-BP 26 TAG examples/hello-world.c:main:10:3-3
+BP 26 TAG examples/hello-world.c:main:10:3-0-3
 IP examples/hello-world.c:6 NAME mul
 IP examples/hello-world.c:6 LOCATION examples/hello-world.c:11:20
 BP 27 INSTRUCTION examples/hello-world.c:6
 DF 0 27
-BP 27 TAG examples/hello-world.c:main:10:3-3
+BP 27 TAG examples/hello-world.c:main:10:3-0-3
 DF 0 27
-BP 27 TAG examples/hello-world.c:main:10:3-3
+BP 27 TAG examples/hello-world.c:main:10:3-0-3
 IP examples/hello-world.c:7 NAME zext
 IP examples/hello-world.c:7 LOCATION examples/hello-world.c:11:5
 BP 28 INSTRUCTION examples/hello-world.c:7
 DF 20 28
-BP 28 TAG examples/hello-world.c:main:10:3-3
+BP 28 TAG examples/hello-world.c:main:10:3-0-3
 IP examples/hello-world.c:8 NAME getelementptr
 IP examples/hello-world.c:8 LOCATION examples/hello-world.c:11:5
 BP 29 INSTRUCTION examples/hello-world.c:8
 DF 28 29
-BP 29 TAG examples/hello-world.c:main:10:3-3
+BP 29 TAG examples/hello-world.c:main:10:3-0-3
 IP examples/hello-world.c:9 NAME add
 IP examples/hello-world.c:9 LOCATION examples/hello-world.c:10:23
 BP 30 INSTRUCTION examples/hello-world.c:9
@@ -170,51 +170,51 @@ IP examples/hello-world.c:0 NAME icmp
 IP examples/hello-world.c:0 LOCATION examples/hello-world.c:10:17
 BP 31 INSTRUCTION examples/hello-world.c:0
 DF 30 31
-BP 31 TAG examples/hello-world.c:main:10:3-4
+BP 31 TAG examples/hello-world.c:main:10:3-0-4
 IP examples/hello-world.c:1 ITERATOR TRUE
 IP examples/hello-world.c:1 CONTROL TRUE
 IP examples/hello-world.c:1 NAME br
 IP examples/hello-world.c:1 LOCATION examples/hello-world.c:10:3
 BP 32 INSTRUCTION examples/hello-world.c:1
 DF 31 32
-BP 32 TAG examples/hello-world.c:main:10:3-4
+BP 32 TAG examples/hello-world.c:main:10:3-0-4
 IP examples/hello-world.c:2 NAME zext
 IP examples/hello-world.c:2 LOCATION examples/hello-world.c:11:14
 BP 33 INSTRUCTION examples/hello-world.c:2
 DF 30 33
-BP 33 TAG examples/hello-world.c:main:10:3-4
+BP 33 TAG examples/hello-world.c:main:10:3-0-4
 IP examples/hello-world.c:3 NAME getelementptr
 IP examples/hello-world.c:3 LOCATION examples/hello-world.c:11:14
 BP 34 INSTRUCTION examples/hello-world.c:3
 DF 33 34
-BP 34 TAG examples/hello-world.c:main:10:3-4
+BP 34 TAG examples/hello-world.c:main:10:3-0-4
 IP examples/hello-world.c:4 NAME zext
 IP examples/hello-world.c:4 LOCATION examples/hello-world.c:11:22
 BP 35 INSTRUCTION examples/hello-world.c:4
 DF 30 35
-BP 35 TAG examples/hello-world.c:main:10:3-4
+BP 35 TAG examples/hello-world.c:main:10:3-0-4
 IP examples/hello-world.c:5 NAME getelementptr
 IP examples/hello-world.c:5 LOCATION examples/hello-world.c:11:22
 BP 36 INSTRUCTION examples/hello-world.c:5
 DF 35 36
-BP 36 TAG examples/hello-world.c:main:10:3-4
+BP 36 TAG examples/hello-world.c:main:10:3-0-4
 IP examples/hello-world.c:6 NAME mul
 IP examples/hello-world.c:6 LOCATION examples/hello-world.c:11:20
 BP 37 INSTRUCTION examples/hello-world.c:6
 DF 0 37
-BP 37 TAG examples/hello-world.c:main:10:3-4
+BP 37 TAG examples/hello-world.c:main:10:3-0-4
 DF 0 37
-BP 37 TAG examples/hello-world.c:main:10:3-4
+BP 37 TAG examples/hello-world.c:main:10:3-0-4
 IP examples/hello-world.c:7 NAME zext
 IP examples/hello-world.c:7 LOCATION examples/hello-world.c:11:5
 BP 38 INSTRUCTION examples/hello-world.c:7
 DF 30 38
-BP 38 TAG examples/hello-world.c:main:10:3-4
+BP 38 TAG examples/hello-world.c:main:10:3-0-4
 IP examples/hello-world.c:8 NAME getelementptr
 IP examples/hello-world.c:8 LOCATION examples/hello-world.c:11:5
 BP 39 INSTRUCTION examples/hello-world.c:8
 DF 38 39
-BP 39 TAG examples/hello-world.c:main:10:3-4
+BP 39 TAG examples/hello-world.c:main:10:3-0-4
 IP examples/hello-world.c:9 NAME add
 IP examples/hello-world.c:9 LOCATION examples/hello-world.c:10:23
 BP 40 INSTRUCTION examples/hello-world.c:9
@@ -224,51 +224,51 @@ IP examples/hello-world.c:0 NAME icmp
 IP examples/hello-world.c:0 LOCATION examples/hello-world.c:10:17
 BP 41 INSTRUCTION examples/hello-world.c:0
 DF 40 41
-BP 41 TAG examples/hello-world.c:main:10:3-5
+BP 41 TAG examples/hello-world.c:main:10:3-0-5
 IP examples/hello-world.c:1 ITERATOR TRUE
 IP examples/hello-world.c:1 CONTROL TRUE
 IP examples/hello-world.c:1 NAME br
 IP examples/hello-world.c:1 LOCATION examples/hello-world.c:10:3
 BP 42 INSTRUCTION examples/hello-world.c:1
 DF 41 42
-BP 42 TAG examples/hello-world.c:main:10:3-5
+BP 42 TAG examples/hello-world.c:main:10:3-0-5
 IP examples/hello-world.c:2 NAME zext
 IP examples/hello-world.c:2 LOCATION examples/hello-world.c:11:14
 BP 43 INSTRUCTION examples/hello-world.c:2
 DF 40 43
-BP 43 TAG examples/hello-world.c:main:10:3-5
+BP 43 TAG examples/hello-world.c:main:10:3-0-5
 IP examples/hello-world.c:3 NAME getelementptr
 IP examples/hello-world.c:3 LOCATION examples/hello-world.c:11:14
 BP 44 INSTRUCTION examples/hello-world.c:3
 DF 43 44
-BP 44 TAG examples/hello-world.c:main:10:3-5
+BP 44 TAG examples/hello-world.c:main:10:3-0-5
 IP examples/hello-world.c:4 NAME zext
 IP examples/hello-world.c:4 LOCATION examples/hello-world.c:11:22
 BP 45 INSTRUCTION examples/hello-world.c:4
 DF 40 45
-BP 45 TAG examples/hello-world.c:main:10:3-5
+BP 45 TAG examples/hello-world.c:main:10:3-0-5
 IP examples/hello-world.c:5 NAME getelementptr
 IP examples/hello-world.c:5 LOCATION examples/hello-world.c:11:22
 BP 46 INSTRUCTION examples/hello-world.c:5
 DF 45 46
-BP 46 TAG examples/hello-world.c:main:10:3-5
+BP 46 TAG examples/hello-world.c:main:10:3-0-5
 IP examples/hello-world.c:6 NAME mul
 IP examples/hello-world.c:6 LOCATION examples/hello-world.c:11:20
 BP 47 INSTRUCTION examples/hello-world.c:6
 DF 0 47
-BP 47 TAG examples/hello-world.c:main:10:3-5
+BP 47 TAG examples/hello-world.c:main:10:3-0-5
 DF 0 47
-BP 47 TAG examples/hello-world.c:main:10:3-5
+BP 47 TAG examples/hello-world.c:main:10:3-0-5
 IP examples/hello-world.c:7 NAME zext
 IP examples/hello-world.c:7 LOCATION examples/hello-world.c:11:5
 BP 48 INSTRUCTION examples/hello-world.c:7
 DF 40 48
-BP 48 TAG examples/hello-world.c:main:10:3-5
+BP 48 TAG examples/hello-world.c:main:10:3-0-5
 IP examples/hello-world.c:8 NAME getelementptr
 IP examples/hello-world.c:8 LOCATION examples/hello-world.c:11:5
 BP 49 INSTRUCTION examples/hello-world.c:8
 DF 48 49
-BP 49 TAG examples/hello-world.c:main:10:3-5
+BP 49 TAG examples/hello-world.c:main:10:3-0-5
 IP examples/hello-world.c:9 NAME add
 IP examples/hello-world.c:9 LOCATION examples/hello-world.c:10:23
 BP 50 INSTRUCTION examples/hello-world.c:9
@@ -278,44 +278,44 @@ IP examples/hello-world.c:0 NAME icmp
 IP examples/hello-world.c:0 LOCATION examples/hello-world.c:10:17
 BP 51 INSTRUCTION examples/hello-world.c:0
 DF 50 51
-BP 51 TAG examples/hello-world.c:main:10:3-6
+BP 51 TAG examples/hello-world.c:main:10:3-0-6
 IP examples/hello-world.c:1 ITERATOR TRUE
 IP examples/hello-world.c:1 CONTROL TRUE
 IP examples/hello-world.c:1 NAME br
 IP examples/hello-world.c:1 LOCATION examples/hello-world.c:10:3
 BP 52 INSTRUCTION examples/hello-world.c:1
 DF 51 52
-BP 52 TAG examples/hello-world.c:main:10:3-6
+BP 52 TAG examples/hello-world.c:main:10:3-0-6
 IP examples/hello-world.c:10 ITERATOR TRUE
 IP examples/hello-world.c:10 NAME icmp
 IP examples/hello-world.c:10 LOCATION examples/hello-world.c:14:17
 BP 53 INSTRUCTION examples/hello-world.c:10
 DF 0 53
-BP 53 TAG examples/hello-world.c:main:14:3-7
+BP 53 TAG examples/hello-world.c:main:14:3-0-7
 IP examples/hello-world.c:11 ITERATOR TRUE
 IP examples/hello-world.c:11 CONTROL TRUE
 IP examples/hello-world.c:11 NAME br
 IP examples/hello-world.c:11 LOCATION examples/hello-world.c:14:3
 BP 54 INSTRUCTION examples/hello-world.c:11
 DF 53 54
-BP 54 TAG examples/hello-world.c:main:14:3-7
+BP 54 TAG examples/hello-world.c:main:14:3-0-7
 IP examples/hello-world.c:12 NAME zext
 IP examples/hello-world.c:12 LOCATION examples/hello-world.c:15:13
 BP 55 INSTRUCTION examples/hello-world.c:12
 DF 0 55
-BP 55 TAG examples/hello-world.c:main:14:3-7
+BP 55 TAG examples/hello-world.c:main:14:3-0-7
 IP examples/hello-world.c:13 NAME getelementptr
 IP examples/hello-world.c:13 LOCATION examples/hello-world.c:15:13
 BP 56 INSTRUCTION examples/hello-world.c:13
 DF 55 56
-BP 56 TAG examples/hello-world.c:main:14:3-7
+BP 56 TAG examples/hello-world.c:main:14:3-0-7
 IP examples/hello-world.c:14 NAME add
 IP examples/hello-world.c:14 LOCATION examples/hello-world.c:15:11
 BP 57 INSTRUCTION examples/hello-world.c:14
 DF 0 57
-BP 57 TAG examples/hello-world.c:main:14:3-7
+BP 57 TAG examples/hello-world.c:main:14:3-0-7
 DF 7 57
-BP 57 TAG examples/hello-world.c:main:14:3-7
+BP 57 TAG examples/hello-world.c:main:14:3-0-7
 IP examples/hello-world.c:15 NAME add
 IP examples/hello-world.c:15 LOCATION examples/hello-world.c:14:23
 BP 58 INSTRUCTION examples/hello-world.c:15
@@ -325,31 +325,31 @@ IP examples/hello-world.c:10 NAME icmp
 IP examples/hello-world.c:10 LOCATION examples/hello-world.c:14:17
 BP 59 INSTRUCTION examples/hello-world.c:10
 DF 58 59
-BP 59 TAG examples/hello-world.c:main:14:3-8
+BP 59 TAG examples/hello-world.c:main:14:3-0-8
 IP examples/hello-world.c:11 ITERATOR TRUE
 IP examples/hello-world.c:11 CONTROL TRUE
 IP examples/hello-world.c:11 NAME br
 IP examples/hello-world.c:11 LOCATION examples/hello-world.c:14:3
 BP 60 INSTRUCTION examples/hello-world.c:11
 DF 59 60
-BP 60 TAG examples/hello-world.c:main:14:3-8
+BP 60 TAG examples/hello-world.c:main:14:3-0-8
 IP examples/hello-world.c:12 NAME zext
 IP examples/hello-world.c:12 LOCATION examples/hello-world.c:15:13
 BP 61 INSTRUCTION examples/hello-world.c:12
 DF 58 61
-BP 61 TAG examples/hello-world.c:main:14:3-8
+BP 61 TAG examples/hello-world.c:main:14:3-0-8
 IP examples/hello-world.c:13 NAME getelementptr
 IP examples/hello-world.c:13 LOCATION examples/hello-world.c:15:13
 BP 62 INSTRUCTION examples/hello-world.c:13
 DF 61 62
-BP 62 TAG examples/hello-world.c:main:14:3-8
+BP 62 TAG examples/hello-world.c:main:14:3-0-8
 IP examples/hello-world.c:14 NAME add
 IP examples/hello-world.c:14 LOCATION examples/hello-world.c:15:11
 BP 63 INSTRUCTION examples/hello-world.c:14
 DF 57 63
-BP 63 TAG examples/hello-world.c:main:14:3-8
+BP 63 TAG examples/hello-world.c:main:14:3-0-8
 DF 17 63
-BP 63 TAG examples/hello-world.c:main:14:3-8
+BP 63 TAG examples/hello-world.c:main:14:3-0-8
 IP examples/hello-world.c:15 NAME add
 IP examples/hello-world.c:15 LOCATION examples/hello-world.c:14:23
 BP 64 INSTRUCTION examples/hello-world.c:15
@@ -359,31 +359,31 @@ IP examples/hello-world.c:10 NAME icmp
 IP examples/hello-world.c:10 LOCATION examples/hello-world.c:14:17
 BP 65 INSTRUCTION examples/hello-world.c:10
 DF 64 65
-BP 65 TAG examples/hello-world.c:main:14:3-9
+BP 65 TAG examples/hello-world.c:main:14:3-0-9
 IP examples/hello-world.c:11 ITERATOR TRUE
 IP examples/hello-world.c:11 CONTROL TRUE
 IP examples/hello-world.c:11 NAME br
 IP examples/hello-world.c:11 LOCATION examples/hello-world.c:14:3
 BP 66 INSTRUCTION examples/hello-world.c:11
 DF 65 66
-BP 66 TAG examples/hello-world.c:main:14:3-9
+BP 66 TAG examples/hello-world.c:main:14:3-0-9
 IP examples/hello-world.c:12 NAME zext
 IP examples/hello-world.c:12 LOCATION examples/hello-world.c:15:13
 BP 67 INSTRUCTION examples/hello-world.c:12
 DF 64 67
-BP 67 TAG examples/hello-world.c:main:14:3-9
+BP 67 TAG examples/hello-world.c:main:14:3-0-9
 IP examples/hello-world.c:13 NAME getelementptr
 IP examples/hello-world.c:13 LOCATION examples/hello-world.c:15:13
 BP 68 INSTRUCTION examples/hello-world.c:13
 DF 67 68
-BP 68 TAG examples/hello-world.c:main:14:3-9
+BP 68 TAG examples/hello-world.c:main:14:3-0-9
 IP examples/hello-world.c:14 NAME add
 IP examples/hello-world.c:14 LOCATION examples/hello-world.c:15:11
 BP 69 INSTRUCTION examples/hello-world.c:14
 DF 63 69
-BP 69 TAG examples/hello-world.c:main:14:3-9
+BP 69 TAG examples/hello-world.c:main:14:3-0-9
 DF 27 69
-BP 69 TAG examples/hello-world.c:main:14:3-9
+BP 69 TAG examples/hello-world.c:main:14:3-0-9
 IP examples/hello-world.c:15 NAME add
 IP examples/hello-world.c:15 LOCATION examples/hello-world.c:14:23
 BP 70 INSTRUCTION examples/hello-world.c:15
@@ -393,31 +393,31 @@ IP examples/hello-world.c:10 NAME icmp
 IP examples/hello-world.c:10 LOCATION examples/hello-world.c:14:17
 BP 71 INSTRUCTION examples/hello-world.c:10
 DF 70 71
-BP 71 TAG examples/hello-world.c:main:14:3-10
+BP 71 TAG examples/hello-world.c:main:14:3-0-10
 IP examples/hello-world.c:11 ITERATOR TRUE
 IP examples/hello-world.c:11 CONTROL TRUE
 IP examples/hello-world.c:11 NAME br
 IP examples/hello-world.c:11 LOCATION examples/hello-world.c:14:3
 BP 72 INSTRUCTION examples/hello-world.c:11
 DF 71 72
-BP 72 TAG examples/hello-world.c:main:14:3-10
+BP 72 TAG examples/hello-world.c:main:14:3-0-10
 IP examples/hello-world.c:12 NAME zext
 IP examples/hello-world.c:12 LOCATION examples/hello-world.c:15:13
 BP 73 INSTRUCTION examples/hello-world.c:12
 DF 70 73
-BP 73 TAG examples/hello-world.c:main:14:3-10
+BP 73 TAG examples/hello-world.c:main:14:3-0-10
 IP examples/hello-world.c:13 NAME getelementptr
 IP examples/hello-world.c:13 LOCATION examples/hello-world.c:15:13
 BP 74 INSTRUCTION examples/hello-world.c:13
 DF 73 74
-BP 74 TAG examples/hello-world.c:main:14:3-10
+BP 74 TAG examples/hello-world.c:main:14:3-0-10
 IP examples/hello-world.c:14 NAME add
 IP examples/hello-world.c:14 LOCATION examples/hello-world.c:15:11
 BP 75 INSTRUCTION examples/hello-world.c:14
 DF 69 75
-BP 75 TAG examples/hello-world.c:main:14:3-10
+BP 75 TAG examples/hello-world.c:main:14:3-0-10
 DF 37 75
-BP 75 TAG examples/hello-world.c:main:14:3-10
+BP 75 TAG examples/hello-world.c:main:14:3-0-10
 IP examples/hello-world.c:15 NAME add
 IP examples/hello-world.c:15 LOCATION examples/hello-world.c:14:23
 BP 76 INSTRUCTION examples/hello-world.c:15
@@ -427,31 +427,31 @@ IP examples/hello-world.c:10 NAME icmp
 IP examples/hello-world.c:10 LOCATION examples/hello-world.c:14:17
 BP 77 INSTRUCTION examples/hello-world.c:10
 DF 76 77
-BP 77 TAG examples/hello-world.c:main:14:3-11
+BP 77 TAG examples/hello-world.c:main:14:3-0-11
 IP examples/hello-world.c:11 ITERATOR TRUE
 IP examples/hello-world.c:11 CONTROL TRUE
 IP examples/hello-world.c:11 NAME br
 IP examples/hello-world.c:11 LOCATION examples/hello-world.c:14:3
 BP 78 INSTRUCTION examples/hello-world.c:11
 DF 77 78
-BP 78 TAG examples/hello-world.c:main:14:3-11
+BP 78 TAG examples/hello-world.c:main:14:3-0-11
 IP examples/hello-world.c:12 NAME zext
 IP examples/hello-world.c:12 LOCATION examples/hello-world.c:15:13
 BP 79 INSTRUCTION examples/hello-world.c:12
 DF 76 79
-BP 79 TAG examples/hello-world.c:main:14:3-11
+BP 79 TAG examples/hello-world.c:main:14:3-0-11
 IP examples/hello-world.c:13 NAME getelementptr
 IP examples/hello-world.c:13 LOCATION examples/hello-world.c:15:13
 BP 80 INSTRUCTION examples/hello-world.c:13
 DF 79 80
-BP 80 TAG examples/hello-world.c:main:14:3-11
+BP 80 TAG examples/hello-world.c:main:14:3-0-11
 IP examples/hello-world.c:14 NAME add
 IP examples/hello-world.c:14 LOCATION examples/hello-world.c:15:11
 BP 81 INSTRUCTION examples/hello-world.c:14
 DF 75 81
-BP 81 TAG examples/hello-world.c:main:14:3-11
+BP 81 TAG examples/hello-world.c:main:14:3-0-11
 DF 47 81
-BP 81 TAG examples/hello-world.c:main:14:3-11
+BP 81 TAG examples/hello-world.c:main:14:3-0-11
 IP examples/hello-world.c:15 NAME add
 IP examples/hello-world.c:15 LOCATION examples/hello-world.c:14:23
 BP 82 INSTRUCTION examples/hello-world.c:15
@@ -461,14 +461,14 @@ IP examples/hello-world.c:10 NAME icmp
 IP examples/hello-world.c:10 LOCATION examples/hello-world.c:14:17
 BP 83 INSTRUCTION examples/hello-world.c:10
 DF 82 83
-BP 83 TAG examples/hello-world.c:main:14:3-12
+BP 83 TAG examples/hello-world.c:main:14:3-0-12
 IP examples/hello-world.c:11 ITERATOR TRUE
 IP examples/hello-world.c:11 CONTROL TRUE
 IP examples/hello-world.c:11 NAME br
 IP examples/hello-world.c:11 LOCATION examples/hello-world.c:14:3
 BP 84 INSTRUCTION examples/hello-world.c:11
 DF 83 84
-BP 84 TAG examples/hello-world.c:main:14:3-12
+BP 84 TAG examples/hello-world.c:main:14:3-0-12
 IP examples/hello-world.c:16 CONTROL TRUE
 IP examples/hello-world.c:16 NAME ret
 IP examples/hello-world.c:16 LOCATION examples/hello-world.c:17:3

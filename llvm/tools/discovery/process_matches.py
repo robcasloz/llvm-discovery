@@ -16,6 +16,21 @@ def match_to_digit((matches, status)):
         return "?"
     return str(int(matches))
 
+def matches_to_digit(matches_list):
+    for (matches, status) in matches_list:
+        if status == u.tk_sol_status_unknown:
+            return "?"
+        elif status == u.tk_sol_status_error and not matches:
+            return "?"
+    total_groups   = len(matches_list)
+    matched_groups = sum(1 for (matches, status) in matches_list if matches)
+    if matched_groups == 0:
+        return "0"
+    elif matched_groups == total_groups:
+        return "1"
+    else:
+        return "~"
+
 def file_info(szn_filename):
     file_components = szn_filename.split(".")
     base_file_components = os.path.basename(szn_filename).split(".")
@@ -81,8 +96,10 @@ def process_loop_matches(szn_files, simple):
                 data[benchmark][mode] = dict()
             if not tag in data[benchmark][mode]:
                 data[benchmark][mode][tag] = (location, function, nodes, dict())
+            if not group in data[benchmark][mode][tag][3]:
+                data[benchmark][mode][tag][3][group] = dict()
             # Finally populate.
-            data[benchmark][mode][tag][3][pattern] = match
+            data[benchmark][mode][tag][3][group][pattern] = match
 
     # Print the CSV table.
     pattern_list = [u.pat_doall, u.pat_map, u.pat_reduction, u.pat_scan]
@@ -94,23 +111,31 @@ def process_loop_matches(szn_files, simple):
     for (benchmark, benchmark_data) in sorted(data.iteritems()):
         for (mode, mode_data) in sorted(benchmark_data.iteritems()):
             nodes_inv = lambda x: -x[1][2]
-            for (tag, (location, function, nodes, matches)) in \
+            for (tag, (location, function, nodes, groups)) in \
                 sorted(mode_data.iteritems(),
                        cmp=lambda t1, t2: cmp(nodes_inv(t1), nodes_inv(t2))):
-                # If minizinc fails with a 'model inconsistency warning', it
-                # does not honor the -o flag and does not create a .szn file. In
-                # that case, assume there is no match (equivalent to MiniZinc's
-                # =====UNSATISFIABLE=====).
-                for p in pattern_list:
-                    if not p in matches:
-                        matches[p] = (False, u.tk_sol_status_normal)
+                all_matches = dict()
+                for (group, matches) in sorted(groups.iteritems()):
+                    for p in pattern_list:
+                        if not p in all_matches:
+                            all_matches[p] = []
+                        if p in matches:
+                            match = matches[p]
+                        else:
+                            # If minizinc fails with a 'model inconsistency
+                            # warning', it does not honor the -o flag and
+                            # does not create a .szn file. In that case,
+                            # assume there is no match (equivalent to
+                            # MiniZinc's =====UNSATISFIABLE=====).
+                            match = (False, u.tk_sol_status_normal)
+                        all_matches[p].append(match)
                 row = ([] if simple else [benchmark, mode, tag, nodes]) + \
                       [location] + \
                        ([] if simple else [function]) + \
-                      [match_to_digit(matches[u.pat_doall]),
-                       match_to_digit(matches[u.pat_map]),
-                       match_to_digit(matches[u.pat_reduction]),
-                       match_to_digit(matches[u.pat_scan])]
+                      [matches_to_digit(all_matches[u.pat_doall]),
+                       matches_to_digit(all_matches[u.pat_map]),
+                       matches_to_digit(all_matches[u.pat_reduction]),
+                       matches_to_digit(all_matches[u.pat_scan])]
                 csvwriter.writerow(row)
 
 def process_instruction_matches(szn_files, simple):

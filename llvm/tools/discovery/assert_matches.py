@@ -6,11 +6,12 @@ import sys
 
 import trace_utils as u
 
-def char2int(c):
-    if c == '?':
-        return 0
+def match_name(p, m):
+    if m == "1":
+        return p
     else:
-        return int(c)
+        assert m == "~"
+        return p + " (partial)"
 
 parser = argparse.ArgumentParser(description='Asserts that an expected pattern is found.')
 parser.add_argument('RESULTS_FILE')
@@ -42,15 +43,12 @@ for line in r:
        location == args.LOCATION and \
        function == args.FUNCTION:
         found = True
-        map_matched = bool(char2int(line[map_index]))
-        doall_matched = bool(char2int(line[doall_index]))
-        reduction_matched = bool(char2int(line[reduction_index]))
-        scan_matched = bool(char2int(line[scan_index]))
-        actual_results = [(u.pat_doall, doall_matched),
-                          (u.pat_map, map_matched),
-                          (u.pat_reduction, reduction_matched),
-                          (u.pat_scan, scan_matched)]
-        actual_matches = set(p for (p, m) in actual_results if m)
+        actual_results = [(u.pat_doall, line[doall_index]),
+                          (u.pat_map, line[map_index]),
+                          (u.pat_reduction, line[reduction_index]),
+                          (u.pat_scan, line[scan_index])]
+        actual_matches = set([match_name(p, m) for (p, m) in actual_results
+                              if m in ["1", "~"]])
         assert actual_matches == expected_matches, \
             "the matched patterns " + str(list(actual_matches)) + \
             " differ from the expected ones " + str(list(expected_matches))

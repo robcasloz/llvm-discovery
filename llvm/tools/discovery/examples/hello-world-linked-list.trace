@@ -17,22 +17,22 @@ IP examples/hello-world-linked-list.c:2 NAME sub
 IP examples/hello-world-linked-list.c:2 LOCATION examples/hello-world-linked-list.c:16:24
 BP 3 INSTRUCTION examples/hello-world-linked-list.c:2
 DF 0 3
-BP 3 TAG examples/hello-world-linked-list.c:initialize_list:16:3-1
+BP 3 TAG examples/hello-world-linked-list.c:initialize_list:16:3-0-1
 IP examples/hello-world-linked-list.c:3 ITERATOR TRUE
 IP examples/hello-world-linked-list.c:3 NAME icmp
 IP examples/hello-world-linked-list.c:3 LOCATION examples/hello-world-linked-list.c:16:17
 BP 4 INSTRUCTION examples/hello-world-linked-list.c:3
 DF 0 4
-BP 4 TAG examples/hello-world-linked-list.c:initialize_list:16:3-1
+BP 4 TAG examples/hello-world-linked-list.c:initialize_list:16:3-0-1
 DF 3 4
-BP 4 TAG examples/hello-world-linked-list.c:initialize_list:16:3-1
+BP 4 TAG examples/hello-world-linked-list.c:initialize_list:16:3-0-1
 IP examples/hello-world-linked-list.c:4 ITERATOR TRUE
 IP examples/hello-world-linked-list.c:4 CONTROL TRUE
 IP examples/hello-world-linked-list.c:4 NAME br
 IP examples/hello-world-linked-list.c:4 LOCATION examples/hello-world-linked-list.c:16:3
 BP 5 INSTRUCTION examples/hello-world-linked-list.c:4
 DF 4 5
-BP 5 TAG examples/hello-world-linked-list.c:initialize_list:16:3-1
+BP 5 TAG examples/hello-world-linked-list.c:initialize_list:16:3-0-1
 IP examples/hello-world-linked-list.c:5 IMPURE TRUE
 IP examples/hello-world-linked-list.c:5 NONCOMMUTATIVE TRUE
 IP examples/hello-world-linked-list.c:5 NAME malloc
@@ -42,17 +42,17 @@ IP examples/hello-world-linked-list.c:6 NAME bitcast
 IP examples/hello-world-linked-list.c:6 LOCATION examples/hello-world-linked-list.c:17:21
 BP 7 INSTRUCTION examples/hello-world-linked-list.c:6
 DF 0 7
-BP 7 TAG examples/hello-world-linked-list.c:initialize_list:16:3-1
+BP 7 TAG examples/hello-world-linked-list.c:initialize_list:16:3-0-1
 IP examples/hello-world-linked-list.c:7 NAME getelementptr
 IP examples/hello-world-linked-list.c:7 LOCATION examples/hello-world-linked-list.c:17:14
 BP 8 INSTRUCTION examples/hello-world-linked-list.c:7
 DF 2 8
-BP 8 TAG examples/hello-world-linked-list.c:initialize_list:16:3-1
+BP 8 TAG examples/hello-world-linked-list.c:initialize_list:16:3-0-1
 IP examples/hello-world-linked-list.c:8 NAME getelementptr
 IP examples/hello-world-linked-list.c:8 LOCATION examples/hello-world-linked-list.c:18:24
 BP 9 INSTRUCTION examples/hello-world-linked-list.c:8
 DF 2 9
-BP 9 TAG examples/hello-world-linked-list.c:initialize_list:16:3-1
+BP 9 TAG examples/hello-world-linked-list.c:initialize_list:16:3-0-1
 IP examples/hello-world-linked-list.c:9 NAME add
 IP examples/hello-world-linked-list.c:9 LOCATION examples/hello-world-linked-list.c:16:30
 BP 10 INSTRUCTION examples/hello-world-linked-list.c:9
@@ -62,22 +62,22 @@ IP examples/hello-world-linked-list.c:2 NAME sub
 IP examples/hello-world-linked-list.c:2 LOCATION examples/hello-world-linked-list.c:16:24
 BP 11 INSTRUCTION examples/hello-world-linked-list.c:2
 DF 0 11
-BP 11 TAG examples/hello-world-linked-list.c:initialize_list:16:3-2
+BP 11 TAG examples/hello-world-linked-list.c:initialize_list:16:3-0-2
 IP examples/hello-world-linked-list.c:3 ITERATOR TRUE
 IP examples/hello-world-linked-list.c:3 NAME icmp
 IP examples/hello-world-linked-list.c:3 LOCATION examples/hello-world-linked-list.c:16:17
 BP 12 INSTRUCTION examples/hello-world-linked-list.c:3
 DF 10 12
-BP 12 TAG examples/hello-world-linked-list.c:initialize_list:16:3-2
+BP 12 TAG examples/hello-world-linked-list.c:initialize_list:16:3-0-2
 DF 11 12
-BP 12 TAG examples/hello-world-linked-list.c:initialize_list:16:3-2
+BP 12 TAG examples/hello-world-linked-list.c:initialize_list:16:3-0-2
 IP examples/hello-world-linked-list.c:4 ITERATOR TRUE
 IP examples/hello-world-linked-list.c:4 CONTROL TRUE
 IP examples/hello-world-linked-list.c:4 NAME br
 IP examples/hello-world-linked-list.c:4 LOCATION examples/hello-world-linked-list.c:16:3
 BP 13 INSTRUCTION examples/hello-world-linked-list.c:4
 DF 12 13
-BP 13 TAG examples/hello-world-linked-list.c:initialize_list:16:3-2
+BP 13 TAG examples/hello-world-linked-list.c:initialize_list:16:3-0-2
 IP examples/hello-world-linked-list.c:5 IMPURE TRUE
 IP examples/hello-world-linked-list.c:5 NONCOMMUTATIVE TRUE
 IP examples/hello-world-linked-list.c:5 NAME malloc
@@ -87,17 +87,17 @@ IP examples/hello-world-linked-list.c:6 NAME bitcast
 IP examples/hello-world-linked-list.c:6 LOCATION examples/hello-world-linked-list.c:17:21
 BP 15 INSTRUCTION examples/hello-world-linked-list.c:6
 DF 0 15
-BP 15 TAG examples/hello-world-linked-list.c:initialize_list:16:3-2
+BP 15 TAG examples/hello-world-linked-list.c:initialize_list:16:3-0-2
 IP examples/hello-world-linked-list.c:7 NAME getelementptr
 IP examples/hello-world-linked-list.c:7 LOCATION examples/hello-world-linked-list.c:17:14
 BP 16 INSTRUCTION examples/hello-world-linked-list.c:7
 DF 7 16
-BP 16 TAG examples/hello-world-linked-list.c:initialize_list:16:3-2
+BP 16 TAG examples/hello-world-linked-list.c:initialize_list:16:3-0-2
 IP examples/hello-world-linked-list.c:8 NAME getelementptr
 IP examples/hello-world-linked-list.c:8 LOCATION examples/hello-world-linked-list.c:18:24
 BP 17 INSTRUCTION examples/hello-world-linked-list.c:8
 DF 7 17
-BP 17 TAG examples/hello-world-linked-list.c:initialize_list:16:3-2
+BP 17 TAG examples/hello-world-linked-list.c:initialize_list:16:3-0-2
 IP examples/hello-world-linked-list.c:9 NAME add
 IP examples/hello-world-linked-list.c:9 LOCATION examples/hello-world-linked-list.c:16:30
 BP 18 INSTRUCTION examples/hello-world-linked-list.c:9
@@ -107,22 +107,22 @@ IP examples/hello-world-linked-list.c:2 NAME sub
 IP examples/hello-world-linked-list.c:2 LOCATION examples/hello-world-linked-list.c:16:24
 BP 19 INSTRUCTION examples/hello-world-linked-list.c:2
 DF 0 19
-BP 19 TAG examples/hello-world-linked-list.c:initialize_list:16:3-3
+BP 19 TAG examples/hello-world-linked-list.c:initialize_list:16:3-0-3
 IP examples/hello-world-linked-list.c:3 ITERATOR TRUE
 IP examples/hello-world-linked-list.c:3 NAME icmp
 IP examples/hello-world-linked-list.c:3 LOCATION examples/hello-world-linked-list.c:16:17
 BP 20 INSTRUCTION examples/hello-world-linked-list.c:3
 DF 18 20
-BP 20 TAG examples/hello-world-linked-list.c:initialize_list:16:3-3
+BP 20 TAG examples/hello-world-linked-list.c:initialize_list:16:3-0-3
 DF 19 20
-BP 20 TAG examples/hello-world-linked-list.c:initialize_list:16:3-3
+BP 20 TAG examples/hello-world-linked-list.c:initialize_list:16:3-0-3
 IP examples/hello-world-linked-list.c:4 ITERATOR TRUE
 IP examples/hello-world-linked-list.c:4 CONTROL TRUE
 IP examples/hello-world-linked-list.c:4 NAME br
 IP examples/hello-world-linked-list.c:4 LOCATION examples/hello-world-linked-list.c:16:3
 BP 21 INSTRUCTION examples/hello-world-linked-list.c:4
 DF 20 21
-BP 21 TAG examples/hello-world-linked-list.c:initialize_list:16:3-3
+BP 21 TAG examples/hello-world-linked-list.c:initialize_list:16:3-0-3
 IP examples/hello-world-linked-list.c:5 IMPURE TRUE
 IP examples/hello-world-linked-list.c:5 NONCOMMUTATIVE TRUE
 IP examples/hello-world-linked-list.c:5 NAME malloc
@@ -132,17 +132,17 @@ IP examples/hello-world-linked-list.c:6 NAME bitcast
 IP examples/hello-world-linked-list.c:6 LOCATION examples/hello-world-linked-list.c:17:21
 BP 23 INSTRUCTION examples/hello-world-linked-list.c:6
 DF 0 23
-BP 23 TAG examples/hello-world-linked-list.c:initialize_list:16:3-3
+BP 23 TAG examples/hello-world-linked-list.c:initialize_list:16:3-0-3
 IP examples/hello-world-linked-list.c:7 NAME getelementptr
 IP examples/hello-world-linked-list.c:7 LOCATION examples/hello-world-linked-list.c:17:14
 BP 24 INSTRUCTION examples/hello-world-linked-list.c:7
 DF 15 24
-BP 24 TAG examples/hello-world-linked-list.c:initialize_list:16:3-3
+BP 24 TAG examples/hello-world-linked-list.c:initialize_list:16:3-0-3
 IP examples/hello-world-linked-list.c:8 NAME getelementptr
 IP examples/hello-world-linked-list.c:8 LOCATION examples/hello-world-linked-list.c:18:24
 BP 25 INSTRUCTION examples/hello-world-linked-list.c:8
 DF 15 25
-BP 25 TAG examples/hello-world-linked-list.c:initialize_list:16:3-3
+BP 25 TAG examples/hello-world-linked-list.c:initialize_list:16:3-0-3
 IP examples/hello-world-linked-list.c:9 NAME add
 IP examples/hello-world-linked-list.c:9 LOCATION examples/hello-world-linked-list.c:16:30
 BP 26 INSTRUCTION examples/hello-world-linked-list.c:9
@@ -152,22 +152,22 @@ IP examples/hello-world-linked-list.c:2 NAME sub
 IP examples/hello-world-linked-list.c:2 LOCATION examples/hello-world-linked-list.c:16:24
 BP 27 INSTRUCTION examples/hello-world-linked-list.c:2
 DF 0 27
-BP 27 TAG examples/hello-world-linked-list.c:initialize_list:16:3-4
+BP 27 TAG examples/hello-world-linked-list.c:initialize_list:16:3-0-4
 IP examples/hello-world-linked-list.c:3 ITERATOR TRUE
 IP examples/hello-world-linked-list.c:3 NAME icmp
 IP examples/hello-world-linked-list.c:3 LOCATION examples/hello-world-linked-list.c:16:17
 BP 28 INSTRUCTION examples/hello-world-linked-list.c:3
 DF 26 28
-BP 28 TAG examples/hello-world-linked-list.c:initialize_list:16:3-4
+BP 28 TAG examples/hello-world-linked-list.c:initialize_list:16:3-0-4
 DF 27 28
-BP 28 TAG examples/hello-world-linked-list.c:initialize_list:16:3-4
+BP 28 TAG examples/hello-world-linked-list.c:initialize_list:16:3-0-4
 IP examples/hello-world-linked-list.c:4 ITERATOR TRUE
 IP examples/hello-world-linked-list.c:4 CONTROL TRUE
 IP examples/hello-world-linked-list.c:4 NAME br
 IP examples/hello-world-linked-list.c:4 LOCATION examples/hello-world-linked-list.c:16:3
 BP 29 INSTRUCTION examples/hello-world-linked-list.c:4
 DF 28 29
-BP 29 TAG examples/hello-world-linked-list.c:initialize_list:16:3-4
+BP 29 TAG examples/hello-world-linked-list.c:initialize_list:16:3-0-4
 IP examples/hello-world-linked-list.c:5 IMPURE TRUE
 IP examples/hello-world-linked-list.c:5 NONCOMMUTATIVE TRUE
 IP examples/hello-world-linked-list.c:5 NAME malloc
@@ -177,17 +177,17 @@ IP examples/hello-world-linked-list.c:6 NAME bitcast
 IP examples/hello-world-linked-list.c:6 LOCATION examples/hello-world-linked-list.c:17:21
 BP 31 INSTRUCTION examples/hello-world-linked-list.c:6
 DF 0 31
-BP 31 TAG examples/hello-world-linked-list.c:initialize_list:16:3-4
+BP 31 TAG examples/hello-world-linked-list.c:initialize_list:16:3-0-4
 IP examples/hello-world-linked-list.c:7 NAME getelementptr
 IP examples/hello-world-linked-list.c:7 LOCATION examples/hello-world-linked-list.c:17:14
 BP 32 INSTRUCTION examples/hello-world-linked-list.c:7
 DF 23 32
-BP 32 TAG examples/hello-world-linked-list.c:initialize_list:16:3-4
+BP 32 TAG examples/hello-world-linked-list.c:initialize_list:16:3-0-4
 IP examples/hello-world-linked-list.c:8 NAME getelementptr
 IP examples/hello-world-linked-list.c:8 LOCATION examples/hello-world-linked-list.c:18:24
 BP 33 INSTRUCTION examples/hello-world-linked-list.c:8
 DF 23 33
-BP 33 TAG examples/hello-world-linked-list.c:initialize_list:16:3-4
+BP 33 TAG examples/hello-world-linked-list.c:initialize_list:16:3-0-4
 IP examples/hello-world-linked-list.c:9 NAME add
 IP examples/hello-world-linked-list.c:9 LOCATION examples/hello-world-linked-list.c:16:30
 BP 34 INSTRUCTION examples/hello-world-linked-list.c:9
@@ -197,22 +197,22 @@ IP examples/hello-world-linked-list.c:2 NAME sub
 IP examples/hello-world-linked-list.c:2 LOCATION examples/hello-world-linked-list.c:16:24
 BP 35 INSTRUCTION examples/hello-world-linked-list.c:2
 DF 0 35
-BP 35 TAG examples/hello-world-linked-list.c:initialize_list:16:3-5
+BP 35 TAG examples/hello-world-linked-list.c:initialize_list:16:3-0-5
 IP examples/hello-world-linked-list.c:3 ITERATOR TRUE
 IP examples/hello-world-linked-list.c:3 NAME icmp
 IP examples/hello-world-linked-list.c:3 LOCATION examples/hello-world-linked-list.c:16:17
 BP 36 INSTRUCTION examples/hello-world-linked-list.c:3
 DF 34 36
-BP 36 TAG examples/hello-world-linked-list.c:initialize_list:16:3-5
+BP 36 TAG examples/hello-world-linked-list.c:initialize_list:16:3-0-5
 DF 35 36
-BP 36 TAG examples/hello-world-linked-list.c:initialize_list:16:3-5
+BP 36 TAG examples/hello-world-linked-list.c:initialize_list:16:3-0-5
 IP examples/hello-world-linked-list.c:4 ITERATOR TRUE
 IP examples/hello-world-linked-list.c:4 CONTROL TRUE
 IP examples/hello-world-linked-list.c:4 NAME br
 IP examples/hello-world-linked-list.c:4 LOCATION examples/hello-world-linked-list.c:16:3
 BP 37 INSTRUCTION examples/hello-world-linked-list.c:4
 DF 36 37
-BP 37 TAG examples/hello-world-linked-list.c:initialize_list:16:3-5
+BP 37 TAG examples/hello-world-linked-list.c:initialize_list:16:3-0-5
 IP examples/hello-world-linked-list.c:10 NAME getelementptr
 IP examples/hello-world-linked-list.c:10 LOCATION examples/hello-world-linked-list.c:20:12
 BP 38 INSTRUCTION examples/hello-world-linked-list.c:10
@@ -231,22 +231,22 @@ IP examples/hello-world-linked-list.c:2 NAME sub
 IP examples/hello-world-linked-list.c:2 LOCATION examples/hello-world-linked-list.c:16:24
 BP 41 INSTRUCTION examples/hello-world-linked-list.c:2
 DF 0 41
-BP 41 TAG examples/hello-world-linked-list.c:initialize_list:16:3-6
+BP 41 TAG examples/hello-world-linked-list.c:initialize_list:16:3-1-6
 IP examples/hello-world-linked-list.c:3 ITERATOR TRUE
 IP examples/hello-world-linked-list.c:3 NAME icmp
 IP examples/hello-world-linked-list.c:3 LOCATION examples/hello-world-linked-list.c:16:17
 BP 42 INSTRUCTION examples/hello-world-linked-list.c:3
 DF 0 42
-BP 42 TAG examples/hello-world-linked-list.c:initialize_list:16:3-6
+BP 42 TAG examples/hello-world-linked-list.c:initialize_list:16:3-1-6
 DF 41 42
-BP 42 TAG examples/hello-world-linked-list.c:initialize_list:16:3-6
+BP 42 TAG examples/hello-world-linked-list.c:initialize_list:16:3-1-6
 IP examples/hello-world-linked-list.c:4 ITERATOR TRUE
 IP examples/hello-world-linked-list.c:4 CONTROL TRUE
 IP examples/hello-world-linked-list.c:4 NAME br
 IP examples/hello-world-linked-list.c:4 LOCATION examples/hello-world-linked-list.c:16:3
 BP 43 INSTRUCTION examples/hello-world-linked-list.c:4
 DF 42 43
-BP 43 TAG examples/hello-world-linked-list.c:initialize_list:16:3-6
+BP 43 TAG examples/hello-world-linked-list.c:initialize_list:16:3-1-6
 IP examples/hello-world-linked-list.c:5 IMPURE TRUE
 IP examples/hello-world-linked-list.c:5 NONCOMMUTATIVE TRUE
 IP examples/hello-world-linked-list.c:5 NAME malloc
@@ -256,17 +256,17 @@ IP examples/hello-world-linked-list.c:6 NAME bitcast
 IP examples/hello-world-linked-list.c:6 LOCATION examples/hello-world-linked-list.c:17:21
 BP 45 INSTRUCTION examples/hello-world-linked-list.c:6
 DF 0 45
-BP 45 TAG examples/hello-world-linked-list.c:initialize_list:16:3-6
+BP 45 TAG examples/hello-world-linked-list.c:initialize_list:16:3-1-6
 IP examples/hello-world-linked-list.c:7 NAME getelementptr
 IP examples/hello-world-linked-list.c:7 LOCATION examples/hello-world-linked-list.c:17:14
 BP 46 INSTRUCTION examples/hello-world-linked-list.c:7
 DF 40 46
-BP 46 TAG examples/hello-world-linked-list.c:initialize_list:16:3-6
+BP 46 TAG examples/hello-world-linked-list.c:initialize_list:16:3-1-6
 IP examples/hello-world-linked-list.c:8 NAME getelementptr
 IP examples/hello-world-linked-list.c:8 LOCATION examples/hello-world-linked-list.c:18:24
 BP 47 INSTRUCTION examples/hello-world-linked-list.c:8
 DF 40 47
-BP 47 TAG examples/hello-world-linked-list.c:initialize_list:16:3-6
+BP 47 TAG examples/hello-world-linked-list.c:initialize_list:16:3-1-6
 IP examples/hello-world-linked-list.c:9 NAME add
 IP examples/hello-world-linked-list.c:9 LOCATION examples/hello-world-linked-list.c:16:30
 BP 48 INSTRUCTION examples/hello-world-linked-list.c:9
@@ -276,22 +276,22 @@ IP examples/hello-world-linked-list.c:2 NAME sub
 IP examples/hello-world-linked-list.c:2 LOCATION examples/hello-world-linked-list.c:16:24
 BP 49 INSTRUCTION examples/hello-world-linked-list.c:2
 DF 0 49
-BP 49 TAG examples/hello-world-linked-list.c:initialize_list:16:3-7
+BP 49 TAG examples/hello-world-linked-list.c:initialize_list:16:3-1-7
 IP examples/hello-world-linked-list.c:3 ITERATOR TRUE
 IP examples/hello-world-linked-list.c:3 NAME icmp
 IP examples/hello-world-linked-list.c:3 LOCATION examples/hello-world-linked-list.c:16:17
 BP 50 INSTRUCTION examples/hello-world-linked-list.c:3
 DF 48 50
-BP 50 TAG examples/hello-world-linked-list.c:initialize_list:16:3-7
+BP 50 TAG examples/hello-world-linked-list.c:initialize_list:16:3-1-7
 DF 49 50
-BP 50 TAG examples/hello-world-linked-list.c:initialize_list:16:3-7
+BP 50 TAG examples/hello-world-linked-list.c:initialize_list:16:3-1-7
 IP examples/hello-world-linked-list.c:4 ITERATOR TRUE
 IP examples/hello-world-linked-list.c:4 CONTROL TRUE
 IP examples/hello-world-linked-list.c:4 NAME br
 IP examples/hello-world-linked-list.c:4 LOCATION examples/hello-world-linked-list.c:16:3
 BP 51 INSTRUCTION examples/hello-world-linked-list.c:4
 DF 50 51
-BP 51 TAG examples/hello-world-linked-list.c:initialize_list:16:3-7
+BP 51 TAG examples/hello-world-linked-list.c:initialize_list:16:3-1-7
 IP examples/hello-world-linked-list.c:5 IMPURE TRUE
 IP examples/hello-world-linked-list.c:5 NONCOMMUTATIVE TRUE
 IP examples/hello-world-linked-list.c:5 NAME malloc
@@ -301,17 +301,17 @@ IP examples/hello-world-linked-list.c:6 NAME bitcast
 IP examples/hello-world-linked-list.c:6 LOCATION examples/hello-world-linked-list.c:17:21
 BP 53 INSTRUCTION examples/hello-world-linked-list.c:6
 DF 0 53
-BP 53 TAG examples/hello-world-linked-list.c:initialize_list:16:3-7
+BP 53 TAG examples/hello-world-linked-list.c:initialize_list:16:3-1-7
 IP examples/hello-world-linked-list.c:7 NAME getelementptr
 IP examples/hello-world-linked-list.c:7 LOCATION examples/hello-world-linked-list.c:17:14
 BP 54 INSTRUCTION examples/hello-world-linked-list.c:7
 DF 45 54
-BP 54 TAG examples/hello-world-linked-list.c:initialize_list:16:3-7
+BP 54 TAG examples/hello-world-linked-list.c:initialize_list:16:3-1-7
 IP examples/hello-world-linked-list.c:8 NAME getelementptr
 IP examples/hello-world-linked-list.c:8 LOCATION examples/hello-world-linked-list.c:18:24
 BP 55 INSTRUCTION examples/hello-world-linked-list.c:8
 DF 45 55
-BP 55 TAG examples/hello-world-linked-list.c:initialize_list:16:3-7
+BP 55 TAG examples/hello-world-linked-list.c:initialize_list:16:3-1-7
 IP examples/hello-world-linked-list.c:9 NAME add
 IP examples/hello-world-linked-list.c:9 LOCATION examples/hello-world-linked-list.c:16:30
 BP 56 INSTRUCTION examples/hello-world-linked-list.c:9
@@ -321,22 +321,22 @@ IP examples/hello-world-linked-list.c:2 NAME sub
 IP examples/hello-world-linked-list.c:2 LOCATION examples/hello-world-linked-list.c:16:24
 BP 57 INSTRUCTION examples/hello-world-linked-list.c:2
 DF 0 57
-BP 57 TAG examples/hello-world-linked-list.c:initialize_list:16:3-8
+BP 57 TAG examples/hello-world-linked-list.c:initialize_list:16:3-1-8
 IP examples/hello-world-linked-list.c:3 ITERATOR TRUE
 IP examples/hello-world-linked-list.c:3 NAME icmp
 IP examples/hello-world-linked-list.c:3 LOCATION examples/hello-world-linked-list.c:16:17
 BP 58 INSTRUCTION examples/hello-world-linked-list.c:3
 DF 56 58
-BP 58 TAG examples/hello-world-linked-list.c:initialize_list:16:3-8
+BP 58 TAG examples/hello-world-linked-list.c:initialize_list:16:3-1-8
 DF 57 58
-BP 58 TAG examples/hello-world-linked-list.c:initialize_list:16:3-8
+BP 58 TAG examples/hello-world-linked-list.c:initialize_list:16:3-1-8
 IP examples/hello-world-linked-list.c:4 ITERATOR TRUE
 IP examples/hello-world-linked-list.c:4 CONTROL TRUE
 IP examples/hello-world-linked-list.c:4 NAME br
 IP examples/hello-world-linked-list.c:4 LOCATION examples/hello-world-linked-list.c:16:3
 BP 59 INSTRUCTION examples/hello-world-linked-list.c:4
 DF 58 59
-BP 59 TAG examples/hello-world-linked-list.c:initialize_list:16:3-8
+BP 59 TAG examples/hello-world-linked-list.c:initialize_list:16:3-1-8
 IP examples/hello-world-linked-list.c:5 IMPURE TRUE
 IP examples/hello-world-linked-list.c:5 NONCOMMUTATIVE TRUE
 IP examples/hello-world-linked-list.c:5 NAME malloc
@@ -346,17 +346,17 @@ IP examples/hello-world-linked-list.c:6 NAME bitcast
 IP examples/hello-world-linked-list.c:6 LOCATION examples/hello-world-linked-list.c:17:21
 BP 61 INSTRUCTION examples/hello-world-linked-list.c:6
 DF 0 61
-BP 61 TAG examples/hello-world-linked-list.c:initialize_list:16:3-8
+BP 61 TAG examples/hello-world-linked-list.c:initialize_list:16:3-1-8
 IP examples/hello-world-linked-list.c:7 NAME getelementptr
 IP examples/hello-world-linked-list.c:7 LOCATION examples/hello-world-linked-list.c:17:14
 BP 62 INSTRUCTION examples/hello-world-linked-list.c:7
 DF 53 62
-BP 62 TAG examples/hello-world-linked-list.c:initialize_list:16:3-8
+BP 62 TAG examples/hello-world-linked-list.c:initialize_list:16:3-1-8
 IP examples/hello-world-linked-list.c:8 NAME getelementptr
 IP examples/hello-world-linked-list.c:8 LOCATION examples/hello-world-linked-list.c:18:24
 BP 63 INSTRUCTION examples/hello-world-linked-list.c:8
 DF 53 63
-BP 63 TAG examples/hello-world-linked-list.c:initialize_list:16:3-8
+BP 63 TAG examples/hello-world-linked-list.c:initialize_list:16:3-1-8
 IP examples/hello-world-linked-list.c:9 NAME add
 IP examples/hello-world-linked-list.c:9 LOCATION examples/hello-world-linked-list.c:16:30
 BP 64 INSTRUCTION examples/hello-world-linked-list.c:9
@@ -366,22 +366,22 @@ IP examples/hello-world-linked-list.c:2 NAME sub
 IP examples/hello-world-linked-list.c:2 LOCATION examples/hello-world-linked-list.c:16:24
 BP 65 INSTRUCTION examples/hello-world-linked-list.c:2
 DF 0 65
-BP 65 TAG examples/hello-world-linked-list.c:initialize_list:16:3-9
+BP 65 TAG examples/hello-world-linked-list.c:initialize_list:16:3-1-9
 IP examples/hello-world-linked-list.c:3 ITERATOR TRUE
 IP examples/hello-world-linked-list.c:3 NAME icmp
 IP examples/hello-world-linked-list.c:3 LOCATION examples/hello-world-linked-list.c:16:17
 BP 66 INSTRUCTION examples/hello-world-linked-list.c:3
 DF 64 66
-BP 66 TAG examples/hello-world-linked-list.c:initialize_list:16:3-9
+BP 66 TAG examples/hello-world-linked-list.c:initialize_list:16:3-1-9
 DF 65 66
-BP 66 TAG examples/hello-world-linked-list.c:initialize_list:16:3-9
+BP 66 TAG examples/hello-world-linked-list.c:initialize_list:16:3-1-9
 IP examples/hello-world-linked-list.c:4 ITERATOR TRUE
 IP examples/hello-world-linked-list.c:4 CONTROL TRUE
 IP examples/hello-world-linked-list.c:4 NAME br
 IP examples/hello-world-linked-list.c:4 LOCATION examples/hello-world-linked-list.c:16:3
 BP 67 INSTRUCTION examples/hello-world-linked-list.c:4
 DF 66 67
-BP 67 TAG examples/hello-world-linked-list.c:initialize_list:16:3-9
+BP 67 TAG examples/hello-world-linked-list.c:initialize_list:16:3-1-9
 IP examples/hello-world-linked-list.c:5 IMPURE TRUE
 IP examples/hello-world-linked-list.c:5 NONCOMMUTATIVE TRUE
 IP examples/hello-world-linked-list.c:5 NAME malloc
@@ -391,17 +391,17 @@ IP examples/hello-world-linked-list.c:6 NAME bitcast
 IP examples/hello-world-linked-list.c:6 LOCATION examples/hello-world-linked-list.c:17:21
 BP 69 INSTRUCTION examples/hello-world-linked-list.c:6
 DF 0 69
-BP 69 TAG examples/hello-world-linked-list.c:initialize_list:16:3-9
+BP 69 TAG examples/hello-world-linked-list.c:initialize_list:16:3-1-9
 IP examples/hello-world-linked-list.c:7 NAME getelementptr
 IP examples/hello-world-linked-list.c:7 LOCATION examples/hello-world-linked-list.c:17:14
 BP 70 INSTRUCTION examples/hello-world-linked-list.c:7
 DF 61 70
-BP 70 TAG examples/hello-world-linked-list.c:initialize_list:16:3-9
+BP 70 TAG examples/hello-world-linked-list.c:initialize_list:16:3-1-9
 IP examples/hello-world-linked-list.c:8 NAME getelementptr
 IP examples/hello-world-linked-list.c:8 LOCATION examples/hello-world-linked-list.c:18:24
 BP 71 INSTRUCTION examples/hello-world-linked-list.c:8
 DF 61 71
-BP 71 TAG examples/hello-world-linked-list.c:initialize_list:16:3-9
+BP 71 TAG examples/hello-world-linked-list.c:initialize_list:16:3-1-9
 IP examples/hello-world-linked-list.c:9 NAME add
 IP examples/hello-world-linked-list.c:9 LOCATION examples/hello-world-linked-list.c:16:30
 BP 72 INSTRUCTION examples/hello-world-linked-list.c:9
@@ -411,22 +411,22 @@ IP examples/hello-world-linked-list.c:2 NAME sub
 IP examples/hello-world-linked-list.c:2 LOCATION examples/hello-world-linked-list.c:16:24
 BP 73 INSTRUCTION examples/hello-world-linked-list.c:2
 DF 0 73
-BP 73 TAG examples/hello-world-linked-list.c:initialize_list:16:3-10
+BP 73 TAG examples/hello-world-linked-list.c:initialize_list:16:3-1-10
 IP examples/hello-world-linked-list.c:3 ITERATOR TRUE
 IP examples/hello-world-linked-list.c:3 NAME icmp
 IP examples/hello-world-linked-list.c:3 LOCATION examples/hello-world-linked-list.c:16:17
 BP 74 INSTRUCTION examples/hello-world-linked-list.c:3
 DF 72 74
-BP 74 TAG examples/hello-world-linked-list.c:initialize_list:16:3-10
+BP 74 TAG examples/hello-world-linked-list.c:initialize_list:16:3-1-10
 DF 73 74
-BP 74 TAG examples/hello-world-linked-list.c:initialize_list:16:3-10
+BP 74 TAG examples/hello-world-linked-list.c:initialize_list:16:3-1-10
 IP examples/hello-world-linked-list.c:4 ITERATOR TRUE
 IP examples/hello-world-linked-list.c:4 CONTROL TRUE
 IP examples/hello-world-linked-list.c:4 NAME br
 IP examples/hello-world-linked-list.c:4 LOCATION examples/hello-world-linked-list.c:16:3
 BP 75 INSTRUCTION examples/hello-world-linked-list.c:4
 DF 74 75
-BP 75 TAG examples/hello-world-linked-list.c:initialize_list:16:3-10
+BP 75 TAG examples/hello-world-linked-list.c:initialize_list:16:3-1-10
 IP examples/hello-world-linked-list.c:10 NAME getelementptr
 IP examples/hello-world-linked-list.c:10 LOCATION examples/hello-world-linked-list.c:20:12
 BP 76 INSTRUCTION examples/hello-world-linked-list.c:10
@@ -436,402 +436,402 @@ IP examples/hello-world-linked-list.c:12 NAME icmp
 IP examples/hello-world-linked-list.c:12 LOCATION examples/hello-world-linked-list.c:30:20
 BP 77 INSTRUCTION examples/hello-world-linked-list.c:12
 DF 2 77
-BP 77 TAG examples/hello-world-linked-list.c:main:30:3-11
+BP 77 TAG examples/hello-world-linked-list.c:main:30:3-0-11
 IP examples/hello-world-linked-list.c:13 ITERATOR TRUE
 IP examples/hello-world-linked-list.c:13 CONTROL TRUE
 IP examples/hello-world-linked-list.c:13 NAME br
 IP examples/hello-world-linked-list.c:13 LOCATION examples/hello-world-linked-list.c:30:3
 BP 78 INSTRUCTION examples/hello-world-linked-list.c:13
 DF 77 78
-BP 78 TAG examples/hello-world-linked-list.c:main:30:3-11
+BP 78 TAG examples/hello-world-linked-list.c:main:30:3-0-11
 IP examples/hello-world-linked-list.c:14 NAME getelementptr
 IP examples/hello-world-linked-list.c:14 LOCATION examples/hello-world-linked-list.c:31:37
 BP 79 INSTRUCTION examples/hello-world-linked-list.c:14
 DF 2 79
-BP 79 TAG examples/hello-world-linked-list.c:main:30:3-11
+BP 79 TAG examples/hello-world-linked-list.c:main:30:3-0-11
 IP examples/hello-world-linked-list.c:15 NAME getelementptr
 IP examples/hello-world-linked-list.c:15 LOCATION examples/hello-world-linked-list.c:31:56
 BP 80 INSTRUCTION examples/hello-world-linked-list.c:15
 DF 2 80
-BP 80 TAG examples/hello-world-linked-list.c:main:30:3-11
+BP 80 TAG examples/hello-world-linked-list.c:main:30:3-0-11
 IP examples/hello-world-linked-list.c:16 NAME mul
 IP examples/hello-world-linked-list.c:16 LOCATION examples/hello-world-linked-list.c:31:42
 BP 81 INSTRUCTION examples/hello-world-linked-list.c:16
 DF 0 81
-BP 81 TAG examples/hello-world-linked-list.c:main:30:3-11
+BP 81 TAG examples/hello-world-linked-list.c:main:30:3-0-11
 DF 0 81
-BP 81 TAG examples/hello-world-linked-list.c:main:30:3-11
+BP 81 TAG examples/hello-world-linked-list.c:main:30:3-0-11
 IP examples/hello-world-linked-list.c:17 NAME getelementptr
 IP examples/hello-world-linked-list.c:17 LOCATION examples/hello-world-linked-list.c:31:18
 BP 82 INSTRUCTION examples/hello-world-linked-list.c:17
 DF 40 82
-BP 82 TAG examples/hello-world-linked-list.c:main:30:3-11
+BP 82 TAG examples/hello-world-linked-list.c:main:30:3-0-11
 IP examples/hello-world-linked-list.c:18 NAME getelementptr
 IP examples/hello-world-linked-list.c:18 LOCATION examples/hello-world-linked-list.c:32:30
 BP 83 INSTRUCTION examples/hello-world-linked-list.c:18
 DF 2 83
-BP 83 TAG examples/hello-world-linked-list.c:main:30:3-11
+BP 83 TAG examples/hello-world-linked-list.c:main:30:3-0-11
 IP examples/hello-world-linked-list.c:19 NAME getelementptr
 IP examples/hello-world-linked-list.c:19 LOCATION examples/hello-world-linked-list.c:33:32
 BP 84 INSTRUCTION examples/hello-world-linked-list.c:19
 DF 40 84
-BP 84 TAG examples/hello-world-linked-list.c:main:30:3-11
+BP 84 TAG examples/hello-world-linked-list.c:main:30:3-0-11
 IP examples/hello-world-linked-list.c:12 ITERATOR TRUE
 IP examples/hello-world-linked-list.c:12 NAME icmp
 IP examples/hello-world-linked-list.c:12 LOCATION examples/hello-world-linked-list.c:30:20
 BP 85 INSTRUCTION examples/hello-world-linked-list.c:12
 DF 7 85
-BP 85 TAG examples/hello-world-linked-list.c:main:30:3-12
+BP 85 TAG examples/hello-world-linked-list.c:main:30:3-0-12
 IP examples/hello-world-linked-list.c:13 ITERATOR TRUE
 IP examples/hello-world-linked-list.c:13 CONTROL TRUE
 IP examples/hello-world-linked-list.c:13 NAME br
 IP examples/hello-world-linked-list.c:13 LOCATION examples/hello-world-linked-list.c:30:3
 BP 86 INSTRUCTION examples/hello-world-linked-list.c:13
 DF 85 86
-BP 86 TAG examples/hello-world-linked-list.c:main:30:3-12
+BP 86 TAG examples/hello-world-linked-list.c:main:30:3-0-12
 IP examples/hello-world-linked-list.c:14 NAME getelementptr
 IP examples/hello-world-linked-list.c:14 LOCATION examples/hello-world-linked-list.c:31:37
 BP 87 INSTRUCTION examples/hello-world-linked-list.c:14
 DF 7 87
-BP 87 TAG examples/hello-world-linked-list.c:main:30:3-12
+BP 87 TAG examples/hello-world-linked-list.c:main:30:3-0-12
 IP examples/hello-world-linked-list.c:15 NAME getelementptr
 IP examples/hello-world-linked-list.c:15 LOCATION examples/hello-world-linked-list.c:31:56
 BP 88 INSTRUCTION examples/hello-world-linked-list.c:15
 DF 7 88
-BP 88 TAG examples/hello-world-linked-list.c:main:30:3-12
+BP 88 TAG examples/hello-world-linked-list.c:main:30:3-0-12
 IP examples/hello-world-linked-list.c:16 NAME mul
 IP examples/hello-world-linked-list.c:16 LOCATION examples/hello-world-linked-list.c:31:42
 BP 89 INSTRUCTION examples/hello-world-linked-list.c:16
 DF 0 89
-BP 89 TAG examples/hello-world-linked-list.c:main:30:3-12
+BP 89 TAG examples/hello-world-linked-list.c:main:30:3-0-12
 DF 0 89
-BP 89 TAG examples/hello-world-linked-list.c:main:30:3-12
+BP 89 TAG examples/hello-world-linked-list.c:main:30:3-0-12
 IP examples/hello-world-linked-list.c:17 NAME getelementptr
 IP examples/hello-world-linked-list.c:17 LOCATION examples/hello-world-linked-list.c:31:18
 BP 90 INSTRUCTION examples/hello-world-linked-list.c:17
 DF 45 90
-BP 90 TAG examples/hello-world-linked-list.c:main:30:3-12
+BP 90 TAG examples/hello-world-linked-list.c:main:30:3-0-12
 IP examples/hello-world-linked-list.c:18 NAME getelementptr
 IP examples/hello-world-linked-list.c:18 LOCATION examples/hello-world-linked-list.c:32:30
 BP 91 INSTRUCTION examples/hello-world-linked-list.c:18
 DF 7 91
-BP 91 TAG examples/hello-world-linked-list.c:main:30:3-12
+BP 91 TAG examples/hello-world-linked-list.c:main:30:3-0-12
 IP examples/hello-world-linked-list.c:19 NAME getelementptr
 IP examples/hello-world-linked-list.c:19 LOCATION examples/hello-world-linked-list.c:33:32
 BP 92 INSTRUCTION examples/hello-world-linked-list.c:19
 DF 45 92
-BP 92 TAG examples/hello-world-linked-list.c:main:30:3-12
+BP 92 TAG examples/hello-world-linked-list.c:main:30:3-0-12
 IP examples/hello-world-linked-list.c:12 ITERATOR TRUE
 IP examples/hello-world-linked-list.c:12 NAME icmp
 IP examples/hello-world-linked-list.c:12 LOCATION examples/hello-world-linked-list.c:30:20
 BP 93 INSTRUCTION examples/hello-world-linked-list.c:12
 DF 15 93
-BP 93 TAG examples/hello-world-linked-list.c:main:30:3-13
+BP 93 TAG examples/hello-world-linked-list.c:main:30:3-0-13
 IP examples/hello-world-linked-list.c:13 ITERATOR TRUE
 IP examples/hello-world-linked-list.c:13 CONTROL TRUE
 IP examples/hello-world-linked-list.c:13 NAME br
 IP examples/hello-world-linked-list.c:13 LOCATION examples/hello-world-linked-list.c:30:3
 BP 94 INSTRUCTION examples/hello-world-linked-list.c:13
 DF 93 94
-BP 94 TAG examples/hello-world-linked-list.c:main:30:3-13
+BP 94 TAG examples/hello-world-linked-list.c:main:30:3-0-13
 IP examples/hello-world-linked-list.c:14 NAME getelementptr
 IP examples/hello-world-linked-list.c:14 LOCATION examples/hello-world-linked-list.c:31:37
 BP 95 INSTRUCTION examples/hello-world-linked-list.c:14
 DF 15 95
-BP 95 TAG examples/hello-world-linked-list.c:main:30:3-13
+BP 95 TAG examples/hello-world-linked-list.c:main:30:3-0-13
 IP examples/hello-world-linked-list.c:15 NAME getelementptr
 IP examples/hello-world-linked-list.c:15 LOCATION examples/hello-world-linked-list.c:31:56
 BP 96 INSTRUCTION examples/hello-world-linked-list.c:15
 DF 15 96
-BP 96 TAG examples/hello-world-linked-list.c:main:30:3-13
+BP 96 TAG examples/hello-world-linked-list.c:main:30:3-0-13
 IP examples/hello-world-linked-list.c:16 NAME mul
 IP examples/hello-world-linked-list.c:16 LOCATION examples/hello-world-linked-list.c:31:42
 BP 97 INSTRUCTION examples/hello-world-linked-list.c:16
 DF 0 97
-BP 97 TAG examples/hello-world-linked-list.c:main:30:3-13
+BP 97 TAG examples/hello-world-linked-list.c:main:30:3-0-13
 DF 0 97
-BP 97 TAG examples/hello-world-linked-list.c:main:30:3-13
+BP 97 TAG examples/hello-world-linked-list.c:main:30:3-0-13
 IP examples/hello-world-linked-list.c:17 NAME getelementptr
 IP examples/hello-world-linked-list.c:17 LOCATION examples/hello-world-linked-list.c:31:18
 BP 98 INSTRUCTION examples/hello-world-linked-list.c:17
 DF 53 98
-BP 98 TAG examples/hello-world-linked-list.c:main:30:3-13
+BP 98 TAG examples/hello-world-linked-list.c:main:30:3-0-13
 IP examples/hello-world-linked-list.c:18 NAME getelementptr
 IP examples/hello-world-linked-list.c:18 LOCATION examples/hello-world-linked-list.c:32:30
 BP 99 INSTRUCTION examples/hello-world-linked-list.c:18
 DF 15 99
-BP 99 TAG examples/hello-world-linked-list.c:main:30:3-13
+BP 99 TAG examples/hello-world-linked-list.c:main:30:3-0-13
 IP examples/hello-world-linked-list.c:19 NAME getelementptr
 IP examples/hello-world-linked-list.c:19 LOCATION examples/hello-world-linked-list.c:33:32
 BP 100 INSTRUCTION examples/hello-world-linked-list.c:19
 DF 53 100
-BP 100 TAG examples/hello-world-linked-list.c:main:30:3-13
+BP 100 TAG examples/hello-world-linked-list.c:main:30:3-0-13
 IP examples/hello-world-linked-list.c:12 ITERATOR TRUE
 IP examples/hello-world-linked-list.c:12 NAME icmp
 IP examples/hello-world-linked-list.c:12 LOCATION examples/hello-world-linked-list.c:30:20
 BP 101 INSTRUCTION examples/hello-world-linked-list.c:12
 DF 23 101
-BP 101 TAG examples/hello-world-linked-list.c:main:30:3-14
+BP 101 TAG examples/hello-world-linked-list.c:main:30:3-0-14
 IP examples/hello-world-linked-list.c:13 ITERATOR TRUE
 IP examples/hello-world-linked-list.c:13 CONTROL TRUE
 IP examples/hello-world-linked-list.c:13 NAME br
 IP examples/hello-world-linked-list.c:13 LOCATION examples/hello-world-linked-list.c:30:3
 BP 102 INSTRUCTION examples/hello-world-linked-list.c:13
 DF 101 102
-BP 102 TAG examples/hello-world-linked-list.c:main:30:3-14
+BP 102 TAG examples/hello-world-linked-list.c:main:30:3-0-14
 IP examples/hello-world-linked-list.c:14 NAME getelementptr
 IP examples/hello-world-linked-list.c:14 LOCATION examples/hello-world-linked-list.c:31:37
 BP 103 INSTRUCTION examples/hello-world-linked-list.c:14
 DF 23 103
-BP 103 TAG examples/hello-world-linked-list.c:main:30:3-14
+BP 103 TAG examples/hello-world-linked-list.c:main:30:3-0-14
 IP examples/hello-world-linked-list.c:15 NAME getelementptr
 IP examples/hello-world-linked-list.c:15 LOCATION examples/hello-world-linked-list.c:31:56
 BP 104 INSTRUCTION examples/hello-world-linked-list.c:15
 DF 23 104
-BP 104 TAG examples/hello-world-linked-list.c:main:30:3-14
+BP 104 TAG examples/hello-world-linked-list.c:main:30:3-0-14
 IP examples/hello-world-linked-list.c:16 NAME mul
 IP examples/hello-world-linked-list.c:16 LOCATION examples/hello-world-linked-list.c:31:42
 BP 105 INSTRUCTION examples/hello-world-linked-list.c:16
 DF 0 105
-BP 105 TAG examples/hello-world-linked-list.c:main:30:3-14
+BP 105 TAG examples/hello-world-linked-list.c:main:30:3-0-14
 DF 0 105
-BP 105 TAG examples/hello-world-linked-list.c:main:30:3-14
+BP 105 TAG examples/hello-world-linked-list.c:main:30:3-0-14
 IP examples/hello-world-linked-list.c:17 NAME getelementptr
 IP examples/hello-world-linked-list.c:17 LOCATION examples/hello-world-linked-list.c:31:18
 BP 106 INSTRUCTION examples/hello-world-linked-list.c:17
 DF 61 106
-BP 106 TAG examples/hello-world-linked-list.c:main:30:3-14
+BP 106 TAG examples/hello-world-linked-list.c:main:30:3-0-14
 IP examples/hello-world-linked-list.c:18 NAME getelementptr
 IP examples/hello-world-linked-list.c:18 LOCATION examples/hello-world-linked-list.c:32:30
 BP 107 INSTRUCTION examples/hello-world-linked-list.c:18
 DF 23 107
-BP 107 TAG examples/hello-world-linked-list.c:main:30:3-14
+BP 107 TAG examples/hello-world-linked-list.c:main:30:3-0-14
 IP examples/hello-world-linked-list.c:19 NAME getelementptr
 IP examples/hello-world-linked-list.c:19 LOCATION examples/hello-world-linked-list.c:33:32
 BP 108 INSTRUCTION examples/hello-world-linked-list.c:19
 DF 61 108
-BP 108 TAG examples/hello-world-linked-list.c:main:30:3-14
+BP 108 TAG examples/hello-world-linked-list.c:main:30:3-0-14
 IP examples/hello-world-linked-list.c:12 ITERATOR TRUE
 IP examples/hello-world-linked-list.c:12 NAME icmp
 IP examples/hello-world-linked-list.c:12 LOCATION examples/hello-world-linked-list.c:30:20
 BP 109 INSTRUCTION examples/hello-world-linked-list.c:12
 DF 31 109
-BP 109 TAG examples/hello-world-linked-list.c:main:30:3-15
+BP 109 TAG examples/hello-world-linked-list.c:main:30:3-0-15
 IP examples/hello-world-linked-list.c:13 ITERATOR TRUE
 IP examples/hello-world-linked-list.c:13 CONTROL TRUE
 IP examples/hello-world-linked-list.c:13 NAME br
 IP examples/hello-world-linked-list.c:13 LOCATION examples/hello-world-linked-list.c:30:3
 BP 110 INSTRUCTION examples/hello-world-linked-list.c:13
 DF 109 110
-BP 110 TAG examples/hello-world-linked-list.c:main:30:3-15
+BP 110 TAG examples/hello-world-linked-list.c:main:30:3-0-15
 IP examples/hello-world-linked-list.c:14 NAME getelementptr
 IP examples/hello-world-linked-list.c:14 LOCATION examples/hello-world-linked-list.c:31:37
 BP 111 INSTRUCTION examples/hello-world-linked-list.c:14
 DF 31 111
-BP 111 TAG examples/hello-world-linked-list.c:main:30:3-15
+BP 111 TAG examples/hello-world-linked-list.c:main:30:3-0-15
 IP examples/hello-world-linked-list.c:15 NAME getelementptr
 IP examples/hello-world-linked-list.c:15 LOCATION examples/hello-world-linked-list.c:31:56
 BP 112 INSTRUCTION examples/hello-world-linked-list.c:15
 DF 31 112
-BP 112 TAG examples/hello-world-linked-list.c:main:30:3-15
+BP 112 TAG examples/hello-world-linked-list.c:main:30:3-0-15
 IP examples/hello-world-linked-list.c:16 NAME mul
 IP examples/hello-world-linked-list.c:16 LOCATION examples/hello-world-linked-list.c:31:42
 BP 113 INSTRUCTION examples/hello-world-linked-list.c:16
 DF 0 113
-BP 113 TAG examples/hello-world-linked-list.c:main:30:3-15
+BP 113 TAG examples/hello-world-linked-list.c:main:30:3-0-15
 DF 0 113
-BP 113 TAG examples/hello-world-linked-list.c:main:30:3-15
+BP 113 TAG examples/hello-world-linked-list.c:main:30:3-0-15
 IP examples/hello-world-linked-list.c:17 NAME getelementptr
 IP examples/hello-world-linked-list.c:17 LOCATION examples/hello-world-linked-list.c:31:18
 BP 114 INSTRUCTION examples/hello-world-linked-list.c:17
 DF 69 114
-BP 114 TAG examples/hello-world-linked-list.c:main:30:3-15
+BP 114 TAG examples/hello-world-linked-list.c:main:30:3-0-15
 IP examples/hello-world-linked-list.c:18 NAME getelementptr
 IP examples/hello-world-linked-list.c:18 LOCATION examples/hello-world-linked-list.c:32:30
 BP 115 INSTRUCTION examples/hello-world-linked-list.c:18
 DF 31 115
-BP 115 TAG examples/hello-world-linked-list.c:main:30:3-15
+BP 115 TAG examples/hello-world-linked-list.c:main:30:3-0-15
 IP examples/hello-world-linked-list.c:19 NAME getelementptr
 IP examples/hello-world-linked-list.c:19 LOCATION examples/hello-world-linked-list.c:33:32
 BP 116 INSTRUCTION examples/hello-world-linked-list.c:19
 DF 69 116
-BP 116 TAG examples/hello-world-linked-list.c:main:30:3-15
+BP 116 TAG examples/hello-world-linked-list.c:main:30:3-0-15
 IP examples/hello-world-linked-list.c:12 ITERATOR TRUE
 IP examples/hello-world-linked-list.c:12 NAME icmp
 IP examples/hello-world-linked-list.c:12 LOCATION examples/hello-world-linked-list.c:30:20
 BP 117 INSTRUCTION examples/hello-world-linked-list.c:12
 DF 0 117
-BP 117 TAG examples/hello-world-linked-list.c:main:30:3-16
+BP 117 TAG examples/hello-world-linked-list.c:main:30:3-0-16
 IP examples/hello-world-linked-list.c:13 ITERATOR TRUE
 IP examples/hello-world-linked-list.c:13 CONTROL TRUE
 IP examples/hello-world-linked-list.c:13 NAME br
 IP examples/hello-world-linked-list.c:13 LOCATION examples/hello-world-linked-list.c:30:3
 BP 118 INSTRUCTION examples/hello-world-linked-list.c:13
 DF 117 118
-BP 118 TAG examples/hello-world-linked-list.c:main:30:3-16
+BP 118 TAG examples/hello-world-linked-list.c:main:30:3-0-16
 IP examples/hello-world-linked-list.c:20 ITERATOR TRUE
 IP examples/hello-world-linked-list.c:20 NAME icmp
 IP examples/hello-world-linked-list.c:20 LOCATION examples/hello-world-linked-list.c:37:21
 BP 119 INSTRUCTION examples/hello-world-linked-list.c:20
 DF 40 119
-BP 119 TAG examples/hello-world-linked-list.c:main:37:3-17
+BP 119 TAG examples/hello-world-linked-list.c:main:37:3-0-17
 IP examples/hello-world-linked-list.c:21 ITERATOR TRUE
 IP examples/hello-world-linked-list.c:21 CONTROL TRUE
 IP examples/hello-world-linked-list.c:21 NAME br
 IP examples/hello-world-linked-list.c:21 LOCATION examples/hello-world-linked-list.c:37:3
 BP 120 INSTRUCTION examples/hello-world-linked-list.c:21
 DF 119 120
-BP 120 TAG examples/hello-world-linked-list.c:main:37:3-17
+BP 120 TAG examples/hello-world-linked-list.c:main:37:3-0-17
 IP examples/hello-world-linked-list.c:22 NAME getelementptr
 IP examples/hello-world-linked-list.c:22 LOCATION examples/hello-world-linked-list.c:38:26
 BP 121 INSTRUCTION examples/hello-world-linked-list.c:22
 DF 40 121
-BP 121 TAG examples/hello-world-linked-list.c:main:37:3-17
+BP 121 TAG examples/hello-world-linked-list.c:main:37:3-0-17
 IP examples/hello-world-linked-list.c:23 NAME add
 IP examples/hello-world-linked-list.c:23 LOCATION examples/hello-world-linked-list.c:38:11
 BP 122 INSTRUCTION examples/hello-world-linked-list.c:23
 DF 0 122
-BP 122 TAG examples/hello-world-linked-list.c:main:37:3-17
+BP 122 TAG examples/hello-world-linked-list.c:main:37:3-0-17
 DF 81 122
-BP 122 TAG examples/hello-world-linked-list.c:main:37:3-17
+BP 122 TAG examples/hello-world-linked-list.c:main:37:3-0-17
 IP examples/hello-world-linked-list.c:24 NAME getelementptr
 IP examples/hello-world-linked-list.c:24 LOCATION examples/hello-world-linked-list.c:39:32
 BP 123 INSTRUCTION examples/hello-world-linked-list.c:24
 DF 40 123
-BP 123 TAG examples/hello-world-linked-list.c:main:37:3-17
+BP 123 TAG examples/hello-world-linked-list.c:main:37:3-0-17
 IP examples/hello-world-linked-list.c:20 ITERATOR TRUE
 IP examples/hello-world-linked-list.c:20 NAME icmp
 IP examples/hello-world-linked-list.c:20 LOCATION examples/hello-world-linked-list.c:37:21
 BP 124 INSTRUCTION examples/hello-world-linked-list.c:20
 DF 45 124
-BP 124 TAG examples/hello-world-linked-list.c:main:37:3-18
+BP 124 TAG examples/hello-world-linked-list.c:main:37:3-0-18
 IP examples/hello-world-linked-list.c:21 ITERATOR TRUE
 IP examples/hello-world-linked-list.c:21 CONTROL TRUE
 IP examples/hello-world-linked-list.c:21 NAME br
 IP examples/hello-world-linked-list.c:21 LOCATION examples/hello-world-linked-list.c:37:3
 BP 125 INSTRUCTION examples/hello-world-linked-list.c:21
 DF 124 125
-BP 125 TAG examples/hello-world-linked-list.c:main:37:3-18
+BP 125 TAG examples/hello-world-linked-list.c:main:37:3-0-18
 IP examples/hello-world-linked-list.c:22 NAME getelementptr
 IP examples/hello-world-linked-list.c:22 LOCATION examples/hello-world-linked-list.c:38:26
 BP 126 INSTRUCTION examples/hello-world-linked-list.c:22
 DF 45 126
-BP 126 TAG examples/hello-world-linked-list.c:main:37:3-18
+BP 126 TAG examples/hello-world-linked-list.c:main:37:3-0-18
 IP examples/hello-world-linked-list.c:23 NAME add
 IP examples/hello-world-linked-list.c:23 LOCATION examples/hello-world-linked-list.c:38:11
 BP 127 INSTRUCTION examples/hello-world-linked-list.c:23
 DF 122 127
-BP 127 TAG examples/hello-world-linked-list.c:main:37:3-18
+BP 127 TAG examples/hello-world-linked-list.c:main:37:3-0-18
 DF 89 127
-BP 127 TAG examples/hello-world-linked-list.c:main:37:3-18
+BP 127 TAG examples/hello-world-linked-list.c:main:37:3-0-18
 IP examples/hello-world-linked-list.c:24 NAME getelementptr
 IP examples/hello-world-linked-list.c:24 LOCATION examples/hello-world-linked-list.c:39:32
 BP 128 INSTRUCTION examples/hello-world-linked-list.c:24
 DF 45 128
-BP 128 TAG examples/hello-world-linked-list.c:main:37:3-18
+BP 128 TAG examples/hello-world-linked-list.c:main:37:3-0-18
 IP examples/hello-world-linked-list.c:20 ITERATOR TRUE
 IP examples/hello-world-linked-list.c:20 NAME icmp
 IP examples/hello-world-linked-list.c:20 LOCATION examples/hello-world-linked-list.c:37:21
 BP 129 INSTRUCTION examples/hello-world-linked-list.c:20
 DF 53 129
-BP 129 TAG examples/hello-world-linked-list.c:main:37:3-19
+BP 129 TAG examples/hello-world-linked-list.c:main:37:3-0-19
 IP examples/hello-world-linked-list.c:21 ITERATOR TRUE
 IP examples/hello-world-linked-list.c:21 CONTROL TRUE
 IP examples/hello-world-linked-list.c:21 NAME br
 IP examples/hello-world-linked-list.c:21 LOCATION examples/hello-world-linked-list.c:37:3
 BP 130 INSTRUCTION examples/hello-world-linked-list.c:21
 DF 129 130
-BP 130 TAG examples/hello-world-linked-list.c:main:37:3-19
+BP 130 TAG examples/hello-world-linked-list.c:main:37:3-0-19
 IP examples/hello-world-linked-list.c:22 NAME getelementptr
 IP examples/hello-world-linked-list.c:22 LOCATION examples/hello-world-linked-list.c:38:26
 BP 131 INSTRUCTION examples/hello-world-linked-list.c:22
 DF 53 131
-BP 131 TAG examples/hello-world-linked-list.c:main:37:3-19
+BP 131 TAG examples/hello-world-linked-list.c:main:37:3-0-19
 IP examples/hello-world-linked-list.c:23 NAME add
 IP examples/hello-world-linked-list.c:23 LOCATION examples/hello-world-linked-list.c:38:11
 BP 132 INSTRUCTION examples/hello-world-linked-list.c:23
 DF 127 132
-BP 132 TAG examples/hello-world-linked-list.c:main:37:3-19
+BP 132 TAG examples/hello-world-linked-list.c:main:37:3-0-19
 DF 97 132
-BP 132 TAG examples/hello-world-linked-list.c:main:37:3-19
+BP 132 TAG examples/hello-world-linked-list.c:main:37:3-0-19
 IP examples/hello-world-linked-list.c:24 NAME getelementptr
 IP examples/hello-world-linked-list.c:24 LOCATION examples/hello-world-linked-list.c:39:32
 BP 133 INSTRUCTION examples/hello-world-linked-list.c:24
 DF 53 133
-BP 133 TAG examples/hello-world-linked-list.c:main:37:3-19
+BP 133 TAG examples/hello-world-linked-list.c:main:37:3-0-19
 IP examples/hello-world-linked-list.c:20 ITERATOR TRUE
 IP examples/hello-world-linked-list.c:20 NAME icmp
 IP examples/hello-world-linked-list.c:20 LOCATION examples/hello-world-linked-list.c:37:21
 BP 134 INSTRUCTION examples/hello-world-linked-list.c:20
 DF 61 134
-BP 134 TAG examples/hello-world-linked-list.c:main:37:3-20
+BP 134 TAG examples/hello-world-linked-list.c:main:37:3-0-20
 IP examples/hello-world-linked-list.c:21 ITERATOR TRUE
 IP examples/hello-world-linked-list.c:21 CONTROL TRUE
 IP examples/hello-world-linked-list.c:21 NAME br
 IP examples/hello-world-linked-list.c:21 LOCATION examples/hello-world-linked-list.c:37:3
 BP 135 INSTRUCTION examples/hello-world-linked-list.c:21
 DF 134 135
-BP 135 TAG examples/hello-world-linked-list.c:main:37:3-20
+BP 135 TAG examples/hello-world-linked-list.c:main:37:3-0-20
 IP examples/hello-world-linked-list.c:22 NAME getelementptr
 IP examples/hello-world-linked-list.c:22 LOCATION examples/hello-world-linked-list.c:38:26
 BP 136 INSTRUCTION examples/hello-world-linked-list.c:22
 DF 61 136
-BP 136 TAG examples/hello-world-linked-list.c:main:37:3-20
+BP 136 TAG examples/hello-world-linked-list.c:main:37:3-0-20
 IP examples/hello-world-linked-list.c:23 NAME add
 IP examples/hello-world-linked-list.c:23 LOCATION examples/hello-world-linked-list.c:38:11
 BP 137 INSTRUCTION examples/hello-world-linked-list.c:23
 DF 132 137
-BP 137 TAG examples/hello-world-linked-list.c:main:37:3-20
+BP 137 TAG examples/hello-world-linked-list.c:main:37:3-0-20
 DF 105 137
-BP 137 TAG examples/hello-world-linked-list.c:main:37:3-20
+BP 137 TAG examples/hello-world-linked-list.c:main:37:3-0-20
 IP examples/hello-world-linked-list.c:24 NAME getelementptr
 IP examples/hello-world-linked-list.c:24 LOCATION examples/hello-world-linked-list.c:39:32
 BP 138 INSTRUCTION examples/hello-world-linked-list.c:24
 DF 61 138
-BP 138 TAG examples/hello-world-linked-list.c:main:37:3-20
+BP 138 TAG examples/hello-world-linked-list.c:main:37:3-0-20
 IP examples/hello-world-linked-list.c:20 ITERATOR TRUE
 IP examples/hello-world-linked-list.c:20 NAME icmp
 IP examples/hello-world-linked-list.c:20 LOCATION examples/hello-world-linked-list.c:37:21
 BP 139 INSTRUCTION examples/hello-world-linked-list.c:20
 DF 69 139
-BP 139 TAG examples/hello-world-linked-list.c:main:37:3-21
+BP 139 TAG examples/hello-world-linked-list.c:main:37:3-0-21
 IP examples/hello-world-linked-list.c:21 ITERATOR TRUE
 IP examples/hello-world-linked-list.c:21 CONTROL TRUE
 IP examples/hello-world-linked-list.c:21 NAME br
 IP examples/hello-world-linked-list.c:21 LOCATION examples/hello-world-linked-list.c:37:3
 BP 140 INSTRUCTION examples/hello-world-linked-list.c:21
 DF 139 140
-BP 140 TAG examples/hello-world-linked-list.c:main:37:3-21
+BP 140 TAG examples/hello-world-linked-list.c:main:37:3-0-21
 IP examples/hello-world-linked-list.c:22 NAME getelementptr
 IP examples/hello-world-linked-list.c:22 LOCATION examples/hello-world-linked-list.c:38:26
 BP 141 INSTRUCTION examples/hello-world-linked-list.c:22
 DF 69 141
-BP 141 TAG examples/hello-world-linked-list.c:main:37:3-21
+BP 141 TAG examples/hello-world-linked-list.c:main:37:3-0-21
 IP examples/hello-world-linked-list.c:23 NAME add
 IP examples/hello-world-linked-list.c:23 LOCATION examples/hello-world-linked-list.c:38:11
 BP 142 INSTRUCTION examples/hello-world-linked-list.c:23
 DF 137 142
-BP 142 TAG examples/hello-world-linked-list.c:main:37:3-21
+BP 142 TAG examples/hello-world-linked-list.c:main:37:3-0-21
 DF 113 142
-BP 142 TAG examples/hello-world-linked-list.c:main:37:3-21
+BP 142 TAG examples/hello-world-linked-list.c:main:37:3-0-21
 IP examples/hello-world-linked-list.c:24 NAME getelementptr
 IP examples/hello-world-linked-list.c:24 LOCATION examples/hello-world-linked-list.c:39:32
 BP 143 INSTRUCTION examples/hello-world-linked-list.c:24
 DF 69 143
-BP 143 TAG examples/hello-world-linked-list.c:main:37:3-21
+BP 143 TAG examples/hello-world-linked-list.c:main:37:3-0-21
 IP examples/hello-world-linked-list.c:20 ITERATOR TRUE
 IP examples/hello-world-linked-list.c:20 NAME icmp
 IP examples/hello-world-linked-list.c:20 LOCATION examples/hello-world-linked-list.c:37:21
 BP 144 INSTRUCTION examples/hello-world-linked-list.c:20
 DF 0 144
-BP 144 TAG examples/hello-world-linked-list.c:main:37:3-22
+BP 144 TAG examples/hello-world-linked-list.c:main:37:3-0-22
 IP examples/hello-world-linked-list.c:21 ITERATOR TRUE
 IP examples/hello-world-linked-list.c:21 CONTROL TRUE
 IP examples/hello-world-linked-list.c:21 NAME br
 IP examples/hello-world-linked-list.c:21 LOCATION examples/hello-world-linked-list.c:37:3
 BP 145 INSTRUCTION examples/hello-world-linked-list.c:21
 DF 144 145
-BP 145 TAG examples/hello-world-linked-list.c:main:37:3-22
+BP 145 TAG examples/hello-world-linked-list.c:main:37:3-0-22
 IP examples/hello-world-linked-list.c:25 CONTROL TRUE
 IP examples/hello-world-linked-list.c:25 NAME ret
 IP examples/hello-world-linked-list.c:25 LOCATION examples/hello-world-linked-list.c:41:3
