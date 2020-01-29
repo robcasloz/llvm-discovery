@@ -53,15 +53,15 @@ The parallel pattern discovery finding component is implemented as a collection 
 
 ### Finding parallel patterns in a trace
 
-To find do-all, map, reduction, and scan patterns in each loop of the example trace, run:
+To find do-all, map, map-filter, reduction, and scan patterns in each loop of the example trace, run:
 
 ```
 llvm/tools/discovery/find_patterns.py llvm/tools/discovery/examples/hello-world.trace
 ```
 
-The script outputs a table in CSV format where each row corresponds to a loop in the instrumented source code, and the `doall`, `map`, `reduction`, and `scan` columns indicate whether a pattern has been found.
+The script outputs a table in CSV format where each row corresponds to a loop in the instrumented source code, and the `doall`, `map`, `mapfilter`, `reduction`, and `scan` columns indicate whether a pattern has been found.
 
-To find do-all, map, reduction, scan, and pipeline patterns within all possible combinations of instructions in the example trace, add the option `--level=instruction` to the same command:
+To find all of the above plus pipeline patterns within all possible combinations of instructions in the example trace, add the option `--level=instruction` to the same command:
 
 ```
 llvm/tools/discovery/find_patterns.py --level=instruction llvm/tools/discovery/examples/hello-world.trace

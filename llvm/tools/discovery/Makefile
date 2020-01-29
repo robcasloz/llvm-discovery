@@ -103,6 +103,18 @@ GROUP ?= 0
 %.maps.yaml: %.maps.szn %.trace
 	$(PROCESS_TRACE) report $^ > $@
 
+# Map-filter pattern matches in MiniZinc solution format.
+%.mapfilters.szn: %.dzn $(DISCOVERY_DIR)/mapfilter.mzn $(DISCOVERY_DIR)/common.mzn
+	-minizinc $(MINIZINC_FLAGS) $(DISCOVERY_DIR)/mapfilter.mzn $< > $@
+
+# Map-filter pattern matches in PDF format.
+%.mapfilters.pdf: %.mapfilters.szn %.trace
+	$(PROCESS_TRACE) -o $@ visualize $^ $(GRAPHVIZ_FLAGS)
+
+# Map-filter pattern matches in YAML LLVM remarks format.
+%.mapfilters.yaml: %.mapfilters.szn %.trace
+	$(PROCESS_TRACE) report $^ > $@
+
 # Reduction pattern matches in MiniZinc solution format.
 %.reductions.szn: %.dzn $(DISCOVERY_DIR)/reduction.mzn $(DISCOVERY_DIR)/common.mzn
 	-minizinc $(MINIZINC_FLAGS) $(DISCOVERY_DIR)/reduction.mzn $< > $@
@@ -140,7 +152,7 @@ GROUP ?= 0
 	$(PROCESS_TRACE) report $^ > $@
 
 # Combined pattern matches in YAML LLVM remarks format.
-%.patterns.yaml: %.maps.yaml %.reductions.yaml %.scans.yaml %.pipelines.yaml
+%.patterns.yaml: %.doalls.yaml %.maps.yaml %.mapfilters.yaml %.reductions.yaml %.scans.yaml %.pipelines.yaml
 	cat $^ > $@
 
 # Instrumented LLVM IR for single C++ source file.
@@ -187,6 +199,10 @@ all-collapsed-doalls-szn: $(addsuffix .collapsed.doalls.szn, $(ALL_TRACES))
 # Map patterns found by collapsing the nodes in each trace.
 all-collapsed-maps-szn: TAG=all
 all-collapsed-maps-szn: $(addsuffix .collapsed.maps.szn, $(ALL_TRACES))
+
+# Map-filter patterns found by collapsing the nodes in each trace.
+all-collapsed-mapfilters-szn: TAG=all
+all-collapsed-mapfilters-szn: $(addsuffix .collapsed.mapfilters.szn, $(ALL_TRACES))
 
 # Reduction patterns found by collapsing the nodes in each trace.
 all-collapsed-reductions-szn: TAG=all

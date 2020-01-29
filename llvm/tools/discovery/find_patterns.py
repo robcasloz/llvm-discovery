@@ -91,9 +91,8 @@ if args.level == u.arg_loop:
                            "--output-format=minizinc", "print",
                            simple_tag_collapsed_trace])
 
+    # The list conversion is just to force evaluation.
     list(ex.map(make_dzn, tags))
-
-    patterns = [u.pat_doall, u.pat_map, u.pat_reduction, u.pat_scan]
 
     def make_szn((tag, pattern)):
         t = str(tag)
@@ -104,10 +103,11 @@ if args.level == u.arg_loop:
         run_minizinc(["-o", simple_tag_collapsed_pattern_szn, "-a", "--solver",
                       "chuffed", mzn(pattern), simple_tag_collapsed_dzn])
 
-    list(ex.map(make_szn, [(t, p) for t in tags for p in patterns]))
+    # The list conversion is just to force evaluation.
+    list(ex.map(make_szn, [(t, p) for t in tags for p in u.pat_all_uni]))
 
     szn_files = [temp(["simple", str(t), "collapsed", p + "s", "szn"])
-                 for t in tags for p in patterns]
+                 for t in tags for p in u.pat_all_uni]
     run_process_matches(szn_files + ["-l", u.arg_loop, "--simple"])
 
 elif args.level == u.arg_instruction:
@@ -116,17 +116,15 @@ elif args.level == u.arg_instruction:
     run_process_trace(["-o", simple_dzn, "--output-format=minizinc", "print",
                        simple_trace])
 
-    patterns = [u.pat_doall, u.pat_map, u.pat_reduction, u.pat_scan,
-                u.pat_pipeline]
-
     def make_szn(pattern):
         simple_pattern_szn = temp(["simple", pattern + "s", "szn"])
         run_minizinc(["-o", simple_pattern_szn, "-a", "--solver", "chuffed",
                       mzn(pattern), simple_dzn])
 
-    list(ex.map(make_szn, patterns))
+    # The list conversion is just to force evaluation.
+    list(ex.map(make_szn, u.pat_all))
 
-    szn_files = [temp(["simple", p + "s", "szn"]) for p in patterns]
+    szn_files = [temp(["simple", p + "s", "szn"]) for p in u.pat_all]
     run_process_matches(szn_files + ["-l", u.arg_instruction, "--simple"])
 
 if args.clean:

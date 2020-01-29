@@ -31,6 +31,7 @@ location_index = legend.index("location")
 function_index = legend.index("function")
 doall_index = legend.index(u.pat_doall)
 map_index = legend.index(u.pat_map)
+mapfilter_index = legend.index(u.pat_mapfilter)
 reduction_index = legend.index(u.pat_reduction)
 scan_index = legend.index(u.pat_scan)
 found = False
@@ -45,6 +46,7 @@ for line in r:
         found = True
         actual_results = [(u.pat_doall, line[doall_index]),
                           (u.pat_map, line[map_index]),
+                          (u.pat_mapfilter, line[mapfilter_index]),
                           (u.pat_reduction, line[reduction_index]),
                           (u.pat_scan, line[scan_index])]
         actual_matches = set([match_name(p, m) for (p, m) in actual_results
