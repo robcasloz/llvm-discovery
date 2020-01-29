@@ -11,25 +11,44 @@ import trace_utils as u
 
 def match_to_digit((matches, status)):
     if status == u.tk_sol_status_unknown:
-        return "?"
+        return u.match_unknown
     elif status == u.tk_sol_status_error and not matches:
-        return "?"
+        return u.match_unknown
     return str(int(matches))
 
 def matches_to_digit(matches_list):
+    unknown = 0
     for (matches, status) in matches_list:
-        if status == u.tk_sol_status_unknown:
-            return "?"
-        elif status == u.tk_sol_status_error and not matches:
-            return "?"
+        if status in [u.tk_sol_status_unknown, u.tk_sol_status_error]:
+            unknown += 1
     total_groups   = len(matches_list)
     matched_groups = sum(1 for (matches, status) in matches_list if matches)
     if matched_groups == 0:
-        return "0"
+        if unknown > 0:
+            return (u.match_unknown, 0)
+        else:
+            return (u.match_none, 0)
     elif matched_groups == total_groups:
-        return "1"
+        return (u.match_full, total_groups)
     else:
-        return "~"
+        return (u.match_partial, matched_groups)
+
+# Generalizes matches of map-like patterns across groups (loop runs). If
+# different map-like patterns are found in all runs of the same loop, they
+# generalize as a map-filter pattern.
+def generalize_maps_across_groups(sum_matches_list, groups):
+    maplike_patterns = [u.pat_doall, u.pat_map, u.pat_mapfilter]
+    maplike_count = sum(sum_matches_list[p][1] for p in maplike_patterns)
+    # Require that a map-like pattern is matched in every group (loop run).
+    if maplike_count < groups:
+        return
+    # Require that at least two different map-like patterns are matched.
+    if any([sum_matches_list[p][1] == maplike_count for p in maplike_patterns]):
+        return
+    # Generalize: move all matches to the map-filter pattern.
+    sum_matches_list[u.pat_doall] = (u.match_none, 0)
+    sum_matches_list[u.pat_map] = (u.match_none, 0)
+    sum_matches_list[u.pat_mapfilter] = (u.match_full, groups)
 
 def file_info(szn_filename):
     file_components = szn_filename.split(".")
@@ -54,7 +73,7 @@ def file_info(szn_filename):
     trace_filename = ".".join(file_components[0:-2]) + ".trace"
     return (benchmark, mode, tag, group, pattern, trace_filename)
 
-def process_loop_matches(szn_files, simple):
+def process_loop_matches(szn_files, simple, generalize_maps):
 
     # Cache of demangled function names.
     demangled_cache = {}
@@ -103,7 +122,7 @@ def process_loop_matches(szn_files, simple):
 
     # Print the CSV table.
     csvwriter = csv.writer(sys.stdout, delimiter=",", quoting=csv.QUOTE_MINIMAL)
-    csvwriter.writerow(([] if simple else ["benchmark", "mode", "loop", "nodes"]) + \
+    csvwriter.writerow(([] if simple else ["benchmark", "mode", "loop", "runs", "nodes"]) + \
                        ["location"] + \
                        ([] if simple else ["function"]) + \
                        u.pat_all_uni)
@@ -128,10 +147,15 @@ def process_loop_matches(szn_files, simple):
                             # MiniZinc's =====UNSATISFIABLE=====).
                             match = (False, u.tk_sol_status_normal)
                         all_matches[p].append(match)
-                row = ([] if simple else [benchmark, mode, tag, nodes]) + \
+                runs = len(groups)
+                all_summarized_matches = \
+                    {p : matches_to_digit(m) for p, m in all_matches.items()}
+                if generalize_maps:
+                    generalize_maps_across_groups(all_summarized_matches, runs)
+                row = ([] if simple else [benchmark, mode, tag, runs, nodes]) + \
                       [location] + \
                        ([] if simple else [function]) + \
-                      [matches_to_digit(all_matches[p]) for p in u.pat_all_uni]
+                      [all_summarized_matches[p][0] for p in u.pat_all_uni]
                 csvwriter.writerow(row)
 
 def process_instruction_matches(szn_files, simple):
@@ -203,10 +227,11 @@ def main(args):
     parser.add_argument('FILES', nargs="*")
     parser.add_argument('-l,', '--level', dest='level', action='store', type=str, choices=[u.arg_loop, u.arg_instruction], default=u.arg_loop)
     parser.add_argument('--simple', dest='simple', action='store_true', default=False)
+    parser.add_argument('--generalize-maps', dest='generalize_maps', action='store_true', default=True)
     args = parser.parse_args(args)
 
     if args.level == u.arg_loop:
-        process_loop_matches(args.FILES, args.simple)
+        process_loop_matches(args.FILES, args.simple, args.generalize_maps)
     elif args.level == u.arg_instruction:
         process_instruction_matches(args.FILES, args.simple)
 

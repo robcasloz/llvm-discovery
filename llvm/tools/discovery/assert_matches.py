@@ -50,7 +50,7 @@ for line in r:
                           (u.pat_reduction, line[reduction_index]),
                           (u.pat_scan, line[scan_index])]
         actual_matches = set([match_name(p, m) for (p, m) in actual_results
-                              if m in ["1", "~"]])
+                              if m in [u.match_full, u.match_partial]])
         assert actual_matches == expected_matches, \
             "the matched patterns " + str(list(actual_matches)) + \
             " differ from the expected ones " + str(list(expected_matches))

@@ -51,6 +51,11 @@ pat_pipeline = "pipeline"
 arg_loop = "loop"
 arg_instruction = "instruction"
 
+match_unknown = "?"
+match_partial = "~"
+match_full    = "1"
+match_none    = "0"
+
 # List with all supported unidimensional patterns.
 pat_all_uni = [pat_doall, pat_map, pat_mapfilter, pat_reduction, pat_scan]
 
