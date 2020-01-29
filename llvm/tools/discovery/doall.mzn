@@ -1,5 +1,5 @@
 % MiniZinc model for finding DOALL blocks of instructions (instructions that are
-% executed repeatedly and independently). Work in progress.
+% executed repeatedly and independently, and produce no data output).
 
 include "partition_set.mzn";
 include "disjoint.mzn";
@@ -68,8 +68,9 @@ constraint int_set_channel_zero(Run, R ++ [Mc]);
 % Ensure that the last run is non-empty and has an empty successor run.
 constraint last_non_empty(Last, R);
 
-% Ensure that all runs form a chain. This is enforced by ensuring each arc in
-% the DDG is either external, incoming, intra-run, or outgoing.
+% Ensure that all runs are independent. This is enforced by ensuring each arc in
+% the DDG is either external, incoming, or intra-run. This constraint differs
+% from the map model in that outgoing arcs are disallowed.
 % FIXME: is this subsumed by the reachability constraints?
 constraint
 forall (a in index_set_1of2(arcs))
@@ -82,33 +83,20 @@ forall (a in index_set_1of2(arcs))
          % incoming arc
          (not (s in M)) /\ (t in M),
          % intra-run arc
-         (s in M) /\ Run[t] == Run[s],
-         % outgoing arc
-         (s in M) /\ (not (t in M))
+         (s in M) /\ Run[t] == Run[s]
          ])
 );
 
 % Ensure that all runs have an incoming arc.
-% constraint
-% forall (i in runs where i <= Last)
-% (exists (a in index_set_1of2(arcs))
-%  (
-%   let {int: s = arcs[a, 0];
-%        int: t = arcs[a, 1]} in
-%   ((not (s in M)) /\ (t in R[i]))
-%  )
-% );
-
-% Ensure that all runs have an outgoing arc.
-% constraint
-% forall (i in runs where i <= Last)
-% (exists (a in index_set_1of2(arcs))
-%  (
-%   let {int: s = arcs[a, 0];
-%        int: t = arcs[a, 1]} in
-%   ((s in R[i]) /\ (not (t in M)))
-%  )
-% );
+constraint
+forall (i in runs where i <= Last)
+(exists (a in index_set_1of2(arcs))
+ (
+  let {int: s = arcs[a, 0];
+       int: t = arcs[a, 1]} in
+  ((not (s in M)) /\ (t in R[i]))
+ )
+);
 
 % Ensure that there are no holes in the DOALL pattern. A hole is a node that is
 % reachable and reaches two DOALL nodes but is not part of the DOALL.

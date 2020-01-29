@@ -1,6 +1,4 @@
-% MiniZinc model for finding maps. Work in progress.
-% Run like this:
-% $ minizinc -a map.mzn map-reduction.dzn
+% MiniZinc model for finding maps.
 
 include "partition_set.mzn";
 include "disjoint.mzn";
@@ -69,7 +67,7 @@ constraint int_set_channel_zero(Run, R ++ [Mc]);
 % Ensure that the last run is non-empty and has an empty successor run.
 constraint last_non_empty(Last, R);
 
-% Ensure that all runs form a chain. This is enforced by ensuring each arc in
+% Ensure that all runs are independent. This is enforced by ensuring each arc in
 % the DDG is either external, incoming, intra-run, or outgoing.
 % FIXME: is this subsumed by the reachability constraints?
 constraint

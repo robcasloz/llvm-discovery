@@ -1,6 +1,4 @@
-% MiniZinc model for finding pipelines. Work in progress.
-% Run like this:
-% $ minizinc -a pipeline.mzn map-reduction.dzn
+% MiniZinc model for finding pipelines.
 
 include "partition_set.mzn";
 include "disjoint.mzn";

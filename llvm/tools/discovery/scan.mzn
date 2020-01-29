@@ -1,6 +1,4 @@
-% MiniZinc model for finding scans. Work in progress.
-% Run like this:
-% $ minizinc -a scan.mzn map-scan.dzn
+% MiniZinc model for finding scans.
 
 include "partition_set.mzn";
 include "disjoint.mzn";

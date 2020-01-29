@@ -1,6 +1,4 @@
-% MiniZinc model for finding reductions. Work in progress.
-% Run like this:
-% $ minizinc -a reduction.mzn map-reduction.dzn
+% MiniZinc model for finding reductions.
 
 include "partition_set.mzn";
 include "disjoint.mzn";
