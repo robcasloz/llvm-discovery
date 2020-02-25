@@ -16,6 +16,8 @@ MINIZINC_DZN_FLAGS ?=
 OPT_VIEWER = $(DISCOVERY_DIR)/../opt-viewer/opt-viewer.py
 TAG ?= 0
 GROUP ?= 0
+NAME ?= ".*"
+NAMES ?= add fadd mul fmul and or xor
 
 # Do not remove intermediate files.
 .SECONDARY:
@@ -44,6 +46,10 @@ GROUP ?= 0
 # Filtered trace for a given tag and group.
 %.group-filtered.trace: %.trace
 	$(PROCESS_TRACE) --output-format=plain transform --filter-tags $(TAG) --filter-group $(GROUP) $< > $@
+
+# Filtered trace for a given instruction name.
+%.name-filtered.trace: %.trace
+	$(PROCESS_TRACE) --output-format=plain transform --filter-name $(NAME) $< > $@
 
 # Collapsed trace for a given tag.
 %.collapsed.trace: %.trace
@@ -78,6 +84,13 @@ GROUP ?= 0
 		$(MAKE) $*.group-filtered.trace GROUP=$$GROUP; \
 		mv $*.group-filtered.trace $*.$$GROUP.trace; \
 	done < $*.groups
+
+# One trace file for each instruction name in $(NAMES).
+%.name-traces: %.trace
+	for NAME in $(NAMES); do \
+		$(MAKE) $*.name-filtered.trace NAME=$$NAME; \
+		mv $*.name-filtered.trace $*.$$NAME.trace; \
+	done
 
 # DOALL pattern matches in MiniZinc solution format.
 %.doalls.szn: %.dzn $(DISCOVERY_DIR)/doall.mzn $(DISCOVERY_DIR)/common.mzn
