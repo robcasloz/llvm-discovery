@@ -359,35 +359,12 @@ def filter_by((DDG, PB, PI, PT), p):
         DDGf.remove_node(block)
         PBf.pop(block, None)
     PIf = clean_instruction_properties(PI, PBf)
-    return (DDGf, PBf, PIf, PT)
-
-# Filters nodes in the labeled DDG by location according to a regexp.
-def filter_location((DDG, PB, PI, PT), pattern):
-    has_loc = lambda b: \
-              re.match(pattern, properties(b, PB, PI).get(u.tk_location, ""))
-    return filter_by((DDG, PB, PI, PT), has_loc)
-
-# Filters nodes in the labeled DDG by name according to a regexp.
-def filter_name((DDG, PB, PI, PT), pattern):
-    has_name = lambda b: \
-               re.match(pattern, properties(b, PB, PI).get(u.tk_name, ""))
-    return filter_by((DDG, PB, PI, PT), has_name)
-
-# Whether the given block is to be preserved when filtering.
-def is_preserved(block, tag, group, PB):
-    tag_data = find_tag_data(tag, PB[block].get(u.tk_tags))
-    return (tag_data != None) and (not group or tag_data[0] == int(group))
-
-# Filters tagged nodes in the labeled DDG.
-def filter_tag((DDG, PB, PI, PT), tag, group):
-    is_tag_group = lambda b: is_preserved(b, tag, group, PB)
-    (DDGf, PBf, PIf, PT) = filter_by((DDG, PB, PI, PT), is_tag_group)
     # Add arcs into and from the filtered nodes, for context.
     entries = set()
     exits = set()
     for (source, target) in DDG.edges():
-        source_tag = is_tag_group(source)
-        target_tag = is_tag_group(target)
+        source_tag = p(source)
+        target_tag = p(target)
         if not source_tag and target_tag:
             entries.add(target)
         elif source_tag and not target_tag:
@@ -405,6 +382,28 @@ def filter_tag((DDG, PB, PI, PT), tag, group):
         for ex in exits:
             DDGf.add_edge(ex, sink_block)
     return (DDGf, PBf, PIf, PT)
+
+# Filters nodes in the labeled DDG by location according to a regexp.
+def filter_location((DDG, PB, PI, PT), pattern):
+    has_loc = lambda b: \
+              re.match(pattern, properties(b, PB, PI).get(u.tk_location, ""))
+    return filter_by((DDG, PB, PI, PT), has_loc)
+
+# Filters nodes in the labeled DDG by name according to a regexp.
+def filter_name((DDG, PB, PI, PT), pattern):
+    has_name = lambda b: \
+               re.match(pattern, properties(b, PB, PI).get(u.tk_name, ""))
+    return filter_by((DDG, PB, PI, PT), has_name)
+
+# Filters tagged nodes in the labeled DDG.
+def filter_tag((DDG, PB, PI, PT), tag, group):
+    is_tag_group = lambda b: is_preserved(b, tag, group, PB)
+    return filter_by((DDG, PB, PI, PT), is_tag_group)
+
+# Whether the given block is to be preserved when filtering.
+def is_preserved(block, tag, group, PB):
+    tag_data = find_tag_data(tag, PB[block].get(u.tk_tags))
+    return (tag_data != None) and (not group or tag_data[0] == int(group))
 
 # Adds a new region instruction with the given name.
 def add_region_instruction(name, PI):
