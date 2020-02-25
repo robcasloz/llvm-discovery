@@ -350,17 +350,28 @@ def prune((DDG, PB, PI, PT)):
     PIp = clean_instruction_properties(PI, PBp)
     return (DDGp, PBp, PIp, PT)
 
-# Filters nodes in the labeled DDG by location according to a regexp.
-def filter_location((DDG, PB, PI, PT), pattern):
+# Filters nodes in the labeled DDG that satisfy p.
+def filter_by((DDG, PB, PI, PT), p):
     DDGf = DDG.copy()
     PBf = copy.deepcopy(PB)
-    for block in [b for b in DDG.nodes() if \
-                  properties(b, PB, PI).get(u.tk_location) != None]:
-        if not re.match(pattern, properties(block, PB, PI).get(u.tk_location)):
-            DDGf.remove_node(block)
-            PBf.pop(block, None)
+    remove_nodes = [b for b in DDG.nodes() if not p(b)]
+    for block in remove_nodes:
+        DDGf.remove_node(block)
+        PBf.pop(block, None)
     PIf = clean_instruction_properties(PI, PBf)
     return (DDGf, PBf, PIf, PT)
+
+# Filters nodes in the labeled DDG by location according to a regexp.
+def filter_location((DDG, PB, PI, PT), pattern):
+    has_loc = lambda b: \
+              re.match(pattern, properties(b, PB, PI).get(u.tk_location, ""))
+    return filter_by((DDG, PB, PI, PT), has_loc)
+
+# Filters nodes in the labeled DDG by name according to a regexp.
+def filter_name((DDG, PB, PI, PT), pattern):
+    has_name = lambda b: \
+               re.match(pattern, properties(b, PB, PI).get(u.tk_name, ""))
+    return filter_by((DDG, PB, PI, PT), has_name)
 
 # Whether the given block is to be preserved when filtering.
 def is_preserved(block, tag, group, PB):
@@ -369,19 +380,14 @@ def is_preserved(block, tag, group, PB):
 
 # Filters tagged nodes in the labeled DDG.
 def filter_tag((DDG, PB, PI, PT), tag, group):
-    DDGf = DDG.copy()
-    PBf = copy.deepcopy(PB)
-    for block in [b for b in DDG.nodes()]:
-        if not is_preserved(block, tag, group, PB):
-            DDGf.remove_node(block)
-            PBf.pop(block, None)
-    PIf = clean_instruction_properties(PI, PBf)
+    is_tag_group = lambda b: is_preserved(b, tag, group, PB)
+    (DDGf, PBf, PIf, PT) = filter_by((DDG, PB, PI, PT), is_tag_group)
     # Add arcs into and from the filtered nodes, for context.
     entries = set()
     exits = set()
     for (source, target) in DDG.edges():
-        source_tag = is_preserved(source, tag, group, PB)
-        target_tag = is_preserved(target, tag, group, PB)
+        source_tag = is_tag_group(source)
+        target_tag = is_tag_group(target)
         if not source_tag and target_tag:
             entries.add(target)
         elif source_tag and not target_tag:
@@ -849,6 +855,7 @@ def main(args):
 
     parser_transform = subparsers.add_parser(arg_transform, help='apply filter and collapse operations to the trace')
     parser_transform.add_argument('--filter-location', help='filters blocks by location according to a regexp')
+    parser_transform.add_argument('--filter-name', help='filters blocks by name according to a regexp')
     parser_transform.add_argument('--filter-tags', nargs="*", help='filters tagged blocks')
     parser_transform.add_argument('--filter-group', help='filters a specific group (used together with --filter-tags)')
     parser_transform.add_argument('--clean-tags', dest='clean_tags', action='store_true', help='filter out non-specified tags (works only together with --filter-tags)')
@@ -910,6 +917,8 @@ def main(args):
     elif args.subparser == arg_transform:
         if args.filter_location:
             G = filter_location(G, args.filter_location)
+        if args.filter_name:
+            G = filter_name(G, args.filter_name)
         if args.filter_tags:
             for tag in args.filter_tags:
                 G = filter_tag(G, (get_tag_id(tag, G)), args.filter_group)
