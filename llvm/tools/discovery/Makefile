@@ -19,6 +19,7 @@ GROUP ?= 0
 NAME ?= ".*"
 NAMES ?= add fadd mul fmul and or xor
 COMPONENT ?= 0
+MIN_COMPONENT_NODES ?= 3
 
 # Do not remove intermediate files.
 .SECONDARY:
@@ -54,7 +55,7 @@ COMPONENT ?= 0
 
 # Filtered trace for a given weakly connected component.
 %.component-filtered.trace: %.trace
-	$(PROCESS_TRACE) --output-format=plain transform --filter-component $(COMPONENT) $< > $@
+	$(PROCESS_TRACE) --output-format=plain --min-nodes $(MIN_COMPONENT_NODES) transform --filter-component $(COMPONENT) $< > $@
 
 # Collapsed trace for a given tag.
 %.collapsed.trace: %.trace
@@ -78,7 +79,7 @@ COMPONENT ?= 0
 
 # List of weakly connected components in a trace, excluding source and sink.
 %.components: %.trace
-	$(PROCESS_TRACE) query --print-components $< > $@
+	$(PROCESS_TRACE) --min-nodes $(MIN_COMPONENT_NODES) query --print-components $< > $@
 
 # One trace file for each tag in the %.tags file.
 %.tag-traces: %.trace %.tags
@@ -246,4 +247,4 @@ all-collapsed-scans-szn: $(addsuffix .collapsed.scans.szn, $(ALL_TRACES))
 
 # Clean all intermediate files.
 clean:
-	rm -rf trace *.bin *.trace *.gv *.pdf *.ll *.html *.yaml *.dzn *.szn *.tags *.aliases *~
+	rm -rf trace *.bin *.trace *.gv *.pdf *.ll *.html *.yaml *.dzn *.szn *.tags *.aliases *.components *~

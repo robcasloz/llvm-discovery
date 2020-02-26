@@ -10,4 +10,5 @@ trace
 *.szn
 *.tags
 *.aliases
+*.components
 *.csv
