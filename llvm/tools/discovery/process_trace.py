@@ -351,7 +351,7 @@ def prune((DDG, PB, PI, PT)):
     return (DDGp, PBp, PIp, PT)
 
 # Filters nodes in the labeled DDG that satisfy p.
-def filter_by((DDG, PB, PI, PT), p):
+def filter_by((DDG, PB, PI, PT), p, add_context = True):
     DDGf = DDG.copy()
     PBf = copy.deepcopy(PB)
     remove_nodes = [b for b in DDG.nodes() if not p(b)]
@@ -359,6 +359,8 @@ def filter_by((DDG, PB, PI, PT), p):
         DDGf.remove_node(block)
         PBf.pop(block, None)
     PIf = clean_instruction_properties(PI, PBf)
+    if not add_context:
+        return (DDGf, PBf, PIf, PT)
     # Add arcs into and from the filtered nodes, for context.
     entries = set()
     exits = set()
@@ -404,6 +406,18 @@ def filter_tag((DDG, PB, PI, PT), tag, group):
 def is_preserved(block, tag, group, PB):
     tag_data = find_tag_data(tag, PB[block].get(u.tk_tags))
     return (tag_data != None) and (not group or tag_data[0] == int(group))
+
+# Filters nodes with the given component ID.
+def filter_component((DDG, PB, PI, PT), component):
+    is_middle = lambda b: \
+                not (properties(b, PB, PI).get(u.tk_name, "") in
+                     ["source", "sink"])
+    (DDGf, PBf, PIf, PTf) = filter_by((DDG, PB, PI, PT), is_middle, False)
+    c = sorted(
+        map(sorted, list(nx.weakly_connected_components(DDGf))))[int(component)]
+    is_component = lambda b: b in c
+    (DDGc, PBc, PIc, PTc) = filter_by((DDG, PB, PI, PT), is_component)
+    return (DDGc, PBc, PIc, PTc)
 
 # Adds a new region instruction with the given name.
 def add_region_instruction(name, PI):
@@ -857,6 +871,7 @@ def main(args):
     parser_transform.add_argument('--filter-name', help='filters blocks by name according to a regexp')
     parser_transform.add_argument('--filter-tags', nargs="*", help='filters tagged blocks')
     parser_transform.add_argument('--filter-group', help='filters a specific group (used together with --filter-tags)')
+    parser_transform.add_argument('--filter-component', help='filters blocks with the given component ID')
     parser_transform.add_argument('--clean-tags', dest='clean_tags', action='store_true', help='filter out non-specified tags (works only together with --filter-tags)')
     parser_transform.add_argument('--no-clean-tags', dest='clean_tags', action='store_false')
     parser_transform.set_defaults(clean_tags=True)
@@ -925,6 +940,8 @@ def main(args):
                 rem_tags = u.tag_set(G) - \
                            set([get_tag_id(tag, G) for tag in args.filter_tags])
                 G = remove_tags(G, rem_tags)
+        if args.filter_component:
+            G = filter_component(G, args.filter_component)
         if args.collapse_tags:
             for tag in (u.tag_set(G) if args.collapse_tags == ["all"]
                         else args.collapse_tags):
