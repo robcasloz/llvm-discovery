@@ -304,6 +304,16 @@ def print_tag_groups(G, tag):
     out.close()
     return groups
 
+# Prints the component IDs in the trace, one per line.
+def print_components(G):
+    out = sio.StringIO()
+    (DDGf, PBf, PIf, PTf) = filter_middle(G)
+    for c in range(nx.number_weakly_connected_components(DDGf)):
+        print >>out, c
+    components = out.getvalue()
+    out.close()
+    return components
+
 # Returns a labeled DDG where non-region, effectful blocks only connected to the
 # source are removed.
 def clean((DDG, PB, PI, PT)):
@@ -407,12 +417,16 @@ def is_preserved(block, tag, group, PB):
     tag_data = find_tag_data(tag, PB[block].get(u.tk_tags))
     return (tag_data != None) and (not group or tag_data[0] == int(group))
 
-# Filters nodes with the given component ID.
-def filter_component((DDG, PB, PI, PT), component):
+# Filters out the source and sink nodes.
+def filter_middle((DDG, PB, PI, PT)):
     is_middle = lambda b: \
                 not (properties(b, PB, PI).get(u.tk_name, "") in
                      ["source", "sink"])
-    (DDGf, PBf, PIf, PTf) = filter_by((DDG, PB, PI, PT), is_middle, False)
+    return filter_by((DDG, PB, PI, PT), is_middle, False)
+
+# Filters nodes with the given component ID.
+def filter_component((DDG, PB, PI, PT), component):
+    (DDGf, PBf, PIf, PTf) = filter_middle((DDG, PB, PI, PT))
     c = sorted(
         map(sorted, list(nx.weakly_connected_components(DDGf))))[int(component)]
     is_component = lambda b: b in c
@@ -843,6 +857,7 @@ def main(args):
     parser_query.add_argument('--print-tags', dest='print_tags', action='store_true', help='print all different tags in the trace, one per line')
     parser_query.add_argument('--print-tag-aliases', dest='print_tag_aliases', action='store_true', help='print all different tag aliases in the trace, one per line')
     parser_query.add_argument('--print-tag-groups', help='print the groups of the given tag, one per line')
+    parser_query.add_argument('--print-components', dest='print_components', action='store_true', help='print the component IDs in the trace, one per line')
 
     parser_simplify = subparsers.add_parser(arg_simplify, help='simplify the trace')
     parser_simplify.add_argument('--prune', dest='prune', action='store_true', help='remove data-flow that does not lead to impure or control blocks')
@@ -904,6 +919,8 @@ def main(args):
             out = print_tag_aliases(G)
         elif args.print_tag_groups:
             out = print_tag_groups(G, get_tag_id(args.print_tag_groups, G))
+        elif args.print_components:
+            out = print_components(G)
         if args.output_file:
             outfile = open(args.output_file ,"w+")
             outfile.write(out)

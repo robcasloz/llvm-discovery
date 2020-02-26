@@ -18,6 +18,7 @@ TAG ?= 0
 GROUP ?= 0
 NAME ?= ".*"
 NAMES ?= add fadd mul fmul and or xor
+COMPONENT ?= 0
 
 # Do not remove intermediate files.
 .SECONDARY:
@@ -51,6 +52,10 @@ NAMES ?= add fadd mul fmul and or xor
 %.name-filtered.trace: %.trace
 	$(PROCESS_TRACE) --output-format=plain transform --filter-name $(NAME) $< > $@
 
+# Filtered trace for a given weakly connected component.
+%.component-filtered.trace: %.trace
+	$(PROCESS_TRACE) --output-format=plain transform --filter-component $(COMPONENT) $< > $@
+
 # Collapsed trace for a given tag.
 %.collapsed.trace: %.trace
 	$(PROCESS_TRACE) --output-format=plain transform --collapse-tags $(TAG) $< > $@
@@ -70,6 +75,10 @@ NAMES ?= add fadd mul fmul and or xor
 # List of tag groups in a trace.
 %.groups: %.trace
 	$(PROCESS_TRACE) query --print-tag-groups $(TAG) $< > $@
+
+# List of weakly connected components in a trace, excluding source and sink.
+%.components: %.trace
+	$(PROCESS_TRACE) query --print-components $< > $@
 
 # One trace file for each tag in the %.tags file.
 %.tag-traces: %.trace %.tags
@@ -91,6 +100,16 @@ NAMES ?= add fadd mul fmul and or xor
 		$(MAKE) $*.name-filtered.trace NAME=$$NAME; \
 		mv $*.name-filtered.trace $*.$$NAME.trace; \
 	done
+
+# One trace file for each weakly connected component in the %.components file.
+%.component-traces: %.trace %.components
+	while read COMPONENT; do \
+		if [ -n "$$COMPONENT" ]; \
+		then \
+			$(MAKE) $*.component-filtered.trace COMPONENT=$$COMPONENT; \
+			mv $*.component-filtered.trace $*.$$COMPONENT.trace; \
+		fi; \
+	done < $*.components
 
 # DOALL pattern matches in MiniZinc solution format.
 %.doalls.szn: %.dzn $(DISCOVERY_DIR)/doall.mzn $(DISCOVERY_DIR)/common.mzn
