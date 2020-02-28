@@ -160,6 +160,18 @@ MIN_COMPONENT_NODES ?= 3
 %.reductions.yaml: %.reductions.szn %.trace
 	$(PROCESS_TRACE) report $^ > $@
 
+# Two-phase reduction pattern matches in MiniZinc solution format.
+%.twophasereductions.szn: %.dzn $(DISCOVERY_DIR)/twophasereduction.mzn $(DISCOVERY_DIR)/common.mzn
+	-minizinc $(MINIZINC_FLAGS) $(DISCOVERY_DIR)/twophasereduction.mzn $< > $@
+
+# Two-phase reduction pattern matches in PDF format.
+%.twophasereductions.pdf: %.twophasereductions.szn %.trace
+	$(PROCESS_TRACE) -o $@ visualize $^ $(GRAPHVIZ_FLAGS)
+
+# Two-phase reduction pattern matches in YAML LLVM remarks format.
+%.twophasereductions.yaml: %.twophasereductions.szn %.trace
+	$(PROCESS_TRACE) report $^ > $@
+
 # Scan pattern matches in MiniZinc solution format.
 %.scans.szn: %.dzn $(DISCOVERY_DIR)/scan.mzn $(DISCOVERY_DIR)/common.mzn
 	-minizinc $(MINIZINC_FLAGS) $(DISCOVERY_DIR)/scan.mzn $< > $@
@@ -247,4 +259,4 @@ all-collapsed-scans-szn: $(addsuffix .collapsed.scans.szn, $(ALL_TRACES))
 
 # Clean all intermediate files.
 clean:
-	rm -rf trace *.bin *.trace *.gv *.pdf *.ll *.html *.yaml *.dzn *.szn *.tags *.aliases *.components *~
+	rm -rf trace *.bin *.trace *.gv *.pdf *.ll *.html *.yaml *.dzn *.szn *.tags *.aliases *.components *.groups *~
