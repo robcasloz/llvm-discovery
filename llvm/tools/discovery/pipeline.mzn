@@ -130,11 +130,8 @@ forall (s in nodes, t in nodes where t in reachable[s])
 (((s in P) /\ (t in P)) -> Stage[t] >= Stage[s]);
 
 % Ensure that the pipeline has at least two stages and two runs.
-constraint assert(n > 2, "The DDG should contain at least two nodes");
-constraint card(S[0]) > 0;
-constraint card(S[1]) > 0;
-constraint card(R[0]) > 0;
-constraint card(R[1]) > 0;
+constraint minimum_components(S, 2);
+constraint minimum_components(R, 2);
 
 % Enforce that no step exceeds the maximum number of nodes of each instruction.
 constraint
@@ -151,9 +148,7 @@ forall (i in stages, j in runs, p in insts where card(R[j]) > 0)
 
 % Enforce static covering: either all instances of an instruction are covered by
 % P or none is.
-constraint
-forall (sc in static_classes, i, j in sc where j > i)
-(i in P <-> j in P);
+constraint static_covering(P);
 
 %%% SOLVER SPECIFICATION
 

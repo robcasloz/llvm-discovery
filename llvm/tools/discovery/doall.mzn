@@ -118,9 +118,7 @@ forall (s in nodes, t in nodes where s != t /\ not weakly_connected(s, t))
 (((s in M) /\ (t in M)) -> Run[t] != Run[s]);
 
 % Ensure that the DOALL has at least two runs.
-constraint assert(n > 1, "The DDG should contain at least two nodes");
-constraint card(R[0]) > 0;
-constraint card(R[1]) > 0;
+constraint minimum_components(R, 2);
 
 % Enforce that no run exceeds the maximum number of nodes of each instruction.
 constraint
@@ -140,9 +138,7 @@ constraint exists (k in insts diff branches) (Count[k] > 0);
 
 % Enforce static covering: either all instances of an instruction are covered by
 % M or none is.
-constraint
-forall (sc in static_classes, i, j in sc where j > i)
-(i in M <-> j in M);
+constraint static_covering(M);
 
 % Enforce run ordering by minimum node, for symmetry breaking.
 constraint
