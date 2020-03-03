@@ -47,6 +47,7 @@ pat_mapfilter = "mapfilter"
 pat_reduction = "reduction"
 pat_scan = "scan"
 pat_pipeline = "pipeline"
+pat_twophasereduction = "twophasereduction"
 
 arg_loop = "loop"
 arg_instruction = "instruction"
@@ -218,6 +219,10 @@ def int_set(e):
         iset = range(first, last + 1)
     return iset
 
+# Concats a list of lists.
+def concat(l):
+    return list(itertools.chain.from_iterable(l))
+
 # Reads the given .szn file and returns a tuple (pattern, matches, status) where
 # 'pattern' is the name of the potentially matched pattern, 'matches' is the
 # list of matches, and 'status' tells the solver status (unknown, error, etc.).
@@ -226,6 +231,7 @@ def read_matches(match_file):
     matches = []
     stages = None
     pattern = None
+    partials = []
     status = tk_sol_status_normal
     with open(match_file, "r") as match:
         for line in match:
@@ -244,7 +250,8 @@ def read_matches(match_file):
                 status = tk_sol_status_error
                 continue
             pattern = tokens[0][:-1]
-            if pattern == pat_pipeline:
+            if pattern in [pat_pipeline, pat_twophasereduction]:
+                typ  = tokens[1]
                 rest = tokens[2:]
             else:
                 rest = tokens[1:]
@@ -257,6 +264,24 @@ def read_matches(match_file):
                     # Partial solution, rest of the solution is in next line.
                     stages = array
                     continue
+            elif pattern == pat_twophasereduction:
+                # New final reduction step
+                if typ == "final:":
+                    if array:
+                        final = array[0]
+                        continue # Partial solution, keep reading.
+                    else: # End of two-phase reduction
+                        if partials:
+                            match = partials
+                            partials = []
+                        else:
+                            continue # Partial solution, keep reading.
+                elif typ == "partial:":
+                    if array:
+                        partials.append((final, array))
+                    continue # Partial solution, keep reading.
+                else:
+                    assert False
             else:
                 match = array
             matches.append(match)

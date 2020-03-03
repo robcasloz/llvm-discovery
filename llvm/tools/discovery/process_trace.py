@@ -188,11 +188,21 @@ def format_match(pattern, match):
         for k in node_stage.keys():
             run_completion = float(node_run[k]) / len(runs)
             factor = run_completion * 0.5
-            (r, g, b) = colors[node_stage[k] % len(colors)]
-            node_color = (adjust_color(r, factor),
-                          adjust_color(g, factor),
-                          adjust_color(b, factor))
-            color_map[k] = node_color
+            original_color = colors[node_stage[k] % len(colors)]
+            color_map[k] = adjust_color(original_color, factor)
+    elif pattern == u.pat_twophasereduction:
+        legend = "(" + str(len(match)) + " partial reductions)"
+        metasteps  = [f + u.concat(p) for f, p in match]
+        color_map  = {node: colors[(metastep % len(colors))]
+                      for node, metastep in u.index_map(metasteps).items()}
+        # Make final step nodes darker and partial step nodes lighter.
+        finalsteps = set(u.concat([f for f, _ in match]))
+        for k in color_map.keys():
+            if k in finalsteps:
+                factor = 0.2
+            else:
+                factor = -0.05
+            color_map[k] = adjust_color(color_map[k], factor)
     else:
         sys.stderr.write("Error: unknown pattern type\n")
         sys.exit(-1)
@@ -212,9 +222,15 @@ def format_tags(G, tag, f):
 def hex_color((r, g, b)):
     return "#" + "{:02x}".format(r) + "{:02x}".format(g) + "{:02x}".format(b)
 
+# Adjusts a color according to a factor.
+def adjust_color((r, g, b), factor):
+    return (adjust_color_component(r, factor),
+            adjust_color_component(g, factor),
+            adjust_color_component(b, factor))
+
 # Adjusts a color component according to a factor.
-def adjust_color(c, factor):
-    return int(((c / float(255.0)) * (1.0 - factor)) * 255.0)
+def adjust_color_component(c, factor):
+    return min(255, int(((c / float(255.0)) * (1.0 - factor)) * 255.0))
 
 # Returns a labeled DDG where instruction IDs are normalized (transformed into a
 # sequence of integer IDs) across the entire trace.
