@@ -79,6 +79,12 @@ constraint
 forall (i in final_steps)
 (card(PR[i]) > 0 <-> i <= FLast);
 
+% Ensure that empty partial reductions have empty reduction steps.
+constraint
+forall (i in final_steps, j in partial_steps)
+(card(PR[i]) == 0 -> card(PS[i,j]) == 0);
+
+
 % Ensure that R and Rc are complementary.
 constraint
 partition_set([R, Rc], nodes);
@@ -153,6 +159,8 @@ forall (i in final_steps, j in partial_steps)
 
 solve satisfy;
 
-output ["twophasereduction: "] ++
-       [ show(FS[i]) ++ " <" ++ show(PR[i]) ++ "> " | i in final_steps ]
-
+output
+["twophasereduction: final:   " ++ show(FS[i]) ++ "\n" ++
+ "twophasereduction: partial: " ++
+ concat([show(PS[i,j]) ++ " " | j in partial_steps]) ++ "\n"
+ | i in final_steps ]
