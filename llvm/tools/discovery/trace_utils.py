@@ -3,6 +3,7 @@
 import networkx as nx
 import itertools
 import subprocess
+import collections
 from sets import Set
 
 tk_df = "DF"
@@ -223,6 +224,13 @@ def int_set(e):
 def concat(l):
     return list(itertools.chain.from_iterable(l))
 
+# Deep-flattens a list.
+def flatten(x):
+    if isinstance(x, collections.Iterable):
+        return [a for i in x for a in flatten(i)]
+    else:
+        return [x]
+
 # Reads the given .szn file and returns a tuple (pattern, matches, status) where
 # 'pattern' is the name of the potentially matched pattern, 'matches' is the
 # list of matches, and 'status' tells the solver status (unknown, error, etc.).
@@ -289,6 +297,22 @@ def read_matches(match_file):
         assert not matches, \
         "unexpected matches when solver terminates with unknown status"
     return (pattern, matches, status)
+
+# Discards subsumed matches based on the pattern node subset relation.  Note
+# that this is a naive, quadratic-time implementation.
+def discard_subsumed_matches(matches):
+    nodeset = lambda match : set(flatten(match))
+    nodesets = map(nodeset, matches)
+    filtered_matches = []
+    for match in matches:
+        subsumed = False
+        for ns in nodesets:
+            if nodeset(match) < ns:
+                subsumed = True
+                continue
+        if not subsumed:
+            filtered_matches.append(match)
+    return filtered_matches
 
 # Demangles a function name if the external tool 'c++filt' is available.
 def demangle(name, cache):

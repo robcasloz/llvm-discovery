@@ -191,7 +191,9 @@ def format_match(pattern, match):
             original_color = colors[node_stage[k] % len(colors)]
             color_map[k] = adjust_color(original_color, factor)
     elif pattern == u.pat_twophasereduction:
-        legend = "(" + str(len(match)) + " partial reductions)"
+        partial_steps = ", ".join(map(str, set([len(p) for _, p in match])))
+        legend = "(" + str(len(match)) + " partial reductions of " + \
+                 partial_steps + " steps each)"
         metasteps  = [f + u.concat(p) for f, p in match]
         color_map  = {node: colors[(metastep % len(colors))]
                       for node, metastep in u.index_map(metasteps).items()}
@@ -921,7 +923,10 @@ def main(args):
     parser_visualize.add_argument('SZN_FILE', help='matches given by the MiniZinc finder')
     parser_visualize.add_argument('--clean-intermediate', dest='clean_intermediate', action='store_true', help='clean intermediate files')
     parser_visualize.add_argument('--no-clean-intermediate', dest='clean_intermediate', action='store_false')
+    parser_visualize.add_argument('--discard-subsumed', dest='discard_subsumed', action='store_true', help='discard subsumed matches')
+    parser_visualize.add_argument('--no-discard-subsumed', dest='discard_subsumed', action='store_false')
     parser_visualize.set_defaults(clean_intermediate=True)
+    parser_visualize.set_defaults(discard_subsumed=True)
 
     parser_report = subparsers.add_parser(arg_report, help='generate a YAML file with LLVM optimization remarks')
     parser_report.add_argument('SZN_FILE', help='matches given by the MiniZinc finder')
@@ -1021,6 +1026,8 @@ def main(args):
         pdffilenames = []
         gvfilenames = []
         rootfilename = os.path.splitext(args.SZN_FILE)[0]
+        if args.discard_subsumed:
+            S = u.discard_subsumed_matches(S)
         for match in S:
             (legend, color_map) = format_match(pattern, match)
             gv = print_graphviz(G, args.print_ids, args.simplify_loc,
