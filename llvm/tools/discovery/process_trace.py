@@ -191,9 +191,14 @@ def format_match(pattern, match):
             original_color = colors[node_stage[k] % len(colors)]
             color_map[k] = adjust_color(original_color, factor)
     elif pattern == u.pat_twophasereduction:
-        partial_steps = ", ".join(map(str, set([len(p) for _, p in match])))
+        partial_steps = set([len(p) for _, p in match])
+        (min_step, max_step) = (min(partial_steps), max(partial_steps))
+        if min_step == max_step:
+            partial_steps_range = str(min_step)
+        else:
+            partial_steps_range = str(min_step) + "-" + str(max_step)
         legend = "(" + str(len(match)) + " partial reductions of " + \
-                 partial_steps + " steps each)"
+                 partial_steps_range + " steps each)"
         metasteps  = [f + u.concat(p) for f, p in match]
         color_map  = {node: colors[(metastep % len(colors))]
                       for node, metastep in u.index_map(metasteps).items()}
