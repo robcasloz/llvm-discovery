@@ -1645,9 +1645,8 @@ Value *DFSanFunction::combineOperandShadows(Instruction *Inst) {
     // Print the data flow from each Inst operand's definer to the new block ID.
     for (unsigned i = 0, n = Inst->getNumOperands(); i != n; ++i) {
       Value * Op = Inst->getOperand(i);
-      if (isa<Constant>(Op) ||
-          // FIXME: is there a higher-level way to detect labels?
-          Op->getType()->getTypeID() == Type::LabelTyID)
+      // FIXME: is there a higher-level way to detect labels?
+      if (Op->getType()->getTypeID() == Type::LabelTyID)
         continue;
       CallInst *CallPDF = IRB.CreateCall(DFS.DFSanPrintDataFlowFn,
                                          {getShadow(Op), CallEA});
