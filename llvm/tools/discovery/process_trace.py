@@ -328,10 +328,11 @@ def print_tag_groups(G, tag):
     return groups
 
 # Prints the component IDs in the trace, one per line.
-def print_components(G, min_nodes):
+def print_components(G, min_nodes, top_components):
     out = sio.StringIO()
     (DDGf, PBf, PIf, PTf) = filter_middle(G)
-    for c in range(len(weakly_connected_components(DDGf, min_nodes))):
+    for c in \
+      range(len(weakly_connected_components(DDGf, min_nodes, top_components))):
         print >>out, c
     components = out.getvalue()
     out.close()
@@ -448,19 +449,24 @@ def filter_middle((DDG, PB, PI, PT)):
     return filter_by((DDG, PB, PI, PT), is_middle, False)
 
 # Filters nodes with the given component ID.
-def filter_component((DDG, PB, PI, PT), component, min_nodes):
+def filter_component((DDG, PB, PI, PT), component, min_nodes, top_components):
     (DDGf, PBf, PIf, PTf) = filter_middle((DDG, PB, PI, PT))
-    c = sorted(map(
-        sorted, weakly_connected_components(DDGf, min_nodes)))[int(component)]
+    c = weakly_connected_components(DDGf, min_nodes,
+                                    top_components)[int(component)]
     is_component = lambda b: b in c
     (DDGc, PBc, PIc, PTc) = filter_by((DDG, PB, PI, PT), is_component)
     return (DDGc, PBc, PIc, PTc)
 
-# Computes weakly connected components of cardinality greater or equal than the
-# given one.
-def weakly_connected_components(DDG, min_nodes):
-    return [c for c in nx.weakly_connected_components(DDG)
-            if not min_nodes or len(c) >= int(min_nodes)]
+# Computes top weakly connected components of cardinality greater or equal than
+# the given one. Returns the components ordered in decreasing size.
+def weakly_connected_components(DDG, min_nodes, top_components):
+    filtered = [c for c in nx.weakly_connected_components(DDG)
+                if not min_nodes or len(c) >= int(min_nodes)]
+    ordered =  sorted(filtered, key=len, reverse=True)
+    if top_components:
+        return ordered[0:int(top_components)]
+    else:
+        return ordered
 
 # Adds a new region instruction with the given name.
 def add_region_instruction(name, PI):
@@ -882,6 +888,7 @@ def main(args):
     parser.add_argument('--color-tag-instances', help='color the different instances of all tagged nodes')
     parser.add_argument('--match-regions-only', dest='match_regions_only', action='store_true', help='define region nodes as the only matchable nodes in the MiniZinc format')
     parser.add_argument('--min-nodes', help='minimum amount of nodes required in a component')
+    parser.add_argument('--top-components', help='filter only the largest number of given components')
 
     parser_query = subparsers.add_parser(arg_query, help='query about properties of the trace')
     parser_query.add_argument('--print-tags', dest='print_tags', action='store_true', help='print all different tags in the trace, one per line')
@@ -953,7 +960,7 @@ def main(args):
         elif args.print_tag_groups:
             out = print_tag_groups(G, get_tag_id(args.print_tag_groups, G))
         elif args.print_components:
-            out = print_components(G, args.min_nodes)
+            out = print_components(G, args.min_nodes, args.top_components)
         if args.output_file:
             outfile = open(args.output_file ,"w+")
             outfile.write(out)
@@ -991,7 +998,8 @@ def main(args):
                            set([get_tag_id(tag, G) for tag in args.filter_tags])
                 G = remove_tags(G, rem_tags)
         if args.filter_component:
-            G = filter_component(G, args.filter_component, args.min_nodes)
+            G = filter_component(G, args.filter_component, args.min_nodes,
+                                 args.top_components)
         if args.collapse_tags:
             for tag in (u.tag_set(G) if args.collapse_tags == ["all"]
                         else args.collapse_tags):

@@ -20,6 +20,7 @@ NAME ?= ".*"
 NAMES ?= add fadd mul fmul and or xor
 COMPONENT ?= 0
 MIN_COMPONENT_NODES ?= 3
+TOP_COMPONENTS ?= 10
 
 # Do not remove intermediate files.
 .SECONDARY:
@@ -55,7 +56,10 @@ MIN_COMPONENT_NODES ?= 3
 
 # Filtered trace for a given weakly connected component.
 %.component-filtered.trace: %.trace
-	$(PROCESS_TRACE) --output-format=plain --min-nodes $(MIN_COMPONENT_NODES) transform --filter-component $(COMPONENT) $< > $@
+	$(PROCESS_TRACE) --output-format=plain \
+	--min-nodes $(MIN_COMPONENT_NODES) \
+	--top-components $(TOP_COMPONENTS) \
+	transform --filter-component $(COMPONENT) $< > $@
 
 # Collapsed trace for a given tag.
 %.collapsed.trace: %.trace
@@ -79,7 +83,10 @@ MIN_COMPONENT_NODES ?= 3
 
 # List of weakly connected components in a trace, excluding source and sink.
 %.components: %.trace
-	$(PROCESS_TRACE) --min-nodes $(MIN_COMPONENT_NODES) query --print-components $< > $@
+	$(PROCESS_TRACE) \
+	--min-nodes $(MIN_COMPONENT_NODES) \
+	--top-components $(TOP_COMPONENTS) \
+	query --print-components $< > $@
 
 # One trace file for each tag in the %.tags file.
 %.tag-traces: %.trace %.tags
