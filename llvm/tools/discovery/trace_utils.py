@@ -62,7 +62,7 @@ match_none    = "0"
 pat_all_uni = [pat_doall, pat_map, pat_mapfilter, pat_reduction, pat_scan]
 
 # List with all supported patterns.
-pat_all = pat_all_uni + [pat_pipeline]
+pat_all = pat_all_uni + [pat_twophasereduction, pat_pipeline]
 
 # Returns a labeled DDG from a trace loaded from the given file.
 def read_trace(trace_file):
@@ -156,6 +156,7 @@ def index_map(array):
 
 # Takes a DDG, a pattern name and a set of matches and gives a map from sets of
 # instructions to sets of number of pattern steps.
+# TODO: simplify, the number of pattern steps is unused.
 def insts_to_steps((_, PB, PI, __), pattern, matches):
     i_to_s = dict()
     for match in matches:
@@ -166,6 +167,10 @@ def insts_to_steps((_, PB, PI, __), pattern, matches):
             (stages, runs) = match
             steps = len(stages) * len(runs)
             nodes = index_map(stages).keys()
+        elif pattern == pat_twophasereduction:
+            partial_steps = [len(p) for (f, p) in match]
+            steps = sum(partial_steps) + len(partial_steps)
+            nodes = flatten(match)
         sol_insts = Set()
         for n in nodes:
             inst = PB[n].get(tk_instruction)
