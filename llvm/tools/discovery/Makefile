@@ -20,7 +20,7 @@ NAME ?= ".*"
 NAMES ?= add fadd mul fmul and or xor
 COMPONENT ?= 0
 MIN_COMPONENT_NODES ?= 3
-TOP_COMPONENTS ?= 10
+TOP_COMPONENTS ?= 50
 
 # Do not remove intermediate files.
 .SECONDARY:
