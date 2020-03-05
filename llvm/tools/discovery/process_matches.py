@@ -50,6 +50,12 @@ def generalize_maps_across_groups(sum_matches_list, groups):
     sum_matches_list[u.pat_map] = (u.match_none, 0)
     sum_matches_list[u.pat_mapfilter] = (u.match_full, groups)
 
+def discard_subsumed_reductions(matches):
+    discarded_matches = matches
+    if u.pat_twophasereduction in matches:
+        discarded_matches.discard(u.pat_reduction)
+    return discarded_matches
+
 def file_info(szn_filename):
     file_components = szn_filename.split(".")
     base_file_components = os.path.basename(szn_filename).split(".")
@@ -158,7 +164,7 @@ def process_loop_matches(szn_files, simple, generalize_maps):
                       [all_summarized_matches[p][0] for p in u.pat_all_uni]
                 csvwriter.writerow(row)
 
-def process_instruction_matches(szn_files, simple):
+def process_instruction_matches(szn_files, simple, discard_subsumed):
 
     # Multi-level map: benchmark -> mode -> location -> pattern match entries.
     data = {}
@@ -206,20 +212,20 @@ def process_instruction_matches(szn_files, simple):
 
     # Print the CSV table.
     csvwriter = csv.writer(sys.stdout, delimiter=",", quoting=csv.QUOTE_MINIMAL)
-    csvwriter.writerow(([] if simple else ["benchmark", "mode", "pattern"]) + \
+    csvwriter.writerow(([] if simple else ["benchmark", "mode"]) + \
                        ["location"] + u.pat_all)
-    m = 0
     for (benchmark, benchmark_data) in sorted(data.iteritems()):
         for (mode, mode_data) in sorted(benchmark_data.iteritems()):
             for (loc, matches) in sorted(mode_data.iteritems(),
                                          cmp=lambda t1, t2: cmp(t1[0], t2[0])):
+                if discard_subsumed:
+                    matches = discard_subsumed_reductions(matches)
                 def match_digit(p):
                     return match_to_digit((p in matches,
                                            u.tk_sol_status_normal))
-                row = ([] if simple else [benchmark, mode, m]) + \
+                row = ([] if simple else [benchmark, mode]) + \
                       [loc] + [match_digit(p) for p in u.pat_all]
                 csvwriter.writerow(row)
-                m += 1
 
 def main(args):
 
@@ -228,12 +234,14 @@ def main(args):
     parser.add_argument('-l,', '--level', dest='level', action='store', type=str, choices=[u.arg_loop, u.arg_instruction], default=u.arg_loop)
     parser.add_argument('--simple', dest='simple', action='store_true', default=False)
     parser.add_argument('--generalize-maps', dest='generalize_maps', action='store_true', default=True)
+    parser.add_argument('--discard-subsumed-patterns', dest='discard_subsumed', action='store_true', default=True)
     args = parser.parse_args(args)
 
     if args.level == u.arg_loop:
         process_loop_matches(args.FILES, args.simple, args.generalize_maps)
     elif args.level == u.arg_instruction:
-        process_instruction_matches(args.FILES, args.simple)
+        process_instruction_matches(args.FILES, args.simple,
+                                    args.discard_subsumed)
 
 if __name__ == '__main__':
     main(sys.argv[1:])
