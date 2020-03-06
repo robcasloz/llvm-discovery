@@ -50,11 +50,11 @@ def generalize_maps_across_groups(sum_matches_list, groups):
     sum_matches_list[u.pat_map] = (u.match_none, 0)
     sum_matches_list[u.pat_mapfilter] = (u.match_full, groups)
 
+# Discards linear reductions if two-phase reductions have also been found.
 def discard_subsumed_reductions(matches):
-    discarded_matches = matches
     if u.pat_twophasereduction in matches:
-        discarded_matches.discard(u.pat_reduction)
-    return discarded_matches
+        return filter(lambda m: m != u.pat_reduction, matches)
+    return matches
 
 def file_info(szn_filename):
     file_components = szn_filename.split(".")
@@ -120,27 +120,28 @@ def process_loop_matches(szn_files, simple, generalize_maps):
             if not mode in data[benchmark]:
                 data[benchmark][mode] = dict()
             if not tag in data[benchmark][mode]:
-                data[benchmark][mode][tag] = (location, function, nodes, dict())
-            if not group in data[benchmark][mode][tag][3]:
-                data[benchmark][mode][tag][3][group] = dict()
+                data[benchmark][mode][tag] = \
+                    (location, function, nodes, trace_filename, dict())
+            if not group in data[benchmark][mode][tag][4]:
+                data[benchmark][mode][tag][4][group] = dict()
             # Finally populate.
-            data[benchmark][mode][tag][3][group][pattern] = match
+            data[benchmark][mode][tag][4][group][pattern] = match
 
     # Print the CSV table.
     csvwriter = csv.writer(sys.stdout, delimiter=",", quoting=csv.QUOTE_MINIMAL)
-    csvwriter.writerow(([] if simple else ["benchmark", "mode", "loop", "runs", "nodes"]) + \
+    csvwriter.writerow(([] if simple else ["benchmark", "mode"]) + \
                        ["location"] + \
-                       ([] if simple else ["function"]) + \
-                       u.pat_all_uni)
+                       ([] if simple else ["repetitions", "nodes", "trace"]) + \
+                       u.pat_all)
     for (benchmark, benchmark_data) in sorted(data.iteritems()):
         for (mode, mode_data) in sorted(benchmark_data.iteritems()):
             nodes_inv = lambda x: -x[1][2]
-            for (tag, (location, function, nodes, groups)) in \
+            for (tag, (location, function, nodes, trace, groups)) in \
                 sorted(mode_data.iteritems(),
                        cmp=lambda t1, t2: cmp(nodes_inv(t1), nodes_inv(t2))):
                 all_matches = dict()
                 for (group, matches) in sorted(groups.iteritems()):
-                    for p in u.pat_all_uni:
+                    for p in u.pat_all:
                         if not p in all_matches:
                             all_matches[p] = []
                         if p in matches:
@@ -158,10 +159,10 @@ def process_loop_matches(szn_files, simple, generalize_maps):
                     {p : matches_to_digit(m) for p, m in all_matches.items()}
                 if generalize_maps:
                     generalize_maps_across_groups(all_summarized_matches, runs)
-                row = ([] if simple else [benchmark, mode, tag, runs, nodes]) + \
+                row = ([] if simple else [benchmark, mode]) + \
                       [location] + \
-                       ([] if simple else [function]) + \
-                      [all_summarized_matches[p][0] for p in u.pat_all_uni]
+                      ([] if simple else [runs, nodes, trace]) + \
+                      [all_summarized_matches[p][0] for p in u.pat_all]
                 csvwriter.writerow(row)
 
 def process_instruction_matches(szn_files, simple, discard_subsumed):
@@ -206,25 +207,34 @@ def process_instruction_matches(szn_files, simple, discard_subsumed):
                 if not mode in data[benchmark]:
                     data[benchmark][mode] = dict()
                 if not loc in data[benchmark][mode]:
-                    data[benchmark][mode][loc] = set()
+                    data[benchmark][mode][loc] = []
                 # Finally populate.
-                data[benchmark][mode][loc].add(pattern)
+                data[benchmark][mode][loc].append((pattern, trace_filename))
 
     # Print the CSV table.
     csvwriter = csv.writer(sys.stdout, delimiter=",", quoting=csv.QUOTE_MINIMAL)
     csvwriter.writerow(([] if simple else ["benchmark", "mode"]) + \
-                       ["location"] + u.pat_all)
+                       ["location"] + \
+                       ([] if simple else ["repetitions", "trace"]) + \
+                       u.pat_all)
     for (benchmark, benchmark_data) in sorted(data.iteritems()):
         for (mode, mode_data) in sorted(benchmark_data.iteritems()):
-            for (loc, matches) in sorted(mode_data.iteritems(),
-                                         cmp=lambda t1, t2: cmp(t1[0], t2[0])):
+            for (location, matches_traces) in sorted(mode_data.iteritems(),
+                cmp=lambda t1, t2: cmp(t1[0], t2[0])):
+                [matches, traces] = map(list, zip(*matches_traces))
+                # Pick the first trace for simplicity, in general there will be
+                # as many traces as repetitions.
+                trace = traces[0]
                 if discard_subsumed:
                     matches = discard_subsumed_reductions(matches)
+                repetitions = max([matches.count(p) for p in u.pat_all])
                 def match_digit(p):
                     return match_to_digit((p in matches,
                                            u.tk_sol_status_normal))
                 row = ([] if simple else [benchmark, mode]) + \
-                      [loc] + [match_digit(p) for p in u.pat_all]
+                      [location] + \
+                      ([] if simple else [repetitions, trace]) + \
+                      [match_digit(p) for p in u.pat_all]
                 csvwriter.writerow(row)
 
 def main(args):
