@@ -79,7 +79,8 @@ def file_info(szn_filename):
     trace_filename = ".".join(file_components[0:-2]) + ".trace"
     return (benchmark, mode, tag, group, pattern, trace_filename)
 
-def process_loop_matches(szn_files, simple, generalize_maps):
+def process_loop_matches(szn_files, simple, generalize_maps,
+                         discard_no_matches):
 
     # Cache of demangled function names.
     demangled_cache = {}
@@ -159,13 +160,18 @@ def process_loop_matches(szn_files, simple, generalize_maps):
                     {p : matches_to_digit(m) for p, m in all_matches.items()}
                 if generalize_maps:
                     generalize_maps_across_groups(all_summarized_matches, runs)
+                match_digits = [all_summarized_matches[p][0] for p in u.pat_all]
                 row = ([] if simple else [benchmark, mode]) + \
                       [location] + \
                       ([] if simple else [runs, nodes, trace]) + \
-                      [all_summarized_matches[p][0] for p in u.pat_all]
+                      match_digits
+                if discard_no_matches and \
+                   all([m == u.match_none for m in match_digits]):
+                    continue
                 csvwriter.writerow(row)
 
-def process_instruction_matches(szn_files, simple, discard_subsumed):
+def process_instruction_matches(szn_files, simple, discard_subsumed,
+                                discard_no_matches):
 
     # Multi-level map: benchmark -> mode -> location -> pattern match entries.
     data = {}
@@ -215,7 +221,7 @@ def process_instruction_matches(szn_files, simple, discard_subsumed):
     csvwriter = csv.writer(sys.stdout, delimiter=",", quoting=csv.QUOTE_MINIMAL)
     csvwriter.writerow(([] if simple else ["benchmark", "mode"]) + \
                        ["location"] + \
-                       ([] if simple else ["repetitions", "trace"]) + \
+                       ([] if simple else ["repetitions", "nodes", "trace"]) + \
                        u.pat_all)
     for (benchmark, benchmark_data) in sorted(data.iteritems()):
         for (mode, mode_data) in sorted(benchmark_data.iteritems()):
@@ -231,10 +237,15 @@ def process_instruction_matches(szn_files, simple, discard_subsumed):
                 def match_digit(p):
                     return match_to_digit((p in matches,
                                            u.tk_sol_status_normal))
+                match_digits = [match_digit(p) for p in u.pat_all]
+                # TODO: compute pattern nodes.
                 row = ([] if simple else [benchmark, mode]) + \
                       [location] + \
-                      ([] if simple else [repetitions, trace]) + \
-                      [match_digit(p) for p in u.pat_all]
+                      ([] if simple else [repetitions, 0, trace]) + \
+                      match_digits
+                if discard_no_matches and \
+                   all([m == u.match_none for m in match_digits]):
+                    continue
                 csvwriter.writerow(row)
 
 def main(args):
@@ -245,13 +256,15 @@ def main(args):
     parser.add_argument('--simple', dest='simple', action='store_true', default=False)
     parser.add_argument('--generalize-maps', dest='generalize_maps', action='store_true', default=True)
     parser.add_argument('--discard-subsumed-patterns', dest='discard_subsumed', action='store_true', default=True)
+    parser.add_argument('--discard-no-matches', dest='discard_no_matches', action='store_true', default=True)
     args = parser.parse_args(args)
 
     if args.level == u.arg_loop:
-        process_loop_matches(args.FILES, args.simple, args.generalize_maps)
+        process_loop_matches(args.FILES, args.simple, args.generalize_maps,
+                             args.discard_no_matches)
     elif args.level == u.arg_instruction:
         process_instruction_matches(args.FILES, args.simple,
-                                    args.discard_subsumed)
+                                    args.discard_subsumed, args.discard_no_matches)
 
 if __name__ == '__main__':
     main(sys.argv[1:])
