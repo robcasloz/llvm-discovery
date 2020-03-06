@@ -10,6 +10,7 @@ CXXFLAGS += $(CBASEFLAGS) $(CDFSANFLAGS)
 DISCOVERY_DIR ?= .
 PROCESS_TRACE = $(DISCOVERY_DIR)/process_trace.py
 PROCESS_MATCHES = $(DISCOVERY_DIR)/process_matches.py
+MERGE_MATCHES = $(DISCOVERY_DIR)/merge_matches.py
 GRAPHVIZ_FLAGS = --simplify-loc
 MINIZINC_FLAGS ?= -a --solver chuffed
 MINIZINC_DZN_FLAGS ?=
