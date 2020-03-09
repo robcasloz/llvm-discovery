@@ -4,6 +4,7 @@ import networkx as nx
 import itertools
 import subprocess
 import collections
+import re
 from sets import Set
 
 tk_df = "DF"
@@ -52,6 +53,8 @@ pat_twophasereduction = "twophasereduction"
 
 arg_loop = "loop"
 arg_instruction = "instruction"
+arg_nodes = "nodes"
+arg_location = "location"
 
 match_unknown = "?"
 match_partial = "~"
@@ -338,3 +341,23 @@ def demangle(name, cache):
         cache[name] = simplified
     return cache[name]
 
+# Gives the minimal set of tags that covers all blocks in the instructions.
+def min_tag_cover((DDG, PB, PI, PT), insts):
+    min_tags = set([])
+    # Find, for each instruction, the most specific tag.
+    for inst in insts:
+        tags = set([])
+        for block in DDG.nodes():
+            if PB[block].get(tk_instruction) == inst:
+                tags |= set([tag_name(t) for t in PB[block].get(tk_tags, [])])
+        if tags:
+            min_tag = sorted(tags, cmp=lambda t1, t2:
+                             cmp(int(PT[t1][tk_original_blocks]),
+                                 int(PT[t2][tk_original_blocks])))[0]
+            min_tags.add(min_tag)
+    return min_tags
+
+# Note: this is taken from https://stackoverflow.com/a/16090640.
+def natural_sort_key(s, _nsre=re.compile('([0-9]+)')):
+    return [int(text) if text.isdigit() else text.lower()
+            for text in _nsre.split(s)]

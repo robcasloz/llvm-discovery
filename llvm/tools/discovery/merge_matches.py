@@ -7,11 +7,7 @@ import csv
 import sys
 import re
 from sets import Set
-
-# Note: this is taken from https://stackoverflow.com/a/16090640.
-def natural_sort_key(s, _nsre=re.compile('([0-9]+)')):
-    return [int(text) if text.isdigit() else text.lower()
-            for text in _nsre.split(s)]
+import trace_utils as u
 
 def load_legend(file):
     r = csv.reader(open(file), delimiter=",")
@@ -26,21 +22,26 @@ def load_data(file):
         data.append(line)
     return data
 
-def merge_data(legend, data1, data2):
+def merge_data(legend, data1, data2, sort):
     benchmark_index = legend.index("benchmark")
     mode_index = legend.index("mode")
     location_index = legend.index("location")
+    nodes_index = legend.index("nodes")
     merged = data1 + data2
-    ordered = sorted(merged, key = lambda line:
-                     (line[benchmark_index],
-                      line[mode_index],
-                      natural_sort_key(line[location_index])))
-    return ordered
+    if sort == u.arg_nodes:
+        k = (lambda r: (r[benchmark_index], r[mode_index],
+                        -int(r[nodes_index])))
+    elif sort == u.arg_location:
+        k = (lambda r: (r[benchmark_index], r[mode_index],
+                        u.natural_sort_key(r[location_index])))
+    merged.sort(key = k)
+    return merged
 
 def main(args):
 
     parser = argparse.ArgumentParser(description='Merge and sort CSV pattern match tables.')
     parser.add_argument('RESULTS_FILES', nargs="*")
+    parser.add_argument('-s,', '--sort', dest='sort', action='store', type=str, choices=[u.arg_nodes, u.arg_location], default=u.arg_nodes)
     args = parser.parse_args(args)
 
     assert(len(args.RESULTS_FILES) >= 2)
@@ -49,7 +50,7 @@ def main(args):
     merged = load_data(args.RESULTS_FILES[0])
     for file in args.RESULTS_FILES[1:]:
         data = load_data(file)
-        merged = merge_data(legend, merged, data)
+        merged = merge_data(legend, merged, data, args.sort)
 
     csvwriter = csv.writer(sys.stdout, delimiter=",", quoting=csv.QUOTE_MINIMAL)
     csvwriter.writerow(legend)
