@@ -101,6 +101,11 @@ def is_source(b, PB, PI):
     return properties(b, PB, PI).get(u.tk_region) == u.tk_true and \
            properties(b, PB, PI).get(u.tk_name) == "source"
 
+# Tells whether the given block is the sink.
+def is_sink(b, PB, PI):
+    return properties(b, PB, PI).get(u.tk_region) == u.tk_true and \
+           properties(b, PB, PI).get(u.tk_name) == "sink"
+
 # Tells whether the given block is effectful and cannot be pruned away. A block
 # is effectful if:
 # - it is impure, or
@@ -399,11 +404,11 @@ def filter_by((DDG, PB, PI, PT), p, add_context = True):
     entries = set()
     exits = set()
     for (source, target) in DDG.edges():
-        source_tag = p(source)
-        target_tag = p(target)
-        if not source_tag and target_tag:
+        keep_source = p(source)
+        keep_target = p(target)
+        if not keep_source and keep_target:
             entries.add(target)
-        elif source_tag and not target_tag:
+        elif keep_source and not keep_target:
             exits.add(source)
     if entries:
         source = add_region_instruction("source", PIf)
@@ -430,6 +435,18 @@ def filter_name((DDG, PB, PI, PT), pattern):
     has_name = lambda b: \
                re.match(pattern, properties(b, PB, PI).get(u.tk_name, ""))
     return filter_by((DDG, PB, PI, PT), has_name)
+
+# Filters out nodes in the labeled DDG with the exact location and name as one
+# of the instructions in a list.
+def filter_out_location_and_name((DDG, PB, PI, PT), instructions):
+    not_has_loc_name = \
+        lambda b: \
+        (not is_source(b, PB, PI)) and \
+        (not is_sink(b, PB, PI)) and \
+        all([(loc, name) != (properties(b, PB, PI).get(u.tk_location, ""),
+                             properties(b, PB, PI).get(u.tk_name, ""))
+             for (loc, name) in instructions])
+    return filter_by((DDG, PB, PI, PT), not_has_loc_name)
 
 # Filters tagged nodes in the labeled DDG.
 def filter_tag((DDG, PB, PI, PT), tag, group):
@@ -921,6 +938,7 @@ def main(args):
     parser_transform = subparsers.add_parser(arg_transform, help='apply filter and collapse operations to the trace')
     parser_transform.add_argument('--filter-location', help='filters blocks by location according to a regexp')
     parser_transform.add_argument('--filter-name', help='filters blocks by name according to a regexp')
+    parser_transform.add_argument('--filter-out-instructions', help='filters out blocks from instructions specified in a file')
     parser_transform.add_argument('--filter-tags', nargs="*", help='filters tagged blocks')
     parser_transform.add_argument('--filter-group', help='filters a specific group (used together with --filter-tags)')
     parser_transform.add_argument('--filter-component', help='filters blocks with the given component ID')
@@ -990,6 +1008,14 @@ def main(args):
             G = filter_location(G, args.filter_location)
         if args.filter_name:
             G = filter_name(G, args.filter_name)
+        if args.filter_out_instructions:
+            instructions = []
+            with open(args.filter_out_instructions, "r") as instructions_file:
+                for line in instructions_file:
+                    [location, name_end] = line.rsplit(u.tk_loc_sep, 1)
+                    name = name_end.rstrip("\n\r")
+                    instructions.append((location, name))
+            G = filter_out_location_and_name(G, instructions)
         if args.filter_tags:
             for tag in args.filter_tags:
                 G = filter_tag(G, (get_tag_id(tag, G)), args.filter_group)

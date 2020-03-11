@@ -205,6 +205,12 @@ def process_instruction_matches(szn_files, simple, discard_subsumed,
                                 ",".join(map(str, sorted(loc_lines)))
                                 for (loc_basefile, loc_lines)
                                 in lines.iteritems()])
+                # Collect precise instruction information in case we want to
+                # extract a list of matched instructions later.
+                instructions = []
+                for inst in insts:
+                    instructions.append((PI[inst].get(u.tk_name),
+                                         PI[inst].get(u.tk_location)))
                 cover = u.min_tag_cover(G, insts)
                 if cover:
                     nodes = sum([int(PT[t][u.tk_original_blocks])
@@ -220,18 +226,20 @@ def process_instruction_matches(szn_files, simple, discard_subsumed,
                     data[benchmark][mode][loc] = []
                 # Finally populate.
                 data[benchmark][mode][loc].append((pattern, trace_filename,
-                                                   nodes))
+                                                   nodes, instructions))
 
     results = []
     for (benchmark, benchmark_data) in sorted(data.iteritems()):
         for (mode, mode_data) in sorted(benchmark_data.iteritems()):
             for (location, matches_traces) in sorted(mode_data.iteritems(),
                 cmp=lambda t1, t2: cmp(t1[0], t2[0])):
-                [matches, traces, nodes_list] = map(list, zip(*matches_traces))
+                [matches, traces, nodes_list, instructions_list] = \
+                    map(list, zip(*matches_traces))
                 # Pick the first trace for simplicity, in general there will be
                 # as many traces as repetitions.
                 trace = traces[0]
                 nodes = nodes_list[0]
+                instructions = instructions_list[0]
                 if discard_subsumed:
                     matches = discard_subsumed_reductions(matches)
                 repetitions = max([matches.count(p) for p in u.pat_all])
@@ -243,7 +251,8 @@ def process_instruction_matches(szn_files, simple, discard_subsumed,
                        "location" : location,
                        "repetitions" : repetitions,
                        "nodes" : nodes,
-                       "trace" : trace}
+                       "trace" : trace,
+                       "instructions" : instructions}
                 row.update({p : match_digit(p) for p in u.pat_all})
                 match_digits = [match_digit(p) for p in u.pat_all]
                 if discard_no_matches and \
@@ -262,6 +271,7 @@ def main(args):
     parser.add_argument('--discard-subsumed-patterns', dest='discard_subsumed', action='store_true', default=True)
     parser.add_argument('--discard-no-matches', dest='discard_no_matches', action='store_true', default=True)
     parser.add_argument('-s,', '--sort', dest='sort', action='store', type=str, choices=[u.arg_nodes, u.arg_location], default=u.arg_nodes)
+    parser.add_argument('--extract-matched-instructions', dest='extract_matched_instructions', action='store_true', default=True)
     args = parser.parse_args(args)
 
     # Gather results.
@@ -304,6 +314,24 @@ def main(args):
                    r["trace"]]
         row += [r[p] for p in u.pat_all]
         csvwriter.writerow(row)
+
+    # Generate a file for each benchmark and mode with all instructions matched.
+    if args.extract_matched_instructions:
+        matched = dict()
+        for r in results:
+            benchmark_mode = (r["benchmark"], r["mode"])
+            if not benchmark_mode in matched:
+                matched[benchmark_mode] = set([])
+            matched[benchmark_mode] |= set(r["instructions"])
+        for ((benchmark, mode), matched_instructions) in matched.iteritems():
+            filename = benchmark + "-" + mode + ".instructions"
+            matched_instructions_list = list(matched_instructions)
+            matched_instructions_list.sort(
+                key = (lambda (name, loc): (u.natural_sort_key(loc), name)))
+            with open(filename, 'w+') as outfile:
+                for (name, location) in matched_instructions_list:
+                    line = location + ":" + name + "\n"
+                    outfile.write(line)
 
 if __name__ == '__main__':
     main(sys.argv[1:])

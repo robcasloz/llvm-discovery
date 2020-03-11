@@ -61,6 +61,10 @@ TOP_COMPONENTS ?= 50
 	--top-components $(TOP_COMPONENTS) \
 	transform --filter-component $(COMPONENT) $< > $@
 
+# Filtered trace for a given instruction file.
+%.instruction-filtered.trace: %.trace %.instructions
+	$(PROCESS_TRACE) --output-format=plain transform --filter-out-instructions $*.instructions $< > $@
+
 # Collapsed trace for a given tag.
 %.collapsed.trace: %.trace
 	$(PROCESS_TRACE) --output-format=plain transform --collapse-tags $(TAG) $< > $@
