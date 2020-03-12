@@ -158,7 +158,8 @@ def process_loop_matches(szn_files, simple, generalize_maps,
                        "location" : location,
                        "repetitions" : runs,
                        "nodes" : nodes,
-                       "trace" : trace}
+                       "trace" : trace,
+                       "instructions" : []}
                 row.update({p : all_summarized_matches[p][0]
                             for p in u.pat_all})
                 match_digits = [all_summarized_matches[p][0] for p in u.pat_all]
