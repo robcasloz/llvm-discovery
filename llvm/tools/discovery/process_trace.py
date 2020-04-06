@@ -343,6 +343,14 @@ def print_components(G, min_nodes, top_components):
     out.close()
     return components
 
+# Prints the size of the trace in number of nodes.
+def print_size((DDG, PB, PI, PT)):
+    out = sio.StringIO()
+    print >>out, len(DDG.nodes())
+    size = out.getvalue()
+    out.close()
+    return size
+
 # Returns a labeled DDG where non-region, effectful blocks only connected to the
 # source are removed.
 def clean((DDG, PB, PI, PT)):
@@ -912,6 +920,7 @@ def main(args):
     parser_query.add_argument('--print-tag-aliases', dest='print_tag_aliases', action='store_true', help='print all different tag aliases in the trace, one per line')
     parser_query.add_argument('--print-tag-groups', help='print the groups of the given tag, one per line')
     parser_query.add_argument('--print-components', dest='print_components', action='store_true', help='print the component IDs in the trace, one per line')
+    parser_query.add_argument('--print-size', dest='print_size', action='store_true', help='print the number of nodes in the trace')
 
     parser_simplify = subparsers.add_parser(arg_simplify, help='simplify the trace')
     parser_simplify.add_argument('--prune', dest='prune', action='store_true', help='remove data-flow that does not lead to impure or control blocks')
@@ -979,6 +988,8 @@ def main(args):
             out = print_tag_groups(G, get_tag_id(args.print_tag_groups, G))
         elif args.print_components:
             out = print_components(G, args.min_nodes, args.top_components)
+        elif args.print_size:
+            out = print_size(G)
         if args.output_file:
             outfile = open(args.output_file ,"w+")
             outfile.write(out)

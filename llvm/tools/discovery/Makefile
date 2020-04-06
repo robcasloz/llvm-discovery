@@ -92,6 +92,10 @@ TOP_COMPONENTS ?= 50
 	--top-components $(TOP_COMPONENTS) \
 	query --print-components $< > $@
 
+# Size of the trace.
+%.size: %.trace
+	$(PROCESS_TRACE) query --print-size $< > $@
+
 # One trace file for each tag in the %.tags file.
 %.tag-traces: %.trace %.tags
 	while read TAG; do \
