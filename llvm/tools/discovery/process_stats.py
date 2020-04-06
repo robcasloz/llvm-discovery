@@ -10,7 +10,7 @@ from numpy import median
 
 def file_info(stats_filename):
     [base, suffix] = os.path.basename(stats_filename).split(".", 1)
-    [benchmark, mode, repetition] = base.rsplit("-", 3)
+    [benchmark, mode, repetition] = base.rsplit("-", 2)
     return (benchmark, mode, int(repetition), suffix)
 
 def process_stats(stats_files):
