@@ -11,6 +11,7 @@ DISCOVERY_DIR ?= .
 PROCESS_TRACE = $(DISCOVERY_DIR)/process_trace.py
 PROCESS_MATCHES = $(DISCOVERY_DIR)/process_matches.py
 PROCESS_STATS = $(DISCOVERY_DIR)/process_stats.py
+PROCESS_RUNTIMES = $(DISCOVERY_DIR)/process_runtimes.py
 GRAPHVIZ_FLAGS = --simplify-loc
 MINIZINC_FLAGS ?= -a --solver chuffed
 MINIZINC_DZN_FLAGS ?=
