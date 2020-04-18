@@ -13,6 +13,9 @@ def file_info(stats_filename):
     [benchmark, mode, repetition] = base.rsplit("-", 2)
     return (benchmark, mode, int(repetition), suffix)
 
+def data_range(x):
+    return max(x) - min(x)
+
 def process_stats(stats_files):
     # Multi-level map: benchmark -> mode -> repetition -> stats entries.
     data = {}
@@ -67,6 +70,8 @@ def process_stats(stats_files):
             ddg_size = median(mode_data["size"])
             simple_ddg_size = median(mode_data["simple.size"])
             total_time = median(mode_data["total.time"])
+            total_time_range = data_range(mode_data["total.time"])
+            total_time_range_percent = total_time_range / total_time
             tracing_time = median(mode_data["tracing.time"])
             matching_time = median(mode_data["matching.time"])
             row = {"benchmark" : benchmark,
@@ -74,6 +79,8 @@ def process_stats(stats_files):
                    "ddg-size" : ddg_size,
                    "simple-ddg-size" : simple_ddg_size,
                    "total-time" : total_time,
+                   "total-time-range" : total_time_range,
+                   "total-time-range-percent" : total_time_range_percent,
                    "tracing-time" : tracing_time,
                    "matching-time" : matching_time}
             results.append(row)
@@ -91,7 +98,8 @@ def main(args):
     # Print results in a level-independent manner.
     csvwriter = csv.writer(sys.stdout, delimiter=",", quoting=csv.QUOTE_MINIMAL)
     legend = ["benchmark", "mode", "ddg-size", "simple-ddg-size", "total-time",
-              "tracing-time", "matching-time"]
+              "total-time-range", "total-time-range-percent", "tracing-time",
+              "matching-time"]
     csvwriter.writerow(legend)
 
     # Sort results.
@@ -99,14 +107,7 @@ def main(args):
     results.sort(key = k)
 
     for r in results:
-        row = [r["benchmark"],
-               r["mode"],
-               r["ddg-size"],
-               r["simple-ddg-size"],
-               r["total-time"],
-               r["tracing-time"],
-               r["matching-time"]]
-        csvwriter.writerow(row)
+        csvwriter.writerow([r[k] for k in legend])
 
 if __name__ == '__main__':
     main(sys.argv[1:])
