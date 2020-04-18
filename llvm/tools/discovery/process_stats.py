@@ -6,15 +6,12 @@ import glob
 import csv
 import sys
 from sets import Set
-from numpy import median
+from numpy import median, percentile
 
 def file_info(stats_filename):
     [base, suffix] = os.path.basename(stats_filename).split(".", 1)
     [benchmark, mode, repetition] = base.rsplit("-", 2)
     return (benchmark, mode, int(repetition), suffix)
-
-def data_range(x):
-    return max(x) - min(x)
 
 def process_stats(stats_files):
     # Multi-level map: benchmark -> mode -> repetition -> stats entries.
@@ -69,9 +66,10 @@ def process_stats(stats_files):
         for (mode, mode_data) in sorted(benchmark_data.iteritems()):
             ddg_size = median(mode_data["size"])
             simple_ddg_size = median(mode_data["simple.size"])
-            total_time = median(mode_data["total.time"])
-            total_time_range = data_range(mode_data["total.time"])
-            total_time_range_percent = total_time_range / total_time
+            [total_time_q1, total_time, total_time_q3] = \
+                percentile(mode_data["total.time"], [25, 50, 75])
+            total_time_iqr = total_time_q3 - total_time_q1
+            total_time_robustcv = 0.75 * (total_time_iqr / total_time)
             tracing_time = median(mode_data["tracing.time"])
             matching_time = median(mode_data["matching.time"])
             row = {"benchmark" : benchmark,
@@ -79,8 +77,8 @@ def process_stats(stats_files):
                    "ddg-size" : ddg_size,
                    "simple-ddg-size" : simple_ddg_size,
                    "total-time" : total_time,
-                   "total-time-range" : total_time_range,
-                   "total-time-range-percent" : total_time_range_percent,
+                   "total-time-iqr" : total_time_iqr,
+                   "total-time-robustcv" : total_time_robustcv,
                    "tracing-time" : tracing_time,
                    "matching-time" : matching_time}
             results.append(row)
@@ -98,7 +96,7 @@ def main(args):
     # Print results in a level-independent manner.
     csvwriter = csv.writer(sys.stdout, delimiter=",", quoting=csv.QUOTE_MINIMAL)
     legend = ["benchmark", "mode", "ddg-size", "simple-ddg-size", "total-time",
-              "total-time-range", "total-time-range-percent", "tracing-time",
+              "total-time-iqr", "total-time-robustcv", "tracing-time",
               "matching-time"]
     csvwriter.writerow(legend)
 

@@ -6,7 +6,7 @@ import glob
 import csv
 import sys
 from sets import Set
-from numpy import median
+from numpy import percentile
 
 def unique(items):
     found = set([])
@@ -16,9 +16,6 @@ def unique(items):
             found.add(item)
             keep.append(item)
     return keep
-
-def data_range(x):
-    return max(x) - min(x)
 
 def process_runtimes(results_file):
 
@@ -60,12 +57,13 @@ def process_runtimes(results_file):
             ag_results = []
             for key in measurement_keys:
                 measurements = nproc_data[key]
-                key_median        = median(list(measurements))
-                key_range         = data_range(measurements)
-                key_range_percent = key_range / key_median
-                ag_results.append((key, {"median" : key_median,
-                                         "range" : key_range,
-                                         "range_percent" : key_range_percent}))
+                [q1, median, q3] = percentile(list(measurements), [25, 50, 75])
+                iqr = q3 - q1
+                # Robust CV as introduced by Shapiro, 2003.
+                robustcv = 0.75 * (iqr / median)
+                ag_results.append((key, {"median"   : median,
+                                         "iqr"      : iqr,
+                                         "robustcv" : robustcv}))
             row = {"input" : input,
                    "nproc" : nproc,
                    "data"  : ag_results}
@@ -80,14 +78,14 @@ def main(args):
 
     # Gather results.
     results = process_runtimes(args.FILE)
-    measures = ["median", "range", "range_percent"]
+    measures = ["median", "iqr", "robustcv"]
 
     legend = ["input", "nproc"]
     line = list(results)[0]
     keys = []
     for (key, _) in line["data"]:
         keys.append(key)
-    for suffix in ["", "-range", "-range-percent"]:
+    for suffix in ["", "-iqr", "-robustcv"]:
         for (key, _) in line["data"]:
             legend.append(key + suffix)
 
