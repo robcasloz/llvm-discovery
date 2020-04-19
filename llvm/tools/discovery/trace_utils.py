@@ -42,6 +42,7 @@ tk_sol_com = "%"
 tk_sol_status_normal = "normal"
 tk_sol_status_error = "error"
 tk_sol_status_unknown = "unknown"
+tk_sol_status_empty = "empty"
 
 pat_doall = "doall"
 pat_map = "map"
@@ -361,3 +362,17 @@ def min_tag_cover((DDG, PB, PI, PT), insts):
 def natural_sort_key(s, _nsre=re.compile('([0-9]+)')):
     return [int(text) if text.isdigit() else text.lower()
             for text in _nsre.split(s)]
+
+# Gives the static instruction properties of the given block.
+def properties(b, PB, PI):
+    return PI[PB[b][tk_instruction]]
+
+# Tells whether the given block is the source.
+def is_source(b, PB, PI):
+    return properties(b, PB, PI).get(tk_region) == tk_true and \
+           properties(b, PB, PI).get(tk_name) == "source"
+
+# Tells whether the given block is the sink.
+def is_sink(b, PB, PI):
+    return properties(b, PB, PI).get(tk_region) == tk_true and \
+           properties(b, PB, PI).get(tk_name) == "sink"

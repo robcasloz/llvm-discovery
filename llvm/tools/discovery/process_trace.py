@@ -63,10 +63,6 @@ def col(PI, inst):
     [_, _, loc_col] = PI[inst].get(u.tk_location, "").split(u.tk_loc_sep)
     return int(loc_col)
 
-# Gives the static instruction properties of the given block.
-def properties(b, PB, PI):
-    return PI[PB[b][u.tk_instruction]]
-
 # Removes instruction properties without any corresponding blocks.
 def clean_instruction_properties(PI, PB):
     PIc = {}
@@ -96,28 +92,18 @@ def is_aggregate(i):
     # See https://llvm.org/docs/LangRef.html#aggregate-operations
     return i in {"extractvalue", "insertvalue"}
 
-# Tells whether the given block is the source.
-def is_source(b, PB, PI):
-    return properties(b, PB, PI).get(u.tk_region) == u.tk_true and \
-           properties(b, PB, PI).get(u.tk_name) == "source"
-
-# Tells whether the given block is the sink.
-def is_sink(b, PB, PI):
-    return properties(b, PB, PI).get(u.tk_region) == u.tk_true and \
-           properties(b, PB, PI).get(u.tk_name) == "sink"
-
 # Tells whether the given block is effectful and cannot be pruned away. A block
 # is effectful if:
 # - it is impure, or
 # - it is a control, non-iterator block
 def is_effectful(b, PB, PI):
-    return properties(b, PB, PI).get(u.tk_impure) == u.tk_true or \
-           (properties(b, PB, PI).get(u.tk_control) == u.tk_true and \
-            properties(b, PB, PI).get(u.tk_iterator) != u.tk_true)
+    return u.properties(b, PB, PI).get(u.tk_impure) == u.tk_true or \
+           (u.properties(b, PB, PI).get(u.tk_control) == u.tk_true and \
+            u.properties(b, PB, PI).get(u.tk_iterator) != u.tk_true)
 
 # Tells whether the given block is dispensable for simplification purposes.
 def is_dispensable(b, PB, PI):
-    name = properties(b, PB, PI).get(u.tk_name)
+    name = u.properties(b, PB, PI).get(u.tk_name)
     return name in ["dfsw$pthread_create"]
 
 # Tells whether a list of tag-data pairs contains the given tag.
@@ -271,7 +257,7 @@ def lift_instruction_properties((DDG, PB, PI, PT)):
         for p in [u.tk_impure, u.tk_noncommutative]:
             if PBl[b].get(p) == u.tk_true:
                 del PBl[b][p]
-                properties(b, PBl, PIl)[p] = u.tk_true
+                u.properties(b, PBl, PIl)[p] = u.tk_true
     return (DDG, PBl, PIl, PT)
 
 # Returns a labeled DDG where tag IDs are normalized (transformed into a
@@ -357,7 +343,7 @@ def clean((DDG, PB, PI, PT)):
     DDGr = DDG.copy()
     PBr = copy.deepcopy(PB)
     for effectful in [b for b in DDG.nodes() if is_effectful(b, PB, PI) and \
-                      not (properties(b, PB, PI).get(u.tk_region) == u.tk_true)]:
+                      not (u.properties(b, PB, PI).get(u.tk_region) == u.tk_true)]:
         if DDGr.degree(effectful) == 0 or \
            (DDGr.degree(effectful) == 1 and DDGr.has_edge(0, effectful)):
             DDGr.remove_node(effectful)
@@ -371,7 +357,7 @@ def remove_instructions((DDG, PB, PI, PT), p):
     DDGr = DDG.copy()
     PBr = copy.deepcopy(PB)
     for block in [b for b in DDG.nodes() if \
-                  p(properties(b, PB, PI).get(u.tk_name))]:
+                  p(u.properties(b, PB, PI).get(u.tk_name))]:
         for pred in DDGr.predecessors(block):
             for succ in DDGr.successors(block):
                 DDGr.add_edge(pred, succ)
@@ -388,7 +374,7 @@ def prune((DDG, PB, PI, PT)):
     reachable = Set()
     for effectful in [b for b in DDGr.nodes() if \
                       (is_effectful(b, PB, PI) and not is_dispensable(b, PB, PI)) \
-                      or properties(b, PB, PI).get(u.tk_region) == u.tk_true]:
+                      or u.properties(b, PB, PI).get(u.tk_region) == u.tk_true]:
         reachable.add(effectful)
         reachable |= Set(nx.descendants(DDGr, effectful))
     DDGrp = DDGr.subgraph(reachable)
@@ -435,13 +421,13 @@ def filter_by((DDG, PB, PI, PT), p, add_context = True):
 # Filters nodes in the labeled DDG by location according to a regexp.
 def filter_location((DDG, PB, PI, PT), pattern):
     has_loc = lambda b: \
-              re.match(pattern, properties(b, PB, PI).get(u.tk_location, ""))
+              re.match(pattern, u.properties(b, PB, PI).get(u.tk_location, ""))
     return filter_by((DDG, PB, PI, PT), has_loc)
 
 # Filters nodes in the labeled DDG by name according to a regexp.
 def filter_name((DDG, PB, PI, PT), pattern):
     has_name = lambda b: \
-               re.match(pattern, properties(b, PB, PI).get(u.tk_name, ""))
+               re.match(pattern, u.properties(b, PB, PI).get(u.tk_name, ""))
     return filter_by((DDG, PB, PI, PT), has_name)
 
 # Filters out nodes in the labeled DDG with the exact location and name as one
@@ -449,10 +435,10 @@ def filter_name((DDG, PB, PI, PT), pattern):
 def filter_out_location_and_name((DDG, PB, PI, PT), instructions):
     not_has_loc_name = \
         lambda b: \
-        (not is_source(b, PB, PI)) and \
-        (not is_sink(b, PB, PI)) and \
-        all([(loc, name) != (properties(b, PB, PI).get(u.tk_location, ""),
-                             properties(b, PB, PI).get(u.tk_name, ""))
+        (not u.is_source(b, PB, PI)) and \
+        (not u.is_sink(b, PB, PI)) and \
+        all([(loc, name) != (u.properties(b, PB, PI).get(u.tk_location, ""),
+                             u.properties(b, PB, PI).get(u.tk_name, ""))
              for (loc, name) in instructions])
     return filter_by((DDG, PB, PI, PT), not_has_loc_name)
 
@@ -469,7 +455,7 @@ def is_preserved(block, tag, group, PB):
 # Filters out the source and sink nodes.
 def filter_middle((DDG, PB, PI, PT)):
     is_middle = lambda b: \
-                not (properties(b, PB, PI).get(u.tk_name, "") in
+                not (u.properties(b, PB, PI).get(u.tk_name, "") in
                      ["source", "sink"])
     return filter_by((DDG, PB, PI, PT), is_middle, False)
 
@@ -545,7 +531,7 @@ def collapse_tags((DDG, PB, PI, PT), tag):
     # If any of the collapsed instructions is impure, tag as impure.
     for nodes in instance_nodes.values():
         for block in nodes:
-            impure = properties(block, PB, PI).get(u.tk_impure)
+            impure = u.properties(block, PB, PI).get(u.tk_impure)
             if impure:
                 PIc[group_instruction][u.tk_impure] = impure
     # Add all children instructions of the collapsed instruction.
@@ -599,7 +585,7 @@ def collapse_group_by((DDG, PB, PI, PT), p, instruction_properties):
     PBc[group_block] = {u.tk_instruction : group_instruction}
     # If any of the collapsed instructions is impure, mark as impure.
     for block in nodes:
-        impure = properties(block, PB, PI).get(u.tk_impure)
+        impure = u.properties(block, PB, PI).get(u.tk_impure)
         if impure:
             PIc[group_instruction][u.tk_impure] = impure
     # Add all children instructions of the collapsed instruction.
@@ -632,9 +618,9 @@ def untag_header_instances((DDG, PB, PI, PT), tag):
             s = node_list[0]
         else:
             continue
-        if properties(p, PB, PI).get(u.tk_name) != "icmp":
+        if u.properties(p, PB, PI).get(u.tk_name) != "icmp":
             continue
-        if properties(s, PB, PI).get(u.tk_name) != "br":
+        if u.properties(s, PB, PI).get(u.tk_name) != "br":
             continue
         succ = list(DDG.successors(p))
         if succ != [s]:
@@ -751,16 +737,16 @@ def print_graphviz((DDG, PB, PI, PT), print_ids, simplify_loc, print_basefile_lo
     out = sio.StringIO()
     print >>out, "digraph DataFlow {"
     for block in sorted(DDG.nodes()):
-        if is_source(block, PB, PI) and not print_source:
+        if u.is_source(block, PB, PI) and not print_source:
             continue
         out.write(str(block) + " [")
         attributes = []
-        region = properties(block, PB, PI).get(u.tk_region) == u.tk_true
+        region = u.properties(block, PB, PI).get(u.tk_region) == u.tk_true
         styles = []
-        for key, value in properties(block, PB, PI).iteritems():
+        for key, value in u.properties(block, PB, PI).iteritems():
             if key == u.tk_name:
                 label = u.demangle(value, demangled_cache)
-                loc_value = properties(block, PB, PI).get(u.tk_location, "")
+                loc_value = u.properties(block, PB, PI).get(u.tk_location, "")
                 if simplify_loc and loc_value:
                     [loc_file, loc_line, loc_col] = loc_value.split(u.tk_loc_sep)
                     if print_basefile_loc:
@@ -780,7 +766,7 @@ def print_graphviz((DDG, PB, PI, PT), print_ids, simplify_loc, print_basefile_lo
             if key == u.tk_region and value == u.tk_true:
                 styles += ["bold"]
             if key == u.tk_impure and value == u.tk_true:
-                if properties(block, PB, PI).get(u.tk_noncommutative, ""):
+                if u.properties(block, PB, PI).get(u.tk_noncommutative, ""):
                     attributes += ["shape=signature"]
                 else:
                     attributes += ["shape=box"]
@@ -793,7 +779,7 @@ def print_graphviz((DDG, PB, PI, PT), print_ids, simplify_loc, print_basefile_lo
         out.write(", ".join(attributes))
         print >>out, "];"
     for (source, target) in sorted(DDG.edges()):
-        if is_source(source, PB, PI) and not print_source:
+        if u.is_source(source, PB, PI) and not print_source:
             continue
         out.write(str(source) + "->" + str(target) + " [");
         attributes = []
@@ -854,12 +840,12 @@ def print_minizinc((DDG, PB, PI, PT), match_regions_only):
     # Candidate nodes are either pure or impure but commutative w.r.t. itself
     # (user-defined property).
     candidates = [b for b in DDG.nodes() if \
-                  (not (properties(b, PB, PIp).get(u.tk_impure) == u.tk_true)) or
-                  (properties(b, PB, PIp).get(u.tk_impure) == u.tk_true and
-                   (not properties(b, PB, PIp).get(u.tk_noncommutative) == u.tk_true))]
+                  (not (u.properties(b, PB, PIp).get(u.tk_impure) == u.tk_true)) or
+                  (u.properties(b, PB, PIp).get(u.tk_impure) == u.tk_true and
+                   (not u.properties(b, PB, PIp).get(u.tk_noncommutative) == u.tk_true))]
     if match_regions_only:
         matchable = [b for b in candidates if \
-                     properties(b, PB, PIp).get(u.tk_region) == u.tk_true]
+                     u.properties(b, PB, PIp).get(u.tk_region) == u.tk_true]
     else:
         matchable = candidates
     print >>out, "matchable = {" + ", ".join(map(str, sorted(matchable))) + "};"

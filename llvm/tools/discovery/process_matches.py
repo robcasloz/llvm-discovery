@@ -34,13 +34,16 @@ def matches_to_digit(matches_list):
         return (u.match_partial, matched_groups)
 
 # Generalizes matches of map-like patterns across groups (loop runs). If
-# different map-like patterns are found in all runs of the same loop, they
-# generalize as a map-filter pattern.
-def generalize_maps_across_groups(sum_matches_list, groups):
+# different map-like patterns are found in all non-empty runs of the same loop,
+# they generalize as a map-filter pattern. TODO: an alternative would be to
+# filter out empty run traces upfront, already during decomposition. This would
+# allow generalization to work for other patterns than maps.
+def generalize_maps_across_groups(sum_matches_list, groups, empty_groups):
     maplike_patterns = [u.pat_doall, u.pat_map, u.pat_mapfilter]
     maplike_count = sum(sum_matches_list[p][1] for p in maplike_patterns)
-    # Require that a map-like pattern is matched in every group (loop run).
-    if maplike_count < groups:
+    # Require that a map-like pattern is matched in every group (loop run) that
+    # is not empty (that is, where the trace has multiple non-boundary nodes).
+    if maplike_count < (groups - empty_groups):
         return
     # Require that at least two different map-like patterns are matched.
     if any([sum_matches_list[p][1] == maplike_count for p in maplike_patterns]):
@@ -106,7 +109,7 @@ def process_loop_matches(szn_files, simple, generalize_maps,
                 file_info(filename)
             G = u.read_trace(trace_filename)
             [internal_tag_id] = list(u.tag_set(G))
-            (_, __, ___, PT) = G
+            (DDG, PB, PI, PT) = G
             tag_alias = PT[internal_tag_id].get(u.tk_alias)
             [src_file, src_function, src_line, src_col] = tag_alias.split(":")
             location = ":".join([os.path.basename(src_file), src_line] + \
@@ -114,6 +117,10 @@ def process_loop_matches(szn_files, simple, generalize_maps,
             function = u.demangle(src_function, demangled_cache)
             nodes = int(PT[internal_tag_id].get(u.tk_original_blocks))
             (_, matches, status) = u.read_matches(filename)
+            inner_nodes = len(filter(lambda b: (not u.is_source(b, PB, PI)) and \
+                                     (not u.is_sink(b, PB, PI)), DDG.nodes()))
+            if inner_nodes <= 1:
+                status = u.tk_sol_status_empty
             match = (len(matches) > 0, status)
             # Create keys at all levels first if not present.
             if not benchmark in data:
@@ -149,10 +156,19 @@ def process_loop_matches(szn_files, simple, generalize_maps,
                             match = (False, u.tk_sol_status_normal)
                         all_matches[p].append(match)
                 runs = len(groups)
+                # Compute number of runs where there is only one node (besides
+                # possibly a source and a sink). Pattern-finding on those is
+                # fundamentally inconclusive, and should not prevent
+                # generalizing maps.
+                all_empty = lambda g: [status == u.tk_sol_status_empty
+                                       for (p, (_, status)) in g.iteritems()]
+                empty_runs = len([g for (g, m) in groups.iteritems()
+                                  if all(all_empty(m))])
                 all_summarized_matches = \
                     {p : matches_to_digit(m) for p, m in all_matches.items()}
                 if generalize_maps:
-                    generalize_maps_across_groups(all_summarized_matches, runs)
+                    generalize_maps_across_groups(all_summarized_matches,
+                                                  runs, empty_runs)
                 row = {"benchmark" : benchmark,
                        "mode" : mode,
                        "location" : location,
