@@ -18,6 +18,7 @@ parser.add_argument('RESULTS_FILE')
 parser.add_argument('BENCHMARK_MODE')
 parser.add_argument('LOCATION')
 parser.add_argument('--matches', nargs="*", help='patterns (doall, map, mapfilter, reduction, scan) expected to be matched')
+parser.add_argument('--occurrence', help='specific occurrence of (benchmark, location) where the patterns are expected')
 args = parser.parse_args()
 
 expected_matches = set(args.matches if args.matches else [])
@@ -34,12 +35,16 @@ reduction_index = legend.index(u.pat_reduction)
 scan_index = legend.index(u.pat_scan)
 twophasereduction_index = legend.index(u.pat_twophasereduction)
 found = False
+occurrence = 0
 for line in r:
     benchmark = line[benchmark_index]
     mode = line[mode_index]
     location = line[location_index]
     if "-".join([benchmark, mode]) == args.BENCHMARK_MODE and \
        location == args.LOCATION:
+        occurrence += 1
+        if args.occurrence and int(args.occurrence) != occurrence:
+            continue
         found = True
         actual_results = [(u.pat_doall, line[doall_index]),
                           (u.pat_map, line[map_index]),
