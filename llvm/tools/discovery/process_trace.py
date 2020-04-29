@@ -20,6 +20,7 @@ arg_graphviz = "graphviz"
 
 arg_query = "query"
 arg_simplify = "simplify"
+arg_decompose = "decompose"
 arg_transform = "transform"
 arg_fold = "fold"
 arg_print = "print"
@@ -450,7 +451,7 @@ def filter_tag((DDG, PB, PI, PT), tag, group):
 # Whether the given block is to be preserved when filtering.
 def is_preserved(block, tag, group, PB):
     tag_data = find_tag_data(tag, PB[block].get(u.tk_tags))
-    return (tag_data != None) and (not group or tag_data[0] == int(group))
+    return (tag_data != None) and ((group == None) or tag_data[0] == int(group))
 
 # Filters out the source and sink nodes.
 def filter_middle((DDG, PB, PI, PT)):
@@ -478,6 +479,49 @@ def weakly_connected_components(DDG, min_nodes, top_components):
         return ordered[0:int(top_components)]
     else:
         return ordered
+
+# Decomposes the given DDG into a DDG per tag and group within the tag.
+def decompose_loops(G, clean_tags):
+    tags = u.tag_set(G)
+    LGS = []
+    # For each loop (tag), produce a temporary DDG.
+    for tag in tags:
+        Gt = filter_tag(G, tag, None)
+        if clean_tags:
+            Gt = remove_tags(Gt, tags - set([tag]))
+        # For each loop run (group within a tag), generate a DDG.
+        for group in group_nodes_map(Gt, tag).keys():
+            loop_id = str(tag) + "." + str(group)
+            Gtg = filter_tag(Gt, tag, group)
+            Gtg = normalize(Gtg)
+            LGS.append((Gtg, loop_id))
+    return LGS
+
+# Decomposes the given DDG into a DDG per associative instruction and connected
+# component within it.
+def decompose_associative_components(G, min_nodes, top_components):
+    # For each associative instruction.
+    # FIXME: We added 'sub' to simulate algebraic transformation: a statement
+    # "foo -= bar" can always be rewritten as "foo += (-bar)" and matched as a
+    # map+reduction. See case in streamcluster.c:171 (seq) and
+    # streamcluster.c:316 (pthread) within the StarBench suite. This should
+    # rather be implemented as a transformation, e.g. within the simplification
+    # step or perhaps even at instrumentation phase.
+    CGS = []
+    for instr_name in \
+        ["add", "fadd", "mul", "fmul", "and", "or", "xor", "sub", "fsub"]:
+        Gi = filter_name(G, instr_name)
+        Gi = normalize(Gi)
+        DDGi = filter_middle(Gi)[0]
+        c = 0
+        for component in \
+            weakly_connected_components(DDGi, min_nodes, top_components):
+            component_id = instr_name + "." + str(c)
+            Gic = filter_by(Gi, lambda b: b in component)
+            Gic = normalize(Gic)
+            CGS.append((Gic, component_id))
+            c += 1
+    return CGS
 
 # Adds a new region instruction with the given name.
 def add_region_instruction(name, PI):
@@ -880,6 +924,32 @@ def print_minizinc((DDG, PB, PI, PT), match_regions_only):
     out.close()
     return dzn
 
+# Outputs the given DDG acording to command-line options.
+def output(G, args):
+    if args.output_format == arg_graphviz:
+        select_tag = lambda t : list(u.tag_set(G))[0] if t == "all" else t
+        if args.color_tag_groups:
+            tag = select_tag(args.color_tag_groups)
+            color_map = format_tags(G, get_tag_id(tag, G), lambda (g, _) : g)
+        elif args.color_tag_instances:
+            tag = select_tag(args.color_tag_instances)
+            color_map = format_tags(G, get_tag_id(tag, G), lambda (_, i) : i)
+        else:
+            color_map = None
+        out = print_graphviz(G, args.print_ids, args.simplify_loc,
+                             args.print_basefile_loc, args.print_source,
+                             None, color_map)
+    elif args.output_format == arg_plain:
+        out = print_plain(G)
+    elif args.output_format == arg_minizinc:
+        out = print_minizinc(G, args.match_regions_only)
+    if args.output_file:
+        outfile = open(args.output_file ,"w+")
+        outfile.write(out)
+        outfile.close()
+    else:
+        print out,
+
 def main(args):
 
     parser = argparse.ArgumentParser(description='Process, simplify, and visualize traces and matches.')
@@ -898,8 +968,8 @@ def main(args):
     parser.add_argument('--color-tag-groups', help='color the different groups of all tagged nodes')
     parser.add_argument('--color-tag-instances', help='color the different instances of all tagged nodes')
     parser.add_argument('--match-regions-only', dest='match_regions_only', action='store_true', help='define region nodes as the only matchable nodes in the MiniZinc format')
-    parser.add_argument('--min-nodes', help='minimum amount of nodes required in a component')
-    parser.add_argument('--top-components', help='filter only the largest number of given components')
+    parser.add_argument('--min-nodes', help='minimum amount of nodes required in a component', default=3)
+    parser.add_argument('--top-components', help='filter only the largest number of given components', default=50)
 
     parser_query = subparsers.add_parser(arg_query, help='query about properties of the trace')
     parser_query.add_argument('--print-tags', dest='print_tags', action='store_true', help='print all different tags in the trace, one per line')
@@ -929,6 +999,18 @@ def main(args):
     parser_simplify.set_defaults(untag_header_instances=True)
     parser_simplify.add_argument('--untag-inductions', dest='untag_inductions', action='store_true', help='remove tags from induction nodes')
     parser_simplify.set_defaults(untag_inductions=False)
+
+    parser_decompose = subparsers.add_parser(arg_decompose, help='decompose a trace into multiple subtraces')
+    parser_decompose.add_argument('--loops',    dest='loops', action='store_true', help='extract loop subtraces')
+    parser_decompose.add_argument('--no-loops', dest='loops', action='store_false')
+    parser_decompose.set_defaults(loops=True)
+    parser_decompose.add_argument('--associative-components',    dest='associative_components', action='store_true', help='extract associative component subtraces')
+    parser_decompose.add_argument('--no-associative-components', dest='associative_components', action='store_false')
+    parser_decompose.set_defaults(associative_components=True)
+    parser_decompose.add_argument('--clean-tags',    dest='clean_tags', action='store_true', help='remove non-specified loop tags in loop subtraces')
+    parser_decompose.add_argument('--no-clean-tags', dest='clean_tags', action='store_false')
+    parser_decompose.set_defaults(clean_tags=True)
+
 
     parser_transform = subparsers.add_parser(arg_transform, help='apply filter and collapse operations to the trace')
     parser_transform.add_argument('--filter-location', help='filters blocks by location according to a regexp')
@@ -1000,6 +1082,18 @@ def main(args):
             for tag in u.tag_set(G):
                 G = untag_induction_nodes(G, (get_tag_id(tag, G)))
         G = normalize(G)
+        output(G, args)
+    elif args.subparser == arg_decompose:
+        GS = []
+        if args.loops:
+            GS.extend(decompose_loops(G, args.clean_tags))
+        if args.associative_components:
+            GS.extend(decompose_associative_components(G, args.min_nodes,
+                                                       args.top_components))
+        [root, ext] = os.path.splitext(args.TRACE_FILE)
+        for (G, subtrace_id) in GS:
+            args.output_file = root + "." + subtrace_id + ext
+            output(G, args)
     elif args.subparser == arg_transform:
         if args.filter_location:
             G = filter_location(G, args.filter_location)
@@ -1028,33 +1122,12 @@ def main(args):
                         else args.collapse_tags):
                 G = collapse_tags(G, (get_tag_id(tag, G)))
         G = normalize(G)
+        output(G, args)
     elif args.subparser == arg_fold:
         G = fold(G)
-
-    if args.subparser not in [arg_query, arg_visualize, arg_report]:
-        if args.output_format == arg_graphviz:
-            select_tag = lambda t : list(u.tag_set(G))[0] if t == "all" else t
-            if args.color_tag_groups:
-                tag = select_tag(args.color_tag_groups)
-                color_map = format_tags(G, get_tag_id(tag, G), lambda (g, _) : g)
-            elif args.color_tag_instances:
-                tag = select_tag(args.color_tag_instances)
-                color_map = format_tags(G, get_tag_id(tag, G), lambda (_, i) : i)
-            else:
-                color_map = None
-            out = print_graphviz(G, args.print_ids, args.simplify_loc,
-                                 args.print_basefile_loc, args.print_source,
-                                 None, color_map)
-        elif args.output_format == arg_plain:
-            out = print_plain(G)
-        elif args.output_format == arg_minizinc:
-            out = print_minizinc(G, args.match_regions_only)
-        if args.output_file:
-            outfile = open(args.output_file ,"w+")
-            outfile.write(out)
-            outfile.close()
-        else:
-            print out,
+        output(G, args)
+    elif args.subparser == arg_print:
+        output(G, args)
 
     if args.subparser == arg_visualize:
         (pattern, S, _) = u.read_matches(args.SZN_FILE)

@@ -98,6 +98,18 @@ TOP_COMPONENTS ?= 50
 %.size: %.trace
 	$(PROCESS_TRACE) query --print-size $< > $@
 
+# One trace file for each loop and associative component.
+%.subtraces: %.trace
+	$(PROCESS_TRACE) decompose $<
+
+# One trace file for each loop.
+%.loop-subtraces: %.trace
+	$(PROCESS_TRACE) decompose --no-associative-components $<
+
+# One trace file for each associative component.
+%.associative-component-subtraces: %.trace
+	$(PROCESS_TRACE) decompose --no-loops $<
+
 # One trace file for each tag in the %.tags file.
 %.tag-traces: %.trace %.tags
 	while read TAG; do \
