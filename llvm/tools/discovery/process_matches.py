@@ -290,6 +290,7 @@ def main(args):
     parser.add_argument('--discard-no-matches', dest='discard_no_matches', action='store_true', default=True)
     parser.add_argument('-s,', '--sort', dest='sort', action='store', type=str, choices=[u.arg_nodes, u.arg_location], default=u.arg_nodes)
     parser.add_argument('--extract-matched-instructions', dest='extract_matched_instructions', action='store_true', default=True)
+    parser.add_argument('--matched-instructions-prefix')
     args = parser.parse_args(args)
 
     # Gather results.
@@ -349,7 +350,13 @@ def main(args):
                 matched[benchmark_mode] = set([])
             matched[benchmark_mode] |= set(r["instructions"])
         for ((benchmark, mode), matched_instructions) in matched.iteritems():
-            filename = benchmark + "-" + mode + ".instructions"
+            if mode == "unknown":
+                filename = benchmark + ".instructions"
+            else:
+                filename = benchmark + "-" + mode + ".instructions"
+            if args.matched_instructions_prefix:
+                filename = \
+                    os.path.join(args.matched_instructions_prefix, filename)
             matched_instructions_list = list(matched_instructions)
             matched_instructions_list.sort(
                 key = (lambda (name, loc): (u.natural_sort_key(loc), name)))

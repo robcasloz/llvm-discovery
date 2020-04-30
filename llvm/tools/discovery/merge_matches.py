@@ -11,7 +11,7 @@ import trace_utils as u
 
 def load_legend(file):
     r = csv.reader(open(file), delimiter=",")
-    return r.next()
+    return tuple(r.next())
 
 def load_data(file):
     r = csv.reader(open(file), delimiter=",")
@@ -19,7 +19,7 @@ def load_data(file):
     r.next()
     data = []
     for line in r:
-        data.append(line)
+        data.append(tuple(line))
     return data
 
 def merge_data(legend, data1, data2, sort, simple):
@@ -28,7 +28,23 @@ def merge_data(legend, data1, data2, sort, simple):
         benchmark_index = legend.index("benchmark")
         mode_index = legend.index("mode")
         nodes_index = legend.index("nodes")
-    merged = data1 + data2
+        trace_index = legend.index("trace")
+
+    # Remove duplicates: two lines are duplicated if they are all equal except
+    # possibly for the 'nodes' and 'trace' columns.
+    # TODO: merge similar lines with different patterns matched in different
+    # iterations.
+    duplicates = set()
+    merged = []
+    for line in data1 + data2:
+        key = list(line)
+        if not simple:
+            key.pop(trace_index)
+            key.pop(nodes_index)
+        if tuple(key) not in duplicates:
+            merged.append(line)
+            duplicates.add(tuple(key))
+
     if simple: # Ignore sorting criteria, sort solely by location.
         k = (lambda r: u.natural_sort_key(r[location_index]))
     else:
@@ -45,6 +61,7 @@ def main(args):
 
     parser = argparse.ArgumentParser(description='Merge and sort CSV pattern match tables.')
     parser.add_argument('RESULTS_FILES', nargs="*")
+    parser.add_argument('-o', "--output-file", help='output file')
     parser.add_argument('--simple', dest='simple', action='store_true', default=False)
     parser.add_argument('-s,', '--sort', dest='sort', action='store', type=str, choices=[u.arg_nodes, u.arg_location], default=u.arg_nodes)
     args = parser.parse_args(args)
@@ -57,10 +74,16 @@ def main(args):
         data = load_data(file)
         merged = merge_data(legend, merged, data, args.sort, args.simple)
 
-    csvwriter = csv.writer(sys.stdout, delimiter=",", quoting=csv.QUOTE_MINIMAL)
+    if args.output_file:
+        out = open(args.output_file ,"w+")
+    else:
+        out = sys.stdout
+    csvwriter = csv.writer(out, delimiter=",", quoting=csv.QUOTE_MINIMAL)
     csvwriter.writerow(legend)
     for line in merged:
         csvwriter.writerow(line)
+    if args.output_file:
+        out.close()
 
 if __name__ == '__main__':
     main(sys.argv[1:])
