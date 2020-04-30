@@ -282,6 +282,7 @@ def main(args):
 
     parser = argparse.ArgumentParser(description='Aggregate matches into a CSV table.')
     parser.add_argument('FILES', nargs="*")
+    parser.add_argument('-o', "--output-file", help='output file')
     parser.add_argument('-l,', '--level', dest='level', action='store', type=str, choices=[u.arg_loop, u.arg_instruction], default=u.arg_loop)
     parser.add_argument('--simple', dest='simple', action='store_true', default=False)
     parser.add_argument('--generalize-maps', dest='generalize_maps', action='store_true', default=True)
@@ -302,7 +303,11 @@ def main(args):
                                               args.discard_no_matches)
 
     # Print results in a level-independent manner.
-    csvwriter = csv.writer(sys.stdout, delimiter=",", quoting=csv.QUOTE_MINIMAL)
+    if args.output_file:
+        out = open(args.output_file ,"w+")
+    else:
+        out = sys.stdout
+    csvwriter = csv.writer(out, delimiter=",", quoting=csv.QUOTE_MINIMAL)
 
     if args.simple:
         legend = ["location"] + u.pat_all
@@ -331,6 +336,9 @@ def main(args):
                    r["trace"]]
         row += [r[p] for p in u.pat_all]
         csvwriter.writerow(row)
+
+    if args.output_file:
+        out.close()
 
     # Generate a file for each benchmark and mode with all instructions matched.
     if args.extract_matched_instructions:

@@ -13,6 +13,7 @@ import glob
 import trace_utils as u
 import process_trace as pt
 import process_matches as pm
+import merge_matches as mm
 
 eol = "\n"
 
@@ -28,6 +29,11 @@ parser.set_defaults(clean=True)
 
 args = parser.parse_args()
 
+def run_command(cmd):
+    if args.verbose:
+        sys.stderr.write(" ".join(cmd) + eol)
+    subprocess.check_output(cmd)
+
 def run_process_trace(arguments):
     if args.verbose:
         sys.stderr.write(indir("process_trace.py") + " " + " ".join(arguments) + eol)
@@ -37,6 +43,11 @@ def run_process_matches(arguments):
     if args.verbose:
         sys.stderr.write(indir("process_matches.py") + " " + " ".join(arguments) + eol)
     pm.main(arguments)
+
+def run_merge_matches(arguments):
+    if args.verbose:
+        sys.stderr.write(indir("merge_matches.py") + " " + " ".join(arguments) + eol)
+    mm.main(arguments)
 
 def run_minizinc(outfile, arguments):
     if args.verbose:
@@ -66,8 +77,21 @@ try:
     def mzn(pattern):
         return indir(pattern + ".mzn")
 
-    def subtrace_prefix((loop, run)):
-        return ["simple", str(loop), str(run)]
+    def subtrace_type((st_type, _)):
+        return st_type
+
+    def subtrace_prefix((st_type, (first, second))):
+        if st_type == u.loop_subtrace:
+            suffix = [str(first), str(second)]
+        else:
+            suffix = [first, str(second)]
+        return ["simple"] + suffix
+
+    def applicable_patterns(st_type):
+        if st_type == u.loop_subtrace:
+            return u.pat_all_uni
+        elif st_type == u.associative_component_subtrace:
+            return u.pat_all_associative
 
     simplified_trace = temp(["simple", "trace"])
     run_process_trace(["-o", simplified_trace, "--output-format=plain",
@@ -77,30 +101,42 @@ try:
 
     if args.level == u.arg_heuristic:
 
-        run_process_trace(["decompose", "--no-associative-components",
-                           simplified_trace])
+        run_process_trace(["decompose", simplified_trace])
         subtrace_ids = set()
         for subtrace in (set(glob.glob(os.path.join(basedir, "*.trace"))) \
                          - set([simplified_trace])):
             base_subtrace = os.path.basename(os.path.splitext(subtrace)[0])
-            [_, l, r] = base_subtrace.rsplit(".", 2)
-            subtrace_ids.add((int(l), int(r)))
+            [_, first, second] = base_subtrace.rsplit(".", 2)
+            if first.isdigit(): # Loop sub-trace
+                subtrace_ids.add((u.loop_subtrace,
+                                  (int(first), int(second))))
+            else: # Associative component sub-trace
+                subtrace_ids.add((u.associative_component_subtrace,
+                                  (first, int(second))))
 
         def make_dzn(subtrace_id):
             pre = subtrace_prefix(subtrace_id)
             subtrace = temp(pre + ["trace"])
             compact_subtrace = temp(pre + ["collapsed", "trace"])
-            run_process_trace(["-o", compact_subtrace, "--output-format=plain",
-                               "transform", "--collapse-tags", "all", subtrace])
+            if subtrace_type(subtrace_id) == u.loop_subtrace:
+                run_process_trace(["-o", compact_subtrace,
+                                   "--output-format=plain", "transform",
+                                   "--collapse-tags", "all", subtrace])
+            else:
+                run_command(["cp", subtrace, compact_subtrace])
             compact_subtrace_dzn = temp(pre + ["collapsed", "dzn"])
+            if subtrace_type(subtrace_id) == u.loop_subtrace:
+                minizinc_dzn_options = ["--match-regions-only"]
+            else:
+                minizinc_dzn_options = []
             run_process_trace(["-o", compact_subtrace_dzn,
-                               "--output-format=minizinc",
-                               "--match-regions-only", "print",
-                               compact_subtrace])
+                               "--output-format=minizinc"] + \
+                              minizinc_dzn_options + \
+                              ["print", compact_subtrace])
 
         # The list conversion is just to force evaluation.
         list(ex.map(make_dzn, subtrace_ids))
-        #exit(0)
+
         def make_szn((subtrace_id, pattern)):
             pre = subtrace_prefix(subtrace_id)
             compact_subtrace_dzn = temp(pre + ["collapsed", "dzn"])
@@ -112,11 +148,27 @@ try:
 
         # The list conversion is just to force evaluation.
         list(ex.map(make_szn,
-                    [(st, p) for st in subtrace_ids for p in u.pat_all_uni]))
+                    [(st, p)
+                     for st in subtrace_ids
+                     for p  in applicable_patterns(subtrace_type(st))]))
 
-        szn_files = [temp(subtrace_prefix(st) + ["collapsed", p + "s", "szn"])
-                     for st in subtrace_ids for p in u.pat_all_uni]
-        run_process_matches(szn_files + ["-l", u.arg_loop, "--simple"])
+        def subtrace_szn_files(st_type):
+            return [temp(subtrace_prefix(st) + ["collapsed", p + "s", "szn"])
+                    for st in subtrace_ids
+                    for p in  applicable_patterns(st_type)
+                    if subtrace_type(st) == st_type]
+
+        loop_szn_files = subtrace_szn_files(u.loop_subtrace)
+        loop_csv = temp(["loops", "csv"])
+        run_process_matches(loop_szn_files + \
+                            ["-o", loop_csv, "-l", u.arg_loop, "--simple"])
+        associative_component_szn_files = \
+            subtrace_szn_files(u.associative_component_subtrace)
+        associative_component_csv = temp(["associative_components", "csv"])
+        run_process_matches(associative_component_szn_files +
+                            ["-o", associative_component_csv, "-l",
+                             u.arg_instruction, "--simple"])
+        run_merge_matches([loop_csv, associative_component_csv, "--simple"])
 
     elif args.level == u.arg_complete:
 
