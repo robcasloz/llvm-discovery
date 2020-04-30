@@ -288,4 +288,4 @@ all-collapsed-scans-szn: $(addsuffix .collapsed.scans.szn, $(ALL_TRACES))
 
 # Clean all intermediate files.
 clean:
-	rm -rf trace *.bin *.trace *.gv *.pdf *.ll *.html *.yaml *.dzn *.szn *.tags *.aliases *.components *.groups *~
+	rm -rf trace *.bin *.trace *.gv *.pdf *.ll *.html *.yaml *.dzn *.szn *.tags *.aliases *.components *.groups *.instructions *~

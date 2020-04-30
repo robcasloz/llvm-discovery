@@ -12,3 +12,4 @@ trace
 *.aliases
 *.components
 *.csv
+*.instructions

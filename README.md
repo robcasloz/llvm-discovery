@@ -64,7 +64,7 @@ The script outputs a table in CSV format where each row corresponds to a loop in
 To find all of the above plus pipeline patterns within all possible combinations of instructions in the example trace, add the option `--level=instruction` to the same command:
 
 ```
-llvm/tools/discovery/find_patterns.py --level=instruction llvm/tools/discovery/examples/hello-world.trace
+llvm/tools/discovery/find_patterns.py --level=complete llvm/tools/discovery/examples/hello-world.trace
 ```
 
 Beware that finding patterns at instruction level is computationally very costly and does not currently scale beyond small examples.
