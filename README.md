@@ -69,6 +69,17 @@ llvm/tools/discovery/find_patterns.py --level=instruction llvm/tools/discovery/e
 
 Beware that finding patterns at instruction level is computationally very costly and does not currently scale beyond small examples.
 
+### Testing
+
+To test the pattern finder on a set of small examples, set the environment variable `CC` to the compiled `clang` and run:
+
+```
+cd llvm/tools/discovery
+./test.py
+```
+
+### Other functionality
+
 The file `llvm/tools/discovery/Makefile` provides further support for processing, transforming, and visualizing traces; invoking the constraint-based pattern finder, and visualizing and exporting the found patterns as [LLVM remark diagnostics](https://llvm.org/docs/Remarks.html). See the file documentation for more information.
 
 ## Contact
