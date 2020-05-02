@@ -187,7 +187,7 @@ def insts_to_steps((_, PB, PI, __), pattern, matches):
         for n in nodes:
             inst = PB[n].get(tk_instruction)
             if tk_children in PI[inst]:
-                sol_insts.add(PI[inst].get(tk_children))
+                sol_insts.update(PI[inst].get(tk_children))
             else:
                 sol_insts.add(inst)
         si = frozenset(sol_insts)
