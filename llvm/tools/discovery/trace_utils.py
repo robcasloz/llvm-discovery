@@ -172,7 +172,7 @@ def index_map(array):
 def insts_to_steps((_, PB, PI, __), pattern, matches):
     i_to_s = dict()
     for match in matches:
-        if pattern in [pat_doall, pat_map, pat_reduction, pat_scan]:
+        if pattern in pat_all_uni:
             steps = len(match)
             nodes = index_map(match).keys()
         elif pattern == pat_pipeline:
