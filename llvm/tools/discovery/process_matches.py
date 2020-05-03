@@ -83,7 +83,7 @@ def file_info(szn_filename):
     return (benchmark, mode, tag, group, pattern, trace_filename)
 
 def print_location(iset):
-        # Map from file names to sets of lines
+    # Map from file names to sets of lines
     lines = dict()
     for (inst_name, inst_loc) in iset:
         [loc_file, loc_line, _] = inst_loc.split(u.tk_loc_sep)
@@ -96,6 +96,14 @@ def print_location(iset):
                      for (loc_basefile, loc_lines)
                      in lines.iteritems()])
 
+def print_loops(loops, simple):
+    # Set of loops
+    loop_lines = set()
+    for loop in loops:
+        [src_file, src_function, src_line, src_col] = loop.split(":")
+        loop_lines.add(":".join([os.path.basename(src_file), src_line] + \
+                                ([] if simple else [src_col])))
+    return ";".join(loop_lines)
 
 def match_consensus(pattern, pattern_data):
     if not pattern in pattern_data:
@@ -133,7 +141,7 @@ def generalize_partial_maps(pattern_data):
     for pattern in maplike_patterns:
         if pattern in pattern_data:
             for (match_result, result_data) in pattern_data[pattern].iteritems():
-                traces = [trace for (trace, _) in result_data]
+                traces = [trace for (trace, _, __) in result_data]
                 all_traces.update(traces)
                 if match_result == "yes":
                     yes_traces.update(traces)
@@ -151,12 +159,13 @@ def process_unified_matches(szn_files, simple, generalize_maps,
                             discard_no_matches):
 
     # Multi-level map: benchmark -> mode -> instruction set -> pattern ->
-    #                  match result -> (trace, number of matched nodes) pairs.
+    # match result -> (trace, number of matched nodes, involved loops) tuples.
     data = {}
 
     def register_match(benchmark, mode, instructions, pattern, match_result,
-                       trace, nodes):
+                       trace, nodes, loops):
         iset = frozenset(instructions)
+        lset = frozenset(loops)
         # Create keys at all levels first if not present.
         if not benchmark in data:
             data[benchmark] = dict()
@@ -169,7 +178,8 @@ def process_unified_matches(szn_files, simple, generalize_maps,
         if not match_result in data[benchmark][mode][iset][pattern]:
             data[benchmark][mode][iset][pattern][match_result] = set()
         # Finally populate.
-        data[benchmark][mode][iset][pattern][match_result].add((trace, nodes))
+        data[benchmark][mode][iset][pattern][match_result].add(
+            (trace, nodes, lset))
 
     # Populate the map loading each solution file. A solution file is expected
     # to be called [BENCHMARK]-[MODE] ... [PATTERN].szn, where:
@@ -198,15 +208,20 @@ def process_unified_matches(szn_files, simple, generalize_maps,
             for match in matches:
                 nodes = u.match_nodes(pattern, match)
                 total_nodes = 0
+                loops = set()
                 # Collect precise instruction information.
                 instructions = []
                 for node in nodes:
+                    tags = PB[node].get(u.tk_tags)
+                    if tags != None:
+                        loops.update([PT[u.tag_name(t)][u.tk_alias]
+                                      for t in tags])
                     for inst in u.node_instructions(G, node):
                         instructions.append((PI[inst].get(u.tk_name),
                                              PI[inst].get(u.tk_location)))
                         total_nodes += 1
                 register_match(benchmark, mode, instructions, pattern, "yes",
-                               trace_filename, total_nodes)
+                               trace_filename, total_nodes, loops)
             # If there are no matches, register that as well (for identifying
             # partial patterns):
             if not matches and status == u.tk_sol_status_normal:
@@ -220,7 +235,7 @@ def process_unified_matches(szn_files, simple, generalize_maps,
                     instructions.append((PI[inst].get(u.tk_name),
                                          PI[inst].get(u.tk_location)))
                 register_match(benchmark, mode, instructions, pattern, "no",
-                               trace_filename, -1)
+                               trace_filename, -1, set())
     results = []
     for (benchmark, benchmark_data) in sorted(data.iteritems()):
         for (mode, mode_data) in sorted(benchmark_data.iteritems()):
@@ -238,12 +253,17 @@ def process_unified_matches(szn_files, simple, generalize_maps,
                 traces = set()
                 # Compute total nodes.
                 nodes = 0
+                # Compute loop set.
+                loop_set = set()
                 for (pattern, match_data) in pattern_data.iteritems():
                     for (match_result, result_data) in match_data.iteritems():
-                        traces.update([trace for (trace, _) in result_data])
+                        traces.update([trace for (trace, _, __) in result_data])
                         if match_result == "yes":
-                            nodes += sum([match_nodes for (_, match_nodes)
+                            nodes += sum([match_nodes for (_, match_nodes, _)
                                           in result_data])
+                            for (_, __, lset) in result_data:
+                                loop_set.update(lset)
+                loops = print_loops(loop_set, True)
                 # Pretty-print location.
                 location = print_location(iset)
                 # "Repetitions" is just the number of traces.
@@ -253,6 +273,7 @@ def process_unified_matches(szn_files, simple, generalize_maps,
                 row = {"benchmark" : benchmark,
                        "mode" : mode,
                        "location" : location,
+                       "loops" : loops,
                        "repetitions" : repetitions,
                        "nodes" : nodes,
                        "trace" : trace,
@@ -289,10 +310,8 @@ def process_loop_matches(szn_files, simple, generalize_maps,
             G = u.read_trace(trace_filename)
             [internal_tag_id] = list(u.tag_set(G))
             (DDG, PB, PI, PT) = G
-            tag_alias = PT[internal_tag_id].get(u.tk_alias)
-            [src_file, src_function, src_line, src_col] = tag_alias.split(":")
-            location = ":".join([os.path.basename(src_file), src_line] + \
-                                ([] if simple else [src_col]))
+            location = print_loops([PT[internal_tag_id].get(u.tk_alias)],
+                                   simple)
             function = u.demangle(src_function, demangled_cache)
             nodes = int(PT[internal_tag_id].get(u.tk_original_blocks))
             (_, matches, status) = u.read_matches(filename)
@@ -351,6 +370,7 @@ def process_loop_matches(szn_files, simple, generalize_maps,
                 row = {"benchmark" : benchmark,
                        "mode" : mode,
                        "location" : location,
+                       "loops" : "",
                        "repetitions" : runs,
                        "nodes" : nodes,
                        "trace" : trace,
@@ -445,6 +465,7 @@ def process_instruction_matches(szn_files, simple, discard_subsumed,
                 row = {"benchmark" : benchmark,
                        "mode" : mode,
                        "location" : location,
+                       "loops" : "",
                        "repetitions" : repetitions,
                        "nodes" : nodes,
                        "trace" : trace,
@@ -495,10 +516,10 @@ def main(args):
     csvwriter = csv.writer(out, delimiter=",", quoting=csv.QUOTE_MINIMAL)
 
     if args.simple:
-        legend = ["location"] + u.pat_all
+        legend = ["location", "loops"] + u.pat_all
     else:
-        legend = ["benchmark", "mode", "location", "repetitions", "nodes",
-                  "trace"] + u.pat_all
+        legend = ["benchmark", "mode", "location", "loops", "repetitions",
+                  "nodes", "trace"] + u.pat_all
     csvwriter.writerow(legend)
 
     # Sort results according to given criterion.
@@ -511,11 +532,13 @@ def main(args):
 
     for r in results:
         if args.simple:
-            row = [r["location"]]
+            row = [r["location"],
+                   r["loops"]]
         else:
             row = [r["benchmark"],
                    r["mode"],
                    r["location"],
+                   r["loops"],
                    r["repetitions"],
                    r["nodes"],
                    r["trace"]]
