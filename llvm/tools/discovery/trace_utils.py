@@ -52,6 +52,7 @@ pat_scan = "scan"
 pat_pipeline = "pipeline"
 pat_twophasereduction = "twophasereduction"
 
+arg_unified = "unified"
 arg_loop = "loop"
 arg_instruction = "instruction"
 arg_nodes = "nodes"
@@ -169,33 +170,44 @@ def index_map(array):
 # Takes a DDG, a pattern name and a set of matches and gives a map from sets of
 # instructions to sets of number of pattern steps.
 # TODO: simplify, the number of pattern steps is unused.
-def insts_to_steps((_, PB, PI, __), pattern, matches):
+def insts_to_steps(G, pattern, matches):
     i_to_s = dict()
     for match in matches:
         if pattern in pat_all_uni:
             steps = len(match)
-            nodes = index_map(match).keys()
         elif pattern == pat_pipeline:
             (stages, runs) = match
             steps = len(stages) * len(runs)
-            nodes = index_map(stages).keys()
         elif pattern == pat_twophasereduction:
             partial_steps = [len(p) for (f, p) in match]
             steps = sum(partial_steps) + len(partial_steps)
-            nodes = flatten(match)
         sol_insts = Set()
-        for n in nodes:
-            inst = PB[n].get(tk_instruction)
-            if tk_children in PI[inst]:
-                sol_insts.update(PI[inst].get(tk_children))
-            else:
-                sol_insts.add(inst)
+        for n in match_nodes(pattern, match):
+                sol_insts.update(node_instructions(G, n))
         si = frozenset(sol_insts)
         if si in i_to_s:
             i_to_s[si].add(steps)
         else:
             i_to_s[si] = set([steps])
     return i_to_s
+
+# Takes a pattern name and a match and gives the set of nodes.
+def match_nodes(pattern, match):
+    if pattern in pat_all_uni:
+        nodes = index_map(match).keys()
+    elif pattern == pat_pipeline:
+        (stages, runs) = match
+        nodes = index_map(stages).keys()
+    elif pattern == pat_twophasereduction:
+        nodes = flatten(match)
+    return nodes
+
+# Gives the instruction(s) corresponding to a node.
+def node_instructions((_, PB, PI, __), node):
+    inst = PB[node].get(tk_instruction)
+    if tk_children in PI[inst]:
+        return PI[inst].get(tk_children)
+    return [inst]
 
 # Gives a tag tuple out of a tag-data string.
 def tag_str_to_tuple(tag_data):

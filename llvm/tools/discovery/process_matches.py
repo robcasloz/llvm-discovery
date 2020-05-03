@@ -82,6 +82,185 @@ def file_info(szn_filename):
     trace_filename = ".".join(file_components[0:-2]) + ".trace"
     return (benchmark, mode, tag, group, pattern, trace_filename)
 
+def print_location(iset):
+        # Map from file names to sets of lines
+    lines = dict()
+    for (inst_name, inst_loc) in iset:
+        [loc_file, loc_line, _] = inst_loc.split(u.tk_loc_sep)
+        loc_basefile = os.path.basename(loc_file)
+        if not loc_basefile in lines:
+            lines[loc_basefile] = set()
+        lines[loc_basefile].add(int(loc_line))
+    return ";".join([loc_basefile + ":" +
+                     ",".join(map(str, sorted(loc_lines)))
+                     for (loc_basefile, loc_lines)
+                     in lines.iteritems()])
+
+
+def match_consensus(pattern, pattern_data):
+    if not pattern in pattern_data:
+        return u.match_none
+    match_data = pattern_data[pattern]
+    if len(match_data) == 1:
+        if "yes" in match_data:
+            return u.match_full
+        elif "no" in match_data:
+            return u.match_none
+    elif len(match_data) >= 1:
+        if "yes" in match_data and "no" in match_data:
+            return u.match_partial
+    assert(False)
+
+def generalize_partial_maps(pattern_data):
+    maplike_patterns = [u.pat_doall, u.pat_map, u.pat_mapfilter]
+    # If the trace is matched as something else, nothing to do.
+    for pattern in set(u.pat_all) - set(maplike_patterns):
+        if pattern in pattern_data and "yes" in pattern_data[pattern]:
+            return
+    # If the trace does not contain at least two matches of different map-like
+    # patterns, nothing to do.
+    maplike = 0
+    for pattern in set(maplike_patterns):
+        if pattern in pattern_data and "yes" in pattern_data[pattern]:
+            maplike += 1
+    if maplike < 2:
+        return
+    # If the trace is not matched as a map-like pattern by all matches, nothing
+    # to do.
+    all_traces = set()
+    yes_traces = set()
+    common_result_data = set()
+    for pattern in maplike_patterns:
+        if pattern in pattern_data:
+            for (match_result, result_data) in pattern_data[pattern].iteritems():
+                traces = [trace for (trace, _) in result_data]
+                all_traces.update(traces)
+                if match_result == "yes":
+                    yes_traces.update(traces)
+                    common_result_data.update(result_data)
+    if yes_traces != all_traces:
+        return
+    # The trace can be generalized as a mapfilter, now do it.
+    pattern_data[u.pat_doall]     = {"no"  : common_result_data}
+    pattern_data[u.pat_map]       = {"no"  : common_result_data}
+    pattern_data[u.pat_mapfilter] = {"yes" : common_result_data}
+    return
+
+def process_unified_matches(szn_files, simple, generalize_maps,
+                            discard_subsumed,
+                            discard_no_matches):
+
+    # Multi-level map: benchmark -> mode -> instruction set -> pattern ->
+    #                  match result -> (trace, number of matched nodes) pairs.
+    data = {}
+
+    def register_match(benchmark, mode, instructions, pattern, match_result,
+                       trace, nodes):
+        iset = frozenset(instructions)
+        # Create keys at all levels first if not present.
+        if not benchmark in data:
+            data[benchmark] = dict()
+        if not mode in data[benchmark]:
+            data[benchmark][mode] = dict()
+        if not iset in data[benchmark][mode]:
+            data[benchmark][mode][iset] = dict()
+        if not pattern in data[benchmark][mode][iset]:
+            data[benchmark][mode][iset][pattern] = dict()
+        if not match_result in data[benchmark][mode][iset][pattern]:
+            data[benchmark][mode][iset][pattern][match_result] = set()
+        # Finally populate.
+        data[benchmark][mode][iset][pattern][match_result].add((trace, nodes))
+
+    # Populate the map loading each solution file. A solution file is expected
+    # to be called [BENCHMARK]-[MODE] ... [PATTERN].szn, where:
+    #
+    # BENCHMARK is the benchmark name (e.g. c-ray)
+    # MODE is the benchmark mode (e.g. pthread)
+    # PATTERN is the pattern that is matched (e.g. reductions)
+    #
+    # If the solution file does not contain a MODE, this is set as 'unknown'.
+    #
+    # For each solution file, a corresponding trace called
+    # [BENCHMARK]-[MODE] ... .trace is expected.
+    for filename in szn_files:
+        if os.path.isfile(filename) and filename.endswith(".szn"):
+            # Gather all data.
+            (benchmark, mode, _tag, _group, pattern, trace_filename) = \
+                file_info(filename)
+            G = u.read_trace(trace_filename)
+            (_, matches, status) = u.read_matches(filename)
+            (DDG, PB, PI, PT) = G
+            # TODO: disard inconclusive solutions files: because of timeouts,
+            # errors, or just one non-boundary node.
+
+            # For all matches of 'pattern' in the file (possibly different
+            # subsets of DDG):
+            for match in matches:
+                nodes = u.match_nodes(pattern, match)
+                total_nodes = 0
+                # Collect precise instruction information.
+                instructions = []
+                for node in nodes:
+                    for inst in u.node_instructions(G, node):
+                        instructions.append((PI[inst].get(u.tk_name),
+                                             PI[inst].get(u.tk_location)))
+                        total_nodes += 1
+                register_match(benchmark, mode, instructions, pattern, "yes",
+                               trace_filename, total_nodes)
+            # If there are no matches, register that as well (for identifying
+            # partial patterns):
+            if not matches and status == u.tk_sol_status_normal:
+                all_insts = Set()
+                for n in DDG.nodes():
+                    if u.is_source(n, PB, PI) or u.is_sink(n, PB, PI):
+                        continue
+                    all_insts.update(u.node_instructions(G, n))
+                instructions = []
+                for inst in all_insts:
+                    instructions.append((PI[inst].get(u.tk_name),
+                                         PI[inst].get(u.tk_location)))
+                register_match(benchmark, mode, instructions, pattern, "no",
+                               trace_filename, -1)
+    results = []
+    for (benchmark, benchmark_data) in sorted(data.iteritems()):
+        for (mode, mode_data) in sorted(benchmark_data.iteritems()):
+            for (iset, pattern_data) in sorted(mode_data.iteritems()):
+                # Possibly generalize partial matches of map-like patterns into
+                # full 'mapfilter' matches.
+                generalize_partial_maps(pattern_data)
+                match_columns = {p : match_consensus(p, pattern_data)
+                                 for p in u.pat_all}
+                # If there is no match in this instruction set, discard.
+                if discard_no_matches and \
+                   all([m == u.match_none for m in match_columns]):
+                    continue
+                # Compute traces corresponding to this instruction set.
+                traces = set()
+                # Compute total nodes.
+                nodes = 0
+                for (pattern, match_data) in pattern_data.iteritems():
+                    for (match_result, result_data) in match_data.iteritems():
+                        traces.update([trace for (trace, _) in result_data])
+                        if match_result == "yes":
+                            nodes += sum([match_nodes for (_, match_nodes)
+                                          in result_data])
+                # Pretty-print location.
+                location = print_location(iset)
+                # "Repetitions" is just the number of traces.
+                repetitions = len(traces)
+                trace = ";".join(traces)
+                instructions = list(iset)
+                row = {"benchmark" : benchmark,
+                       "mode" : mode,
+                       "location" : location,
+                       "repetitions" : repetitions,
+                       "nodes" : nodes,
+                       "trace" : trace,
+                       "instructions" : instructions}
+                row.update(match_columns)
+                results.append(row)
+    return results
+
 def process_loop_matches(szn_files, simple, generalize_maps,
                          discard_no_matches):
 
@@ -283,7 +462,7 @@ def main(args):
     parser = argparse.ArgumentParser(description='Aggregate matches into a CSV table.')
     parser.add_argument('FILES', nargs="*")
     parser.add_argument('-o', "--output-file", help='output file')
-    parser.add_argument('-l,', '--level', dest='level', action='store', type=str, choices=[u.arg_loop, u.arg_instruction], default=u.arg_loop)
+    parser.add_argument('-l,', '--level', dest='level', action='store', type=str, choices=[u.arg_unified, u.arg_loop, u.arg_instruction], default=u.arg_unified)
     parser.add_argument('--simple', dest='simple', action='store_true', default=False)
     parser.add_argument('--generalize-maps', dest='generalize_maps', action='store_true', default=True)
     parser.add_argument('--discard-subsumed-patterns', dest='discard_subsumed', action='store_true', default=True)
@@ -294,7 +473,12 @@ def main(args):
     args = parser.parse_args(args)
 
     # Gather results.
-    if args.level == u.arg_loop:
+    if args.level == u.arg_unified:
+        results = process_unified_matches(args.FILES, args.simple,
+                                          args.generalize_maps,
+                                          args.discard_subsumed,
+                                          args.discard_no_matches)
+    elif args.level == u.arg_loop:
         results = process_loop_matches(args.FILES, args.simple,
                                        args.generalize_maps,
                                        args.discard_no_matches)
