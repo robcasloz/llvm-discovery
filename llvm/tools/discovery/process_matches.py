@@ -218,7 +218,7 @@ def process_matches(szn_files, simple, generalize_maps, discard_subsumed,
                                  for p in u.pat_all}
                 # If there is no match in this instruction set, discard.
                 if discard_no_matches and \
-                   all([m == u.match_none for m in match_columns]):
+                   all([m == u.match_none for m in match_columns.values()]):
                     continue
                 # Compute traces corresponding to this instruction set.
                 traces = set()
