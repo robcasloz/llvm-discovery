@@ -19,6 +19,7 @@ parser.add_argument('BENCHMARK_MODE')
 parser.add_argument('LOCATION')
 parser.add_argument('--matches', nargs="*", help='patterns (doall, map, mapfilter, reduction, scan) expected to be matched')
 parser.add_argument('--occurrence', help='specific occurrence of (benchmark, location) where the patterns are expected')
+parser.add_argument('--loop', help='whether the location specifies a loop', dest='loop', action='store_true', default=False)
 args = parser.parse_args()
 
 expected_matches = set(args.matches if args.matches else [])
@@ -28,6 +29,7 @@ legend = r.next()
 benchmark_index = legend.index("benchmark")
 mode_index = legend.index("mode")
 location_index = legend.index("location")
+loops_index = legend.index("loops")
 doall_index = legend.index(u.pat_doall)
 map_index = legend.index(u.pat_map)
 mapfilter_index = legend.index(u.pat_mapfilter)
@@ -36,12 +38,18 @@ scan_index = legend.index(u.pat_scan)
 twophasereduction_index = legend.index(u.pat_twophasereduction)
 found = False
 occurrence = 0
+
+def matches_location(line):
+    if args.loop:
+        return line[loops_index] == args.LOCATION
+    else:
+        return line[location_index] == args.LOCATION
+
 for line in r:
     benchmark = line[benchmark_index]
     mode = line[mode_index]
-    location = line[location_index]
     if "-".join([benchmark, mode]) == args.BENCHMARK_MODE and \
-       location == args.LOCATION:
+       matches_location(line):
         occurrence += 1
         if args.occurrence and int(args.occurrence) != occurrence:
             continue

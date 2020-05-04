@@ -191,7 +191,7 @@ try:
             loop_szn_files = subtrace_szn_files(u.loop_subtrace)
             loop_csv = temp(["loops", "csv"])
             run_process_matches(loop_szn_files + \
-                                ["-o", loop_csv, "-l", u.arg_loop] + \
+                                ["-o", loop_csv] + \
                                 simple_options)
             update_patterns_csv(loop_csv)
             associative_component_szn_files = \
@@ -199,8 +199,7 @@ try:
             associative_component_csv = temp(["associative_components", "csv"])
             instructions = temp(["instructions"])
             run_process_matches(associative_component_szn_files +
-                                ["-o", associative_component_csv, "-l",
-                                 u.arg_instruction,
+                                ["-o", associative_component_csv,
                                  "--matched-instructions-prefix", basedir] + \
                                 simple_options)
             update_patterns_csv(associative_component_csv)
@@ -239,8 +238,7 @@ try:
         list(ex.map(make_szn, u.pat_all))
 
         szn_files = [temp(["simple", p + "s", "szn"]) for p in u.pat_all]
-        run_process_matches(szn_files + ["-l", u.arg_instruction] + \
-                            simple_options)
+        run_process_matches(szn_files + simple_options)
 
 finally:
 
