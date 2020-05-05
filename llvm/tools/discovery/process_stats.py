@@ -9,44 +9,44 @@ from sets import Set
 from numpy import median, percentile
 
 def file_info(stats_filename):
-    [base, suffix] = os.path.basename(stats_filename).split(".", 1)
+    [base, _] = os.path.basename(stats_filename).split(".", 1)
     [benchmark, mode, repetition] = base.rsplit("-", 2)
-    return (benchmark, mode, int(repetition), suffix)
+    return (benchmark, mode, int(repetition))
 
 def process_stats(stats_files):
-    # Multi-level map: benchmark -> mode -> repetition -> stats entries.
+    # Multi-level map: benchmark -> mode -> repetition -> measurements.
     data = {}
 
-    # Populate the map loading each stats file. A stats file is expected to be
-    # called [BENCHMARK]-[MODE]-[REPETITION].[SUFFIX], where:
+    # Populate the map loading each stats CSV file. A stats file is expected to be
+    # called [BENCHMARK]-[MODE]-[REPETITION].*, where:
     #
     # BENCHMARK is the benchmark name (e.g. c-ray)
     # MODE is the benchmark mode (e.g. pthread)
     # REPETITION is the repetition number (e.g. 2)
-    # SUFFIX is the file suffix (e.g. tracing.time or simple.size)
     for filename in stats_files:
-        if os.path.isfile(filename) and \
-           (filename.endswith(".size") or filename.endswith(".time")):
+        if os.path.isfile(filename) and filename.endswith(".csv"):
             # Gather all data.
-            (benchmark, mode, repetition, suffix) = file_info(filename)
-            with open(filename, "r") as datafile:
-                for line in datafile:
-                    if suffix.endswith("time"):
-                        point = float(line)
-                    elif suffix.endswith("size"):
-                        point = int(line)
-                    else:
-                        assert(False)
-                    break
-            # Create keys at all levels first if not present.
+            (benchmark, mode, repetition) = file_info(filename)
+            # Create keys if not present.
             if not benchmark in data:
                 data[benchmark] = dict()
             if not mode in data[benchmark]:
                 data[benchmark][mode] = dict()
             if not repetition in data[benchmark][mode]:
                 data[benchmark][mode][repetition] = dict()
-            # Finally populate.
-            data[benchmark][mode][repetition][suffix] = point
+            with open(filename, "r") as statsfile:
+                r = csv.reader(statsfile, delimiter=",")
+                legend = r.next()
+                measurement_index = legend.index("measurement")
+                value_index = legend.index("value")
+                for [measurement, value] in r:
+                    if measurement.endswith("-time"):
+                        point = float(value)
+                    elif measurement.endswith("-size"):
+                        point = int(value)
+                    else:
+                        assert(False)
+                    data[benchmark][mode][repetition][measurement] = point
 
     # Aggregate data across repetitions.
     # Multi-level map: benchmark -> mode -> aggregated stats entries.
@@ -64,14 +64,16 @@ def process_stats(stats_files):
     results = []
     for (benchmark, benchmark_data) in sorted(ag_data.iteritems()):
         for (mode, mode_data) in sorted(benchmark_data.iteritems()):
-            ddg_size = median(mode_data["size"])
-            simple_ddg_size = median(mode_data["simple.size"])
+            ddg_size = median(mode_data["trace-size"])
+            simple_ddg_size = median(mode_data["simplified-trace-size"])
+            total_time = [sum(x) for x in zip(mode_data["tracing-time"],
+                                              mode_data["finding-time"])]
             [total_time_q1, total_time, total_time_q3] = \
-                percentile(mode_data["total.time"], [25, 50, 75])
+                percentile(total_time, [25, 50, 75])
             total_time_iqr = total_time_q3 - total_time_q1
             total_time_robustcv = 0.75 * (total_time_iqr / total_time)
-            tracing_time = median(mode_data["tracing.time"])
-            matching_time = median(mode_data["matching.time"])
+            tracing_time = median(mode_data["tracing-time"])
+            matching_time = median(mode_data["matching-time"])
             row = {"benchmark" : benchmark,
                    "mode" : mode,
                    "ddg-size" : ddg_size,

@@ -10,6 +10,8 @@ import multiprocessing
 import shutil
 import glob
 import filecmp
+import time
+import csv
 
 import trace_utils as u
 import process_trace as pt
@@ -26,11 +28,32 @@ parser.add_argument('-j', '--jobs', metavar='N', type=int)
 parser.add_argument('--clean', dest='clean', action='store_true')
 parser.add_argument('--no-clean', dest='clean', action='store_false')
 parser.add_argument('--detailed', dest='detailed', action='store_true')
+parser.add_argument('--stats')
 parser.set_defaults(jobs=multiprocessing.cpu_count())
 parser.set_defaults(clean=True)
 parser.set_defaults(detailed=False)
+parser.set_defaults(stats=False)
 
 args = parser.parse_args()
+
+if args.stats:
+    stats = {}
+    start = 0.0
+
+def start_measurement(measurement):
+    global start
+    if not args.stats:
+        return
+    if not measurement in stats:
+        stats[measurement] = 0.0
+    start = time.time()
+
+def end_measurement(measurement):
+    global start
+    if not args.stats:
+        return
+    end = time.time()
+    stats[measurement] += (end - start)
 
 def run_command(cmd):
     if args.verbose:
@@ -96,9 +119,22 @@ try:
         elif st_type == u.associative_component_subtrace:
             return u.pat_all_associative
 
+    if args.stats:
+        finding_start = time.time()
+
     simplified_trace = temp(["simple", "trace"])
+    start_measurement("simplification-time")
     run_process_trace(["-o", simplified_trace, "--output-format=plain",
                        "simplify", args.TRACE_FILE])
+    end_measurement("simplification-time")
+
+    if args.stats:
+        for (ext, trace) in [("trace-size", args.TRACE_FILE),
+                             ("simplified-trace-size", simplified_trace)]:
+            size = temp([ext])
+            run_process_trace(["-o", size, "query", "--print-size", trace])
+            with open(size, "r") as size_file:
+                stats[ext] = int(size_file.readline())
 
     def all_but_simplified_trace():
         return list(set(glob.glob(os.path.join(basedir, "*.trace"))) \
@@ -123,9 +159,11 @@ try:
                 decompose_options = []
             else:
                 decompose_options = ["--no-associative-components"]
+            start_measurement("decomposition-time")
             run_process_trace(["decompose"] + \
                               decompose_options + \
                               [simplified_trace])
+            end_measurement("decomposition-time")
             subtrace_ids = set()
             for subtrace in all_but_simplified_trace():
                 base_subtrace = os.path.basename(os.path.splitext(subtrace)[0])
@@ -158,7 +196,9 @@ try:
                                   ["print", compact_subtrace])
 
             # The list conversion is just to force evaluation.
+            start_measurement("compaction-time")
             list(ex.map(make_dzn, subtrace_ids))
+            end_measurement("compaction-time")
 
             def make_szn((subtrace_id, pattern)):
                 pre = subtrace_prefix(subtrace_id)
@@ -170,10 +210,12 @@ try:
                               "chuffed", mzn(pattern), compact_subtrace_dzn])
 
             # The list conversion is just to force evaluation.
+            start_measurement("matching-time")
             list(ex.map(make_szn,
                         [(st, p)
                          for st in subtrace_ids
                          for p  in applicable_patterns(subtrace_type(st))]))
+            end_measurement("matching-time")
 
             def subtrace_szn_files(st_type):
                 return [temp(subtrace_prefix(st) + \
@@ -207,9 +249,11 @@ try:
                 break
 
             subtracted_trace = temp(["simple", "subtracted", "trace"])
+            start_measurement("subtraction-time")
             run_process_trace(["-o", subtracted_trace, "--output-format=plain",
                                "transform", "--filter-out-instructions",
                                instructions, simplified_trace])
+            end_measurement("subtraction-time")
 
             if filecmp.cmp(simplified_trace, subtracted_trace):
                 break
@@ -235,12 +279,22 @@ try:
                           simple_dzn])
 
         # The list conversion is just to force evaluation.
+        start_measurement("matching-time")
         list(ex.map(make_szn, u.pat_all))
+        end_measurement("matching-time")
 
         szn_files = [temp(["simple", p + "s", "szn"]) for p in u.pat_all]
         run_process_matches(szn_files + simple_options)
 
 finally:
-
     if args.clean:
         shutil.rmtree(basedir)
+    if args.stats:
+        finding_end = time.time()
+        with open(args.stats ,"w+") as stats_out:
+            stats["finding-time"] = finding_end - finding_start
+            st_writer = csv.writer(stats_out, delimiter=",",
+                                   quoting=csv.QUOTE_MINIMAL)
+            st_writer.writerow(["measurement", "value"])
+            for (measurement, value) in stats.iteritems():
+                st_writer.writerow([measurement, value])
