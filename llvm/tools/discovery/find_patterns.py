@@ -91,11 +91,16 @@ def run_minizinc(outfile, arguments):
 
 basedir = tempfile.mkdtemp(prefix = "discovery-")
 base = os.path.splitext(os.path.basename(args.TRACE_FILE))[0]
+iterdir = None
 
 try:
 
     def temp(extension):
-        return os.path.join(basedir, ".".join([base] + extension))
+        if iterdir:
+            rootdir = iterdir
+        else:
+            rootdir = basedir
+        return os.path.join(rootdir, ".".join([base] + extension))
 
     def indir(filename):
         return os.path.join(sys.path[0], filename)
@@ -137,8 +142,8 @@ try:
                 stats[ext] = int(size_file.readline())
 
     def all_but_simplified_trace():
-        return list(set(glob.glob(os.path.join(basedir, "*.trace"))) \
-                    - set([simplified_trace]))
+        return list(set(glob.glob(os.path.join(iterdir, "*.trace"))) \
+                    - set([iter_simplified_trace]))
 
     ex = futures.ThreadPoolExecutor(max_workers=int(args.jobs))
 
@@ -149,20 +154,25 @@ try:
 
     if args.level == u.arg_heuristic:
 
-        iteration = 0
+        iteration = 1
         patterns_csv = temp(["patterns", "csv"])
         run_process_matches(["-o", patterns_csv] + simple_options)
 
         while True:
 
-            if iteration == 0:
+            iterdir = os.path.join(basedir, str(iteration))
+            os.mkdir(iterdir)
+
+            if iteration == 1:
                 decompose_options = []
             else:
                 decompose_options = ["--no-associative-components"]
+            iter_simplified_trace = temp(["simple", "trace"])
+            run_command(["cp", simplified_trace, iter_simplified_trace])
             start_measurement("decomposition-time")
             run_process_trace(["decompose"] + \
                               decompose_options + \
-                              [simplified_trace])
+                              [iter_simplified_trace])
             end_measurement("decomposition-time")
             subtrace_ids = set()
             for subtrace in all_but_simplified_trace():
@@ -242,7 +252,7 @@ try:
             instructions = temp(["instructions"])
             run_process_matches(associative_component_szn_files +
                                 ["-o", associative_component_csv,
-                                 "--matched-instructions-prefix", basedir] + \
+                                 "--matched-instructions-prefix", iterdir] + \
                                 simple_options)
             update_patterns_csv(associative_component_csv)
             if not os.path.isfile(instructions):
@@ -258,9 +268,6 @@ try:
             if filecmp.cmp(simplified_trace, subtracted_trace):
                 break
             run_command(["mv", subtracted_trace, simplified_trace])
-            for ext in ["*.szn", "*.dzn"]:
-                run_command(["rm"] + glob.glob(os.path.join(basedir, ext)))
-            run_command(["rm"] + all_but_simplified_trace())
             iteration += 1
 
         for line in open(patterns_csv, "r"):
