@@ -393,6 +393,8 @@ def filter_by((DDG, PB, PI, PT), p, add_context = True):
         DDGf.remove_node(block)
         PBf.pop(block, None)
     PIf = clean_instruction_properties(PI, PBf)
+    for b in DDGf.nodes():
+        PBf[b][u.tk_original] = [b]
     if not add_context:
         return (DDGf, PBf, PIf, PT)
     # Add arcs into and from the filtered nodes, for context.
@@ -572,17 +574,22 @@ def collapse_tags((DDG, PB, PI, PT), tag):
         list(set.intersection(*[set(PB[b].get(u.tk_tags, [])) for b in nodes]))
         if group_tags:
             PBc[group_block][u.tk_tags] = group_tags
-    # If any of the collapsed instructions is impure, tag as impure.
+        # Collect all original nodes.
+        group_original = \
+        list(set.union(*[set(PBc[b].get(u.tk_original, [])) for b in nodes]))
+        PBc[group_block][u.tk_original] = group_original
+    collapsed_nodes = Set()
     for nodes in instance_nodes.values():
-        for block in nodes:
-            impure = u.properties(block, PB, PI).get(u.tk_impure)
-            if impure:
-                PIc[group_instruction][u.tk_impure] = impure
+        collapsed_nodes |= nodes
+    # If any of the collapsed instructions is impure, tag as impure.
+    for block in collapsed_nodes:
+        impure = u.properties(block, PB, PI).get(u.tk_impure)
+        if impure:
+            PIc[group_instruction][u.tk_impure] = impure
     # Add all children instructions of the collapsed instruction.
     children = Set()
-    for nodes in instance_nodes.values():
-        for block in nodes:
-            children.add(PB[block].get(u.tk_instruction))
+    for block in collapsed_nodes:
+        children.add(PB[block].get(u.tk_instruction))
     PIc[group_instruction][u.tk_children] = list(map(int, children))
     # Mark the collapsed instruction as a region.
     PIc[group_instruction][u.tk_region] = u.tk_true
@@ -858,6 +865,8 @@ def print_plain((DDG, PB, PI, PT)):
        for key, value in PB[block].iteritems():
            if key == u.tk_tags:
                value = u.tk_list_sep.join(map(tag_tuple_to_str, value))
+           elif key == u.tk_original:
+               value = u.tk_list_sep.join(map(str, value))
            print >>out, u.tk_bp, block, key, value
        for (source, _) in DDG.in_edges(block):
            print >>out, u.tk_df, source, block

@@ -27,6 +27,7 @@ tk_tag = "TAG"
 tk_tags = "TAGS"
 tk_alias = "ALIAS"
 tk_original_blocks = "ORIGINALBLOCKS"
+tk_original = "ORIGINAL"
 
 tk_list_sep = ";"
 tk_tag_sep = "-"
@@ -128,6 +129,8 @@ def read_trace(trace_file):
             PB[block][tk_tags] = tags
         elif key == tk_tags:
             PB[block][key] = map(tag_str_to_tuple, value.split(tk_list_sep))
+        elif key == tk_original:
+            PB[block][key] = map(int, value.split(tk_list_sep))
         elif key == tk_instruction:
             try:
                 instruction = int(value)
