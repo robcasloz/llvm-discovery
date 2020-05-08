@@ -21,6 +21,7 @@ arg_graphviz = "graphviz"
 arg_query = "query"
 arg_simplify = "simplify"
 arg_decompose = "decompose"
+arg_compose = "compose"
 arg_transform = "transform"
 arg_fold = "fold"
 arg_print = "print"
@@ -471,6 +472,10 @@ def filter_component((DDG, PB, PI, PT), component, min_nodes, top_components):
     (DDGc, PBc, PIc, PTc) = filter_by((DDG, PB, PI, PT), is_component)
     return (DDGc, PBc, PIc, PTc)
 
+# Filters nodes with the given ID.
+def filter_blocks(G, blocks):
+    return filter_by(G, lambda b: b in blocks)
+
 # Computes top weakly connected components of cardinality greater or equal than
 # the given one. Returns the components ordered in decreasing size.
 def weakly_connected_components(DDG, min_nodes, top_components):
@@ -524,6 +529,17 @@ def decompose_associative_components(G, min_nodes, top_components):
             CGS.append((Gic, component_id))
             c += 1
     return CGS
+
+# Composes the two given sub-DDGs w.r.t. to their original DDG. The resulting
+# composition is not compacted, even if the original sub-DDGs might be.
+def compose(SG1, SG2, G):
+    def original_blocks((DDG, PB, _, __)):
+        return set.union(*[set(PB[b].get(u.tk_original, []))
+                           for b in DDG.nodes()])
+    blocks = set.union(*(map(original_blocks, [SG1, SG2])))
+    G = filter_blocks(G, blocks)
+    # TODO: preserve only the tags present in SG1 and SG2 (for compaction).
+    return G
 
 # Adds a new region instruction with the given name.
 def add_region_instruction(name, PI):
@@ -959,6 +975,14 @@ def output(G, args):
     else:
         print out,
 
+# Loads and pre-processes a trace file.
+def load_trace(trace_file):
+    G = u.read_trace(trace_file)
+    G = normalize_instructions(G)
+    G = lift_instruction_properties(G)
+    G = normalize_tags(G)
+    return G
+
 def main(args):
 
     parser = argparse.ArgumentParser(description='Process, simplify, and visualize traces and matches.')
@@ -1020,6 +1044,9 @@ def main(args):
     parser_decompose.add_argument('--no-clean-tags', dest='clean_tags', action='store_false')
     parser_decompose.set_defaults(clean_tags=True)
 
+    parser_compose = subparsers.add_parser(arg_compose, help='compose two subtraces into a single one')
+    parser_compose.add_argument('SUBTRACE_FILE_1')
+    parser_compose.add_argument('SUBTRACE_FILE_2')
 
     parser_transform = subparsers.add_parser(arg_transform, help='apply filter and collapse operations to the trace')
     parser_transform.add_argument('--filter-location', help='filters blocks by location according to a regexp')
@@ -1051,10 +1078,7 @@ def main(args):
 
     args = parser.parse_args(args)
 
-    G = u.read_trace(args.TRACE_FILE)
-    G = normalize_instructions(G)
-    G = lift_instruction_properties(G)
-    G = normalize_tags(G)
+    G = load_trace(args.TRACE_FILE)
 
     if args.subparser == arg_query:
         if args.print_tags:
@@ -1103,6 +1127,12 @@ def main(args):
         for (G, subtrace_id) in GS:
             args.output_file = root + "." + subtrace_id + ext
             output(G, args)
+    elif args.subparser == arg_compose:
+        SG1 = load_trace(args.SUBTRACE_FILE_1)
+        SG2 = load_trace(args.SUBTRACE_FILE_2)
+        CG = compose(SG1, SG2, G)
+        CG = normalize(CG)
+        output(CG, args)
     elif args.subparser == arg_transform:
         if args.filter_location:
             G = filter_location(G, args.filter_location)
