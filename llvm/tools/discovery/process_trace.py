@@ -488,14 +488,13 @@ def weakly_connected_components(DDG, min_nodes, top_components):
         return ordered
 
 # Decomposes the given DDG into a DDG per tag and group within the tag.
-def decompose_loops(G, clean_tags):
+def decompose_loops(G):
     tags = u.tag_set(G)
     LGS = []
     # For each loop (tag), produce a temporary DDG.
     for tag in tags:
         Gt = filter_tag(G, tag, None)
-        if clean_tags:
-            Gt = remove_tags(Gt, tags - set([tag]))
+        Gt = remove_tags(Gt, tags - set([tag]))
         # For each loop run (group within a tag), generate a DDG.
         for group in group_nodes_map(Gt, tag).keys():
             loop_id = str(tag) + "." + str(group)
@@ -507,6 +506,8 @@ def decompose_loops(G, clean_tags):
 # Decomposes the given DDG into a DDG per associative instruction and connected
 # component within it.
 def decompose_associative_components(G, min_nodes, top_components):
+    tags = u.tag_set(G)
+    CGS = []
     # For each associative instruction.
     # FIXME: We added 'sub' to simulate algebraic transformation: a statement
     # "foo -= bar" can always be rewritten as "foo += (-bar)" and matched as a
@@ -514,10 +515,10 @@ def decompose_associative_components(G, min_nodes, top_components):
     # streamcluster.c:316 (pthread) within the StarBench suite. This should
     # rather be implemented as a transformation, e.g. within the simplification
     # step or perhaps even at instrumentation phase.
-    CGS = []
     for instr_name in \
         ["add", "fadd", "mul", "fmul", "and", "or", "xor", "sub", "fsub"]:
         Gi = filter_name(G, instr_name)
+        Gi = remove_tags(Gi, tags)
         Gi = normalize(Gi)
         DDGi = filter_middle(Gi)[0]
         c = 0
@@ -559,6 +560,8 @@ def remove_tags((DDG, PB, PI, PT), tags):
         new_tags = [(t, i) for (t, i) in old_tags if t not in tags]
         if old_tags:
             PB[block][u.tk_tags] = new_tags
+            if not new_tags:
+                del PB[block][u.tk_tags]
     for tag in u.tag_set((DDG, PB, PI, PT)) - tags:
         PTc[tag] = PT[tag]
     return (DDG, PB, PI, PTc)
@@ -1040,9 +1043,6 @@ def main(args):
     parser_decompose.add_argument('--associative-components',    dest='associative_components', action='store_true', help='extract associative component subtraces')
     parser_decompose.add_argument('--no-associative-components', dest='associative_components', action='store_false')
     parser_decompose.set_defaults(associative_components=True)
-    parser_decompose.add_argument('--clean-tags',    dest='clean_tags', action='store_true', help='remove non-specified loop tags in loop subtraces')
-    parser_decompose.add_argument('--no-clean-tags', dest='clean_tags', action='store_false')
-    parser_decompose.set_defaults(clean_tags=True)
 
     parser_compose = subparsers.add_parser(arg_compose, help='compose two subtraces into a single one')
     parser_compose.add_argument('SUBTRACE_FILE_1')
@@ -1119,7 +1119,7 @@ def main(args):
     elif args.subparser == arg_decompose:
         GS = []
         if args.loops:
-            GS.extend(decompose_loops(G, args.clean_tags))
+            GS.extend(decompose_loops(G))
         if args.associative_components:
             GS.extend(decompose_associative_components(G, args.min_nodes,
                                                        args.top_components))
