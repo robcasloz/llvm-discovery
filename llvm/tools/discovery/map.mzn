@@ -120,13 +120,14 @@ constraint
 forall (s in nodes, t in nodes where t in reachable[s])
 (((s in M) /\ (t in M)) -> Run[t] == Run[s]);
 
-% Ensure that pairs of nodes that are not "weakly connected" (see definition in
-% common.mzn) are assigned different runs. We use "weak connectivity" as a poor
-% man's approximation to regular graph connectivity (which would be very costly
-% to implement).
+% Ensure that there is at least one run where all nodes are "weakly connected"
+% (see definition in common.mzn). We use "weak connectivity" as a poor man's
+% approximation to regular graph connectivity (which would be very costly to
+% implement).
+
 constraint
-forall (s in nodes, t in nodes where s != t /\ not weakly_connected(s, t))
-(((s in M) /\ (t in M)) -> Run[t] != Run[s]);
+exists (i in runs where card(R[i]) > 0)
+(forall (s in R[i], t in R[i]) (weakly_connected(s, t)));
 
 % Ensure that the map has at least two runs.
 constraint minimum_components(R, 2);
