@@ -56,8 +56,9 @@ array[final_steps, partial_steps] of var set of nodes: PS;
 % the partial step).
 array[final_steps, nodes] of var 0..m: PStep;
 
-% PLast[i] is the last step in partial reduction i.
-array[final_steps] of var final_steps: PLast;
+% PLast[i] is the last step in partial reduction i (or -1 if the partial
+% reduction is empty).
+array[final_steps] of var ({-1} union final_steps): PLast;
 
 % Count[k] is the number of nodes that correspond to instruction k in a
 % partial step (same across all partial reductions).
@@ -73,11 +74,16 @@ constraint
 forall (i in 0..FLast)
 (reduction(PR[i], PRc[i], row(PS, i), row(PStep, i), PLast[i], PCount));
 
-% Ensure that there are as many partial reductions as steps in the final
+% Define FLast as the last final step.
+constraint
+forall (i in final_steps)
+(card(FS[i]) > 0 <-> i <= FLast);
+
+% Ensure that there are no more partial reductions than steps in the final
 % reduction.
 constraint
 forall (i in final_steps)
-(card(PR[i]) > 0 <-> i <= FLast);
+(card(FS[i]) == 0 -> card(PR[i]) == 0);
 
 % Ensure that empty partial reductions have empty reduction steps.
 constraint
@@ -93,10 +99,10 @@ partition_set([R, Rc], nodes);
 constraint
 partition_set([FR] ++ PR ++ [Rc], nodes);
 
-% Ensure that there is an arc from the last step of each partial reduction to
-% its corresponding step in the final reduction.
+% Ensure that there is an arc from the last step of each non-empty partial
+% reduction to its corresponding step in the final reduction.
 constraint
-forall (i in 0..FLast)
+forall (i in 0..FLast where card(PR[i]) > 0)
 (exists (a in index_set_1of2(arcs))
  (
   let {int: s = arcs[a, 0];
@@ -136,11 +142,6 @@ forall (k in insts)
 
 % Ensure that the final reduction has at least two steps.
 constraint minimum_components(FS, 2);
-
-% Ensure that each active partial reduction has at least one step.
-constraint
-forall (i in 0..FLast)
-(minimum_components(row(PS, i), 1));
 
 % Ensure that at least one of the partial reductions has two steps.
 constraint

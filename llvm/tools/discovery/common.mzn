@@ -147,12 +147,12 @@ let {set of int: steps = index_set(S);} in
 )
 /\
 (
- % Ensure that the last step has an outgoing arc.
+ % Ensure that the last step (if any) has an outgoing arc.
  exists (a in index_set_1of2(arcs))
  (
   let {int: s = arcs[a, 0];
        int: t = arcs[a, 1]} in
-  ((s in S[Last]) /\ (not (t in R)))
+  (card(R) > 0) -> ((s in S[Last]) /\ (not (t in R)))
  )
 )
 /\
