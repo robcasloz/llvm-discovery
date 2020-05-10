@@ -539,7 +539,23 @@ def compose(SG1, SG2, G):
                            for b in DDG.nodes()])
     blocks = set.union(*(map(original_blocks, [SG1, SG2])))
     G = filter_blocks(G, blocks)
-    # TODO: preserve only the tags present in SG1 and SG2 (for compaction).
+    # Preserve only the tags in SG1 and SG2, for future compaction.
+    G = remove_tags(G, u.tag_set(G))
+    def add_tags((DDG, PB, _, PT), offset):
+        tags = set()
+        for b in DDG.nodes():
+            offset_tags = set()
+            for (tag_name, tag_data) in PB[b].get(u.tk_tags, []):
+                tags.add((tag_name, tag_data))
+                offset_tags.add((tag_name + offset, tag_data))
+            for ob in PB[b].get(u.tk_original, []):
+                G[1][ob][u.tk_tags] = list(offset_tags)
+        for tag in tags:
+            G[3][u.tag_name(tag) + offset] = PT[u.tag_name(tag)]
+        return tags
+    sg1_tags = add_tags(SG1, 0)
+    offset = max(map(u.tag_name, sg1_tags) or [0]) + 1
+    add_tags(SG2, offset)
     return G
 
 # Adds a new region instruction with the given name.
@@ -943,7 +959,8 @@ def print_minizinc((DDG, PB, PI, PT), match_regions_only):
     max_count = []
     for instr in PIp.keys():
         mc = len(instr2blocks[instr]) / 2
-        if match_regions_only:
+        # We only allow a single execution of each region per component.
+        if PIp[instr].get(u.tk_region) == u.tk_true:
             mc = min(mc, 1)
         max_count.append(mc)
     print >>out, "max_count = array1d(0.." + str(c - 1) + ", [" \

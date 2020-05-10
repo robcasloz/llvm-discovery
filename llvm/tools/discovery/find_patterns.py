@@ -189,21 +189,13 @@ try:
                 pre = subtrace_prefix(subtrace_id)
                 subtrace = temp(pre + ["trace"])
                 compact_subtrace = temp(pre + ["collapsed", "trace"])
-                if subtrace_type(subtrace_id) == u.loop_subtrace:
-                    run_process_trace(["-o", compact_subtrace,
-                                       "--output-format=plain", "transform",
-                                       "--collapse-tags", "all", subtrace])
-                else:
-                    run_command(["cp", subtrace, compact_subtrace])
+                run_process_trace(["-o", compact_subtrace,
+                                   "--output-format=plain", "transform",
+                                   "--collapse-tags", "all", subtrace])
                 compact_subtrace_dzn = temp(pre + ["collapsed", "dzn"])
-                if subtrace_type(subtrace_id) == u.loop_subtrace:
-                    minizinc_dzn_options = ["--match-regions-only"]
-                else:
-                    minizinc_dzn_options = []
                 run_process_trace(["-o", compact_subtrace_dzn,
-                                   "--output-format=minizinc"] + \
-                                  minizinc_dzn_options + \
-                                  ["print", compact_subtrace])
+                                   "--output-format=minizinc",
+                                   "print", compact_subtrace])
 
             # The list conversion is just to force evaluation.
             start_measurement("compaction-time")
