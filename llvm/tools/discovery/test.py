@@ -9,7 +9,7 @@ import glob
 from concurrent import futures
 import multiprocessing
 
-patterns = ["map", "reduction", "scan", "pipeline"]
+patterns = ["map", "reduction", "scan", "pipeline", "twophasereduction"]
 
 test_cases = {
     "map" : [
@@ -36,6 +36,9 @@ test_cases = {
     "pipeline" : [
         "sequential-pipe",
         "complex-pipe"
+    ],
+    "twophasereduction" : [
+        "reduction-parallel"
     ]
 }
 
