@@ -553,8 +553,9 @@ def compose(SG1, SG2, G):
             for (tag_name, tag_data) in PB[b].get(u.tk_tags, []):
                 tags.add((tag_name, tag_data))
                 offset_tags.add((tag_name + offset, tag_data))
-            for ob in PB[b].get(u.tk_original, []):
-                G[1][ob][u.tk_tags] = list(offset_tags)
+            if offset_tags:
+                for ob in PB[b].get(u.tk_original, []):
+                    G[1][ob][u.tk_tags] = list(offset_tags)
         for tag in tags:
             G[3][u.tag_name(tag) + offset] = PT[u.tag_name(tag)]
         return tags
