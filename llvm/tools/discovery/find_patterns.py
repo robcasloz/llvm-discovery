@@ -116,7 +116,7 @@ try:
             suffix = [str(first), str(second)]
         else:
             suffix = [first, str(second)]
-        return ["simple"] + suffix
+        return ["original"] + suffix
 
     def applicable_patterns(st_type):
         if st_type == u.loop_subtrace:
@@ -141,9 +141,13 @@ try:
             with open(size, "r") as size_file:
                 stats[ext] = int(size_file.readline())
 
-    def all_but_simplified_trace():
+    original_trace = temp(["original", "trace"])
+    run_process_trace(["-o", original_trace, "--output-format=plain",
+                       "record", simplified_trace])
+
+    def all_but_original_trace():
         return list(set(glob.glob(os.path.join(iterdir, "*.trace"))) \
-                    - set([iter_simplified_trace]))
+                    - set([iter_original_trace]))
 
     ex = futures.ThreadPoolExecutor(max_workers=int(args.jobs))
 
@@ -163,19 +167,18 @@ try:
             iterdir = os.path.join(basedir, str(iteration))
             os.mkdir(iterdir)
 
-            if iteration == 1:
-                decompose_options = []
-            else:
+            decompose_options = []
+            if iteration > 1:
                 decompose_options = ["--no-associative-components"]
-            iter_simplified_trace = temp(["simple", "trace"])
-            run_command(["cp", simplified_trace, iter_simplified_trace])
+            iter_original_trace = temp(["original", "trace"])
+            run_command(["cp", original_trace, iter_original_trace])
             start_measurement("decomposition-time")
             run_process_trace(["decompose"] + \
                               decompose_options + \
-                              [iter_simplified_trace])
+                              [iter_original_trace])
             end_measurement("decomposition-time")
             subtrace_ids = set()
-            for subtrace in all_but_simplified_trace():
+            for subtrace in all_but_original_trace():
                 base_subtrace = os.path.basename(os.path.splitext(subtrace)[0])
                 [_, first, second] = base_subtrace.rsplit(".", 2)
                 if first.isdigit(): # Loop sub-trace
@@ -250,16 +253,17 @@ try:
             if not os.path.isfile(instructions):
                 break
 
-            subtracted_trace = temp(["simple", "subtracted", "trace"])
+            subtracted_trace = temp(["original", "subtracted", "trace"])
             start_measurement("subtraction-time")
             run_process_trace(["-o", subtracted_trace, "--output-format=plain",
                                "transform", "--filter-out-instructions",
-                               instructions, simplified_trace])
+                               instructions, original_trace])
             end_measurement("subtraction-time")
 
-            if filecmp.cmp(simplified_trace, subtracted_trace):
+            if filecmp.cmp(original_trace, subtracted_trace):
                 break
-            run_command(["mv", subtracted_trace, simplified_trace])
+            # TODO: move directly to next iteration's directory.
+            run_command(["mv", subtracted_trace, original_trace])
             iteration += 1
 
         for line in open(patterns_csv, "r"):
@@ -267,12 +271,12 @@ try:
 
     elif args.level == u.arg_complete:
 
-        simple_dzn = temp(["simple", "dzn"])
+        simple_dzn = temp(["original", "dzn"])
         run_process_trace(["-o", simple_dzn, "--output-format=minizinc", "print",
-                           simplified_trace])
+                           original_trace])
 
         def make_szn(pattern):
-            simple_pattern_szn = temp(["simple", pattern + "s", "szn"])
+            simple_pattern_szn = temp(["original", pattern + "s", "szn"])
             run_minizinc(simple_pattern_szn,
                          ["-a", "--solver", "chuffed", mzn(pattern),
                           simple_dzn])
@@ -282,7 +286,7 @@ try:
         list(ex.map(make_szn, u.pat_all))
         end_measurement("matching-time")
 
-        szn_files = [temp(["simple", p + "s", "szn"]) for p in u.pat_all]
+        szn_files = [temp(["original", p + "s", "szn"]) for p in u.pat_all]
         run_process_matches(szn_files + simple_options)
 
 finally:

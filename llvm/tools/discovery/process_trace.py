@@ -20,6 +20,7 @@ arg_graphviz = "graphviz"
 
 arg_query = "query"
 arg_simplify = "simplify"
+arg_record = "record"
 arg_decompose = "decompose"
 arg_compose = "compose"
 arg_transform = "transform"
@@ -385,6 +386,12 @@ def prune((DDG, PB, PI, PT)):
     PIp = clean_instruction_properties(PI, PBp)
     return (DDGp, PBp, PIp, PT)
 
+# Record original nodes for tracing back from future transformed traces.
+def record_original_nodes((DDG, PB, PI, PT)):
+    for b in DDG.nodes():
+        PB[b][u.tk_original] = [b]
+    return
+
 # Filters nodes in the labeled DDG that satisfy p.
 def filter_by((DDG, PB, PI, PT), p, add_context = True):
     DDGf = DDG.copy()
@@ -394,8 +401,6 @@ def filter_by((DDG, PB, PI, PT), p, add_context = True):
         DDGf.remove_node(block)
         PBf.pop(block, None)
     PIf = clean_instruction_properties(PI, PBf)
-    for b in DDGf.nodes():
-        PBf[b][u.tk_original] = [b]
     if not add_context:
         return (DDGf, PBf, PIf, PT)
     # Add arcs into and from the filtered nodes, for context.
@@ -612,7 +617,8 @@ def collapse_tags((DDG, PB, PI, PT), tag):
         # Collect all original nodes.
         group_original = \
         list(set.union(*[set(PBc[b].get(u.tk_original, [])) for b in nodes]))
-        PBc[group_block][u.tk_original] = group_original
+        if group_original:
+            PBc[group_block][u.tk_original] = group_original
     collapsed_nodes = Set()
     for nodes in instance_nodes.values():
         collapsed_nodes |= nodes
@@ -1053,6 +1059,8 @@ def main(args):
     parser_simplify.add_argument('--untag-inductions', dest='untag_inductions', action='store_true', help='remove tags from induction nodes')
     parser_simplify.set_defaults(untag_inductions=False)
 
+    parser_record = subparsers.add_parser(arg_record, help='save node identifiers for backtracing.')
+
     parser_decompose = subparsers.add_parser(arg_decompose, help='decompose a trace into multiple subtraces')
     parser_decompose.add_argument('--loops',    dest='loops', action='store_true', help='extract loop subtraces')
     parser_decompose.add_argument('--no-loops', dest='loops', action='store_false')
@@ -1131,6 +1139,10 @@ def main(args):
         if args.untag_inductions:
             for tag in u.tag_set(G):
                 G = untag_induction_nodes(G, (get_tag_id(tag, G)))
+        G = normalize(G)
+        output(G, args)
+    elif args.subparser == arg_record:
+        record_original_nodes(G)
         G = normalize(G)
         output(G, args)
     elif args.subparser == arg_decompose:
