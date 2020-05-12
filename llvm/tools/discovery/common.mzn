@@ -309,6 +309,119 @@ let {set of int: steps = index_set(S);} in
   (bool2int(j in S[i])))
 );
 
+% Ensures that the given variables capture a two-phase reduction pattern.
+predicate twophasereduction(var set of int: R,
+                            var set of int: Rc,
+                            array[int] of var set of int: PR,
+                            array[int] of var set of int: PRc,
+                            array[int, int] of var set of int: PS,
+                            array[int, int] of var int: PStep,
+                            array[int] of var int: PLast,
+                            array[int] of var int: PCount,
+                            var set of int: FR,
+                            var set of int: FRc,
+                            array[int] of var set of int: FS,
+                            array[int] of var int: FStep,
+                            var int: FLast,
+                            array[int] of var int: FCount) =
+let {set of int: partial_steps = index_set_2of2(PS);
+     set of int: final_steps   = index_set(FS);} in
+(
+ % Ensure that the final reduction variables form a reduction.
+ reduction(FR, FRc, FS, FStep, FLast, FCount)
+)
+/\
+(
+ % Ensure that each set of partial reduction variables forms a reduction.
+ forall (i in 0..FLast)
+ (reduction(PR[i], PRc[i], row(PS, i), row(PStep, i), PLast[i], PCount))
+)
+/\
+(
+ % Define FLast as the last final step.
+ forall (i in final_steps)
+ (card(FS[i]) > 0 <-> i <= FLast)
+)
+/\
+(
+ % Ensure that there are no more partial reductions than steps in the final
+ % reduction.
+ forall (i in final_steps)
+ (card(FS[i]) == 0 -> card(PR[i]) == 0)
+)
+/\
+(
+ % Ensure that empty partial reductions have empty reduction steps.
+ forall (i in final_steps, j in partial_steps)
+ (card(PR[i]) == 0 -> card(PS[i,j]) == 0)
+)
+/\
+(
+ % Ensure that R and Rc are complementary.
+ partition_set([R, Rc], nodes)
+)
+/\
+(
+ % Ensure that all reduction steps (partial and final) form a partition of R.
+ partition_set([FR] ++ PR ++ [Rc], nodes)
+)
+/\
+(
+ % Ensure that there is an arc from the last step of each non-empty partial
+ % reduction to its corresponding step in the final reduction.
+ forall (i in 0..FLast where card(PR[i]) > 0)
+ (exists (a in index_set_1of2(arcs))
+  (
+   let {int: s = arcs[a, 0];
+        int: t = arcs[a, 1]} in
+   ((s in PS[i, PLast[i]]) /\ (t in FS[i]))
+  )
+ )
+)
+/\
+(
+ % Ensure that all partial steps have an incoming arc.
+ forall (i in final_steps where i <= FLast,
+         j in partial_steps where j <= PLast[i])
+ (exists (a in index_set_1of2(arcs))
+  (
+   let {int: s = arcs[a, 0];
+        int: t = arcs[a, 1]} in
+   ((not (s in R)) /\ (t in PS[i,j]))
+  )
+ )
+)
+/\
+(
+ % Ensure that the last final step has an outgoing arc.
+ exists (a in index_set_1of2(arcs))
+ (
+  let {int: s = arcs[a, 0];
+       int: t = arcs[a, 1]} in
+  ((s in FS[FLast]) /\ (not (t in R)))
+ )
+)
+/\
+(
+ % Ensure that partial and final reduction steps use different instructions.
+ forall (k in insts)
+ (
+  (FCount[k] > 0 -> PCount[k] == 0) /\
+  (PCount[k] > 0 -> FCount[k] == 0)
+ )
+)
+/\
+(
+ % Ensure that each step has just one node.
+ forall (i in final_steps)
+ (card(FS[i]) <= 1)
+)
+/\
+(
+ forall (i in final_steps, j in partial_steps)
+ (card(PS[i,j]) <= 1)
+);
+
 % Ensures that either all instances of an instruction are covered by a pattern
 % or none is (static covering).
 predicate static_covering(var set of int: P) =

@@ -66,79 +66,11 @@ array[insts] of var 0..n: PCount;
 
 %%% CONSTRAINTS
 
-% Ensure that the final reduction variables form a reduction.
-constraint reduction(FR, FRc, FS, FStep, FLast, FCount);
-
-% Ensure that each set of partial reduction variables forms a reduction.
-constraint
-forall (i in 0..FLast)
-(reduction(PR[i], PRc[i], row(PS, i), row(PStep, i), PLast[i], PCount));
-
-% Define FLast as the last final step.
-constraint
-forall (i in final_steps)
-(card(FS[i]) > 0 <-> i <= FLast);
-
-% Ensure that there are no more partial reductions than steps in the final
+% Ensure that the partial and final reduction variables form a two-phase
 % reduction.
-constraint
-forall (i in final_steps)
-(card(FS[i]) == 0 -> card(PR[i]) == 0);
-
-% Ensure that empty partial reductions have empty reduction steps.
-constraint
-forall (i in final_steps, j in partial_steps)
-(card(PR[i]) == 0 -> card(PS[i,j]) == 0);
-
-
-% Ensure that R and Rc are complementary.
-constraint
-partition_set([R, Rc], nodes);
-
-% Ensure that all reduction steps (partial and final) form a partition of R.
-constraint
-partition_set([FR] ++ PR ++ [Rc], nodes);
-
-% Ensure that there is an arc from the last step of each non-empty partial
-% reduction to its corresponding step in the final reduction.
-constraint
-forall (i in 0..FLast where card(PR[i]) > 0)
-(exists (a in index_set_1of2(arcs))
- (
-  let {int: s = arcs[a, 0];
-       int: t = arcs[a, 1]} in
-  ((s in PS[i, PLast[i]]) /\ (t in FS[i]))
- )
-);
-
-% Ensure that all partial steps have an incoming arc.
-constraint
-forall (i in final_steps where i <= FLast,
-        j in partial_steps where j <= PLast[i])
-(exists (a in index_set_1of2(arcs))
- (
-  let {int: s = arcs[a, 0];
-       int: t = arcs[a, 1]} in
-  ((not (s in R)) /\ (t in PS[i,j]))
- )
-);
-
-% Ensure that the last final step has an outgoing arc.
-constraint
-exists (a in index_set_1of2(arcs))
-(
- let {int: s = arcs[a, 0];
-      int: t = arcs[a, 1]} in
- ((s in FS[FLast]) /\ (not (t in R)))
-);
-
-% Ensure that partial and final reduction steps use different instructions.
-constraint
-forall (k in insts)
-(
- (FCount[k] > 0 -> PCount[k] == 0) /\
- (PCount[k] > 0 -> FCount[k] == 0)
-);
+constraint twophasereduction(R, Rc,
+                             PR, PRc, PS, PStep, PLast, PCount,
+                             FR, FRc, FS, FStep, FLast, FCount);
 
 % Ensure that the final reduction has at least two steps.
 constraint minimum_components(FS, 2);
@@ -147,14 +79,6 @@ constraint minimum_components(FS, 2);
 constraint
 exists (i in 0..FLast)
 (minimum_components(row(PS, i), 2));
-
-% Ensure that each step has just one node.
-constraint
-forall (i in final_steps)
-(card(FS[i]) <= 1);
-constraint
-forall (i in final_steps, j in partial_steps)
-(card(PS[i,j]) <= 1);
 
 %%% SOLVER SPECIFICATION
 
