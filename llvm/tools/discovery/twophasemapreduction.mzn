@@ -168,6 +168,8 @@ forall (i in 0..FLast, j in 0..PSteps-1)
 
 constraint static_covering(M);
 
+constraint static_covering(array_union(PR));
+
 %%% SOLVER SPECIFICATION
 
 solve satisfy;
