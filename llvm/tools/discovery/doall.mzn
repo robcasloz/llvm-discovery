@@ -7,6 +7,8 @@ include "increasing.mzn";
 
 include "common.mzn";
 
+% FIXME: express in terms of map(), or define common maplike() predicate.
+
 %%% AUXILIARY DEFINITIONS
 
 % Number of non-control nodes. This can be used as an upper bound on the number

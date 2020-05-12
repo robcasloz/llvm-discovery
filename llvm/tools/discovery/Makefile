@@ -201,6 +201,14 @@ TOP_COMPONENTS ?= 50
 %.twophasereductions.yaml: %.twophasereductions.szn %.trace
 	$(PROCESS_TRACE) report $^ > $@
 
+# Two-phase map-reduction pattern matches in MiniZinc solution format.
+%.twophasemapreductions.szn: %.dzn $(DISCOVERY_DIR)/twophasemapreduction.mzn $(DISCOVERY_DIR)/common.mzn
+	-minizinc $(MINIZINC_FLAGS) $(DISCOVERY_DIR)/twophasemapreduction.mzn $< > $@
+
+# Two-phase map-reduction pattern matches in PDF format.
+%.twophasemapreductions.pdf: %.twophasemapreductions.szn %.trace
+	$(PROCESS_TRACE) -o $@ visualize $^ $(GRAPHVIZ_FLAGS)
+
 # Scan pattern matches in MiniZinc solution format.
 %.scans.szn: %.dzn $(DISCOVERY_DIR)/scan.mzn $(DISCOVERY_DIR)/common.mzn
 	-minizinc $(MINIZINC_FLAGS) $(DISCOVERY_DIR)/scan.mzn $< > $@

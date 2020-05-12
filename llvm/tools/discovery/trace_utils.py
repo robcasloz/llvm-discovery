@@ -52,6 +52,7 @@ pat_reduction = "reduction"
 pat_scan = "scan"
 pat_pipeline = "pipeline"
 pat_twophasereduction = "twophasereduction"
+pat_twophasemapreduction = "twophasemapreduction"
 
 arg_nodes = "nodes"
 arg_location = "location"
@@ -290,7 +291,8 @@ def read_matches(match_file):
                 status = tk_sol_status_error
                 continue
             pattern = tokens[0][:-1]
-            if pattern in [pat_pipeline, pat_twophasereduction]:
+            if pattern in [pat_pipeline, pat_twophasereduction,
+                           pat_twophasemapreduction]:
                 typ  = tokens[1]
                 rest = tokens[2:]
             else:
@@ -304,8 +306,12 @@ def read_matches(match_file):
                     # Partial solution, rest of the solution is in next line.
                     stages = array
                     continue
-            elif pattern == pat_twophasereduction:
-                # New final reduction step
+            elif pattern in [pat_twophasereduction, pat_twophasemapreduction]:
+                # Map in a map-reduction.
+                if typ == "map:":
+                    map_runs = array
+                    continue
+                # New final reduction step.
                 if typ == "final:":
                     if array:
                         final = array[0]
@@ -318,7 +324,13 @@ def read_matches(match_file):
                             continue # Partial solution, keep reading.
                 elif typ == "partial:":
                     if array:
-                        partials.append((final, array))
+                        if pattern == pat_twophasereduction:
+                            partial = (final, array)
+                        elif pattern == pat_twophasemapreduction:
+                            runs = map_runs[0:len(array)]
+                            map_runs = map_runs[len(array):]
+                            partial = (runs, final, array)
+                        partials.append(partial)
                     continue # Partial solution, keep reading.
                 else:
                     assert False

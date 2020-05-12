@@ -184,22 +184,28 @@ def format_match(pattern, match):
             factor = run_completion * 0.5
             original_color = colors[node_stage[k] % len(colors)]
             color_map[k] = adjust_color(original_color, factor)
-    elif pattern == u.pat_twophasereduction:
-        partial_steps = set([len(p) for _, p in match])
+    elif pattern in [u.pat_twophasereduction, u.pat_twophasemapreduction]:
+        if pattern == u.pat_twophasereduction:
+            unified_match = [([], f, p) for f, p in match]
+        else:
+            unified_match = match
+        partial_steps = set([len(p) for _, __, p in unified_match])
         (min_step, max_step) = (min(partial_steps), max(partial_steps))
         if min_step == max_step:
             partial_steps_range = str(min_step)
         else:
             partial_steps_range = str(min_step) + "-" + str(max_step)
-        legend = "(" + str(len(match)) + " partial reductions of " + \
+        legend = "(" + str(len(unified_match)) + " partial reductions of " + \
                  partial_steps_range + " steps each)"
-        metasteps  = [f + u.concat(p) for f, p in match]
+        metasteps  = [u.concat(m) + f + u.concat(p)
+                      for m, f, p in unified_match]
         color_map  = {node: colors[(metastep % len(colors))]
                       for node, metastep in u.index_map(metasteps).items()}
-        # Make final step nodes darker and partial step nodes lighter.
-        finalsteps = set(u.concat([f for f, _ in match]))
+        # Make map runs and final steps darker, and partial steps lighter.
+        mapruns    = set(u.concat([u.concat(m) for m, _, __ in unified_match]))
+        finalsteps = set(u.concat([f for _, f, __ in unified_match]))
         for k in color_map.keys():
-            if k in finalsteps:
+            if k in finalsteps or k in mapruns:
                 factor = 0.2
             else:
                 factor = -0.05
