@@ -26,7 +26,7 @@ void *sum(void * args) {
 int main(int argc, char *argv[]) {
   pthread_t workerid[N];
   pthread_attr_t attr;
-  int i;
+  size_t i;
   pthread_attr_init(&attr);
   pthread_attr_setscope(&attr, PTHREAD_SCOPE_SYSTEM);
   for (i = 0; i < N; i++)
