@@ -24,6 +24,9 @@ array[0..n-1] of set of 0..n-1: reachable;
 % Set of branch instructions.
 set of 0..c-1: branches;
 
+% Set of associative instructions.
+set of 0..c-1: associative;
+
 % Maximum number of nodes of the same instruction in each pattern component.
 array[0..c-1] of 0..n: max_count;
 
@@ -307,6 +310,12 @@ let {set of int: steps = index_set(S);} in
  (Count[k] =
   sum(j in nodes where j in static_classes[k])
   (bool2int(j in S[i])))
+)
+/\
+(
+ % Enforce that all steps are associative.
+ forall (i in steps where card(S[i]) > 0)
+ (associative(S[i]))
 );
 
 % Ensures that the given variables capture a two-phase reduction pattern.
@@ -409,17 +418,17 @@ let {set of int: partial_steps = index_set_2of2(PS);
   (FCount[k] > 0 -> PCount[k] == 0) /\
   (PCount[k] > 0 -> FCount[k] == 0)
  )
+);
+
+% Ensures that the given node set is associative.
+predicate associative(var set of int: C) =
+(
+ card(C) == 1
 )
 /\
 (
- % Ensure that each step has just one node.
- forall (i in final_steps)
- (card(FS[i]) <= 1)
-)
-/\
-(
- forall (i in final_steps, j in partial_steps)
- (card(PS[i,j]) <= 1)
+ forall (i in 0..c-1, n in C where n in static_classes[i])
+ (i in associative)
 );
 
 % Ensures that either all instances of an instruction are covered by a pattern

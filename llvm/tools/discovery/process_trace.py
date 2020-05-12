@@ -529,14 +529,7 @@ def decompose_associative_components(G, min_nodes, top_components):
     tags = u.tag_set(G)
     CGS = []
     # For each associative instruction.
-    # FIXME: We added 'sub' to simulate algebraic transformation: a statement
-    # "foo -= bar" can always be rewritten as "foo += (-bar)" and matched as a
-    # map+reduction. See case in streamcluster.c:171 (seq) and
-    # streamcluster.c:316 (pthread) within the StarBench suite. This should
-    # rather be implemented as a transformation, e.g. within the simplification
-    # step or perhaps even at instrumentation phase.
-    for instr_name in \
-        ["add", "fadd", "mul", "fmul", "and", "or", "xor", "sub", "fsub"]:
+    for instr_name in u.associative_names:
         Gi = filter_name(G, instr_name)
         Gi = remove_tags(Gi, tags)
         Gi = normalize(Gi)
@@ -978,6 +971,14 @@ def print_minizinc((DDG, PB, PI, PT), match_regions_only):
     branches = [instr for instr in PIp.keys()
                 if PIp[instr].get(u.tk_name, "") == "br"]
     print >>out, "branches = {" + ", ".join(map(str, branches)) + "};"
+    i = 0
+    associative = set()
+    for instr in PIp.keys():
+        if u.is_associative(instr, PI):
+            associative.add(i)
+        i += 1
+    print >>out, \
+        "associative = {" + ", ".join(map(str, sorted(associative))) + "};"
     max_count = []
     for instr in PIp.keys():
         mc = len(instr2blocks[instr]) / 2

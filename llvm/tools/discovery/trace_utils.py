@@ -421,3 +421,24 @@ def is_source(b, PB, PI):
 def is_sink(b, PB, PI):
     return properties(b, PB, PI).get(tk_region) == tk_true and \
            properties(b, PB, PI).get(tk_name) == "sink"
+
+# Tells whether the given instruction is associative.
+def is_associative(i, PI):
+    props = PI[i]
+    if props.get(tk_region) == tk_true:
+        children = props.get(tk_children)
+        if not children or len(children) != 1:
+            return False
+        return (PI[children[0]].get(tk_name) in associative_names)
+    else:
+        return props.get(tk_name) in associative_names
+
+# Gives a set of instruction names that are known to be associative.
+# FIXME: We added 'sub' and 'fsub' to simulate an algebraic transformation: a
+# statement "foo -= bar" can always be rewritten as "foo += (-bar)" and matched
+# as a map+reduction. See case in streamcluster.c:171 (seq) and
+# streamcluster.c:316 (pthread) within the StarBench suite. This should rather
+# be implemented as a transformation, e.g. within the simplification step or
+# perhaps even at instrumentation phase.
+associative_names = \
+    set(["add", "fadd", "mul", "fmul", "and", "or", "xor", "sub", "fsub"])

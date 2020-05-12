@@ -146,6 +146,11 @@ forall (i in steps where card(S[i]) > 0, k in insts)
  sum(j in nodes where j in static_classes[k])
  (bool2int(j in S[i])));
 
+% Enforce that all steps are associative.
+constraint
+forall (i in steps where card(S[i]) > 0)
+(associative(S[i]));
+
 % Enforce static covering: either all instances of an instruction are covered by
 % SC or none is.
 constraint
