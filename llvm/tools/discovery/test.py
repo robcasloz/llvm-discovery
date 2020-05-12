@@ -75,14 +75,13 @@ def run_and_print(cmd, check = True):
     return out
 
 def read_normalize_write(source, pattern, destination):
-    lines = []
+    lines = set()
     with open(source) as s:
         for line in s:
             if pattern in line:
-                lines.append(line)
-    lines.sort()
+                lines.add(line)
     with open(destination, 'w') as d:
-        d.writelines(lines)
+        d.writelines(sorted(lines))
 
 def run_test((p, t)):
     szn = os.path.join(test_input_dir, t + ".simple." + p + "s.szn")
