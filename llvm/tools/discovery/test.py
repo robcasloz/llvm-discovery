@@ -10,7 +10,7 @@ from concurrent import futures
 import multiprocessing
 
 patterns = ["map", "reduction", "scan", "pipeline", "twophasereduction",
-            "twophasemapreduction"]
+            "mapreduction", "twophasemapreduction"]
 
 test_cases = {
     "map" : [
@@ -40,6 +40,9 @@ test_cases = {
     ],
     "twophasereduction" : [
         "reduction-parallel"
+    ],
+    "mapreduction" : [
+        "linear-mapreduce"
     ],
     "twophasemapreduction" : [
         "mapreduce"

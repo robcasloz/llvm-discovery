@@ -162,6 +162,15 @@ def group_nodes_map(G, tag):
 def instance_nodes_map(G, tag):
     return tag_nodes_map(G, tag, lambda (g, i) : i)
 
+# Makes a set of given nodes darker in a color map.
+def contrast_colors(color_map, darker_nodes):
+    for k in color_map.keys():
+        if k in darker_nodes:
+            factor = 0.2
+        else:
+            factor = -0.05
+        color_map[k] = adjust_color(color_map[k], factor)
+
 # Returns a legend and a color map to be applied to a match visualization.
 def format_match(pattern, match):
     if pattern in u.pat_all_uni:
@@ -184,6 +193,13 @@ def format_match(pattern, match):
             factor = run_completion * 0.5
             original_color = colors[node_stage[k] % len(colors)]
             color_map[k] = adjust_color(original_color, factor)
+    elif pattern == u.pat_mapreduction:
+        (runs, steps) = match
+        legend = "(" + str(len(steps)) + " steps)"
+        color_map = {node: colors[(step % len(colors))]
+                     for node, step
+                     in u.index_map(runs).items() + u.index_map(steps).items()}
+        contrast_colors(color_map, set(u.concat(runs)))
     elif pattern in [u.pat_twophasereduction, u.pat_twophasemapreduction]:
         if pattern == u.pat_twophasereduction:
             unified_match = [([], f, p) for f, p in match]
@@ -201,15 +217,8 @@ def format_match(pattern, match):
                       for m, f, p in unified_match]
         color_map  = {node: colors[(metastep % len(colors))]
                       for node, metastep in u.index_map(metasteps).items()}
-        # Make map runs and final steps darker, and partial steps lighter.
-        mapruns    = set(u.concat([u.concat(m) for m, _, __ in unified_match]))
-        finalsteps = set(u.concat([f for _, f, __ in unified_match]))
-        for k in color_map.keys():
-            if k in finalsteps or k in mapruns:
-                factor = 0.2
-            else:
-                factor = -0.05
-            color_map[k] = adjust_color(color_map[k], factor)
+        darker = set(u.concat([f + u.concat(m) for m, f, __ in unified_match]))
+        contrast_colors(color_map, darker)
     else:
         sys.stderr.write("Error: unknown pattern type\n")
         sys.exit(-1)

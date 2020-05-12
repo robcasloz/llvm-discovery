@@ -52,6 +52,7 @@ pat_reduction = "reduction"
 pat_scan = "scan"
 pat_pipeline = "pipeline"
 pat_twophasereduction = "twophasereduction"
+pat_mapreduction = "mapreduction"
 pat_twophasemapreduction = "twophasemapreduction"
 
 arg_nodes = "nodes"
@@ -271,6 +272,7 @@ def read_matches(match_file):
     # Read the traces
     matches = []
     stages = None
+    runs = None
     pattern = None
     partials = []
     status = tk_sol_status_normal
@@ -291,8 +293,8 @@ def read_matches(match_file):
                 status = tk_sol_status_error
                 continue
             pattern = tokens[0][:-1]
-            if pattern in [pat_pipeline, pat_twophasereduction,
-                           pat_twophasemapreduction]:
+            if pattern in [pat_pipeline, pat_mapreduction,
+                           pat_twophasereduction, pat_twophasemapreduction]:
                 typ  = tokens[1]
                 rest = tokens[2:]
             else:
@@ -305,6 +307,14 @@ def read_matches(match_file):
                 else:
                     # Partial solution, rest of the solution is in next line.
                     stages = array
+                    continue
+            elif pattern == pat_mapreduction:
+                if runs:
+                    match = (runs, array)
+                    runs = None
+                else:
+                    # Partial solution, rest of the solution is in next line.
+                    runs = array
                     continue
             elif pattern in [pat_twophasereduction, pat_twophasemapreduction]:
                 # Map in a map-reduction.
