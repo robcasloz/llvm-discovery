@@ -13,6 +13,7 @@ import filecmp
 import time
 import csv
 import enum
+import re
 
 import trace_utils as u
 import process_trace as pt
@@ -118,26 +119,28 @@ try:
     def mzn(pattern):
         return indir(pattern + ".mzn")
 
-    def subtrace_id(subtrace):
-        base_subtrace = os.path.basename(os.path.splitext(subtrace)[0])
-        [_, _, subtrace_id] = base_subtrace.split(".", 2)
-        return subtrace_id
+    def subtrace_id(st):
+        reserved = set([base, "trace"])
+        for name_component in os.path.basename(st).split("."):
+            if not name_component in reserved:
+                return name_component
 
-    def subtrace_type((st_type, _)):
-        return st_type
-
-    def subtrace_prefix((st_type, (first, second))):
-        if st_type == u.loop_subtrace:
-            suffix = [str(first), str(second)]
+    def subtrace_type(st):
+        st_id = subtrace_id(st)
+        if st_id[0] == 'l': # Loop sub-trace
+            return u.loop_subtrace
+        elif st_id[0] == 'i': # Associative component sub-trace
+            return u.associative_component_subtrace
         else:
-            suffix = [first, str(second)]
-        return ["original"] + suffix
+            assert(False)
 
     def applicable_patterns(st_type):
         if st_type == u.loop_subtrace:
             return u.pat_all_uni
         elif st_type == u.associative_component_subtrace:
             return u.pat_all_associative
+        else:
+            assert(False)
 
     if args.stats:
         finding_start = time.time()
@@ -181,25 +184,16 @@ try:
             decompose_options = ["--output-dir", canddir]
             if iteration > 1:
                 decompose_options += ["--no-associative-components"]
-            iter_original_trace = temp(["original", "trace"], Level.iteration)
+            iter_original_trace = temp(["trace"], Level.iteration)
             run_command(["cp", original_trace, iter_original_trace])
             start_measurement("decomposition-time")
             run_process_trace(["decompose"] + \
                               decompose_options + \
                               [iter_original_trace])
             end_measurement("decomposition-time")
-            subtrace_ids = set()
+
             def candidate_traces():
                 return glob.glob(os.path.join(canddir, "*.trace"))
-            for subtrace in candidate_traces():
-                base_subtrace = os.path.basename(os.path.splitext(subtrace)[0])
-                [_, first, second] = base_subtrace.rsplit(".", 2)
-                if first.isdigit(): # Loop sub-trace
-                    subtrace_ids.add((u.loop_subtrace,
-                                      (int(first), int(second))))
-                else: # Associative component sub-trace
-                    subtrace_ids.add((u.associative_component_subtrace,
-                                      (first, int(second))))
 
             # Generate all candidate subtraces eagerly (resulting from applying
             # 'subtract' and 'compose' operations to each pair of sub-traces
@@ -211,8 +205,7 @@ try:
                     subtract_id = paren(subtrace_id(st1)) + "-" + \
                                   paren(subtrace_id(st2))
                     subtract_subtrace = \
-                        temp(["original", subtract_id, "trace"],
-                             Level.candidate)
+                        temp([subtract_id, "trace"], Level.candidate)
                     run_process_trace(["-o", subtract_subtrace, "subtract",
                                        st1, st2, original_trace])
 
@@ -226,13 +219,12 @@ try:
 
             def make_dzn(st):
                 compact_st = \
-                    temp(["original", subtrace_id(st), "collapsed", "trace"],
+                    temp([subtrace_id(st), "collapsed", "trace"],
                          Level.iteration)
                 run_process_trace(["-o", compact_st, "transform",
                                    "--collapse-tags", "all", st])
                 compact_st_dzn = \
-                    temp(["original", subtrace_id(st), "collapsed", "dzn"],
-                         Level.iteration)
+                    temp([subtrace_id(st), "collapsed", "dzn"], Level.iteration)
                 run_process_trace(["-o", compact_st_dzn,
                                    "--output-format=minizinc", "print",
                                    compact_st])
@@ -245,12 +237,11 @@ try:
             if args.level == u.arg_eager:
                 exit(0)
 
-            def make_szn((subtrace_id, pattern)):
-                pre = subtrace_prefix(subtrace_id)
+            def make_szn((st, pattern)):
                 compact_subtrace_dzn = \
-                    temp(pre + ["collapsed", "dzn"], Level.iteration)
+                    temp([subtrace_id(st), "collapsed", "dzn"], Level.iteration)
                 compact_subtrace_pattern_szn = \
-                    temp(pre + ["collapsed", pattern + "s", "szn"],
+                    temp([subtrace_id(st), "collapsed", pattern + "s", "szn"],
                          Level.iteration)
                 run_minizinc(compact_subtrace_pattern_szn,
                              ["--time-limit", "60000", "-a", "--solver",
@@ -260,15 +251,15 @@ try:
             start_measurement("matching-time")
             list(ex.map(make_szn,
                         [(st, p)
-                         for st in subtrace_ids
+                         for st in candidate_traces()
                          for p  in applicable_patterns(subtrace_type(st))]))
             end_measurement("matching-time")
 
             def subtrace_szn_files(st_type):
-                return [temp(subtrace_prefix(st) + \
-                             ["collapsed", p + "s", "szn"], Level.iteration)
-                        for st in subtrace_ids
-                        for p in  applicable_patterns(st_type)
+                return [temp([subtrace_id(st), "collapsed", p + "s", "szn"],
+                             Level.iteration)
+                        for st in candidate_traces()
+                        for p in  applicable_patterns(subtrace_type(st))
                         if subtrace_type(st) == st_type]
 
             def update_patterns_csv(new):
