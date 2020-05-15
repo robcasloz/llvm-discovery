@@ -20,15 +20,8 @@ def file_info(szn_filename):
         benchmark = base_file_components[0]
         mode = "unknown"
     pattern = base_file_components[-2][0:-1]
-    tag = None
-    group = None
-    for component in base_file_components[1:]:
-        matches = re.findall("l(\d*)r(\d*)", component)
-        if len(matches) == 1:
-            tag   = int(matches[0][0])
-            group = int(matches[0][1])
     trace_filename = ".".join(file_components[0:-2]) + ".trace"
-    return (benchmark, mode, tag, group, pattern, trace_filename)
+    return (benchmark, mode, pattern, trace_filename)
 
 def print_location(iset):
     # Map from file names to sets of lines
@@ -156,8 +149,7 @@ def process_matches(szn_files, simple, generalize_maps, discard_subsumed,
     for filename in szn_files:
         if os.path.isfile(filename) and filename.endswith(".szn"):
             # Gather all data.
-            (benchmark, mode, _tag, _group, pattern, trace_filename) = \
-                file_info(filename)
+            (benchmark, mode, pattern, trace_filename) = file_info(filename)
             G = u.read_trace(trace_filename)
             (_, matches, status) = u.read_matches(filename)
             (DDG, PB, PI, PT) = G
