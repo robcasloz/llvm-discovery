@@ -6,6 +6,7 @@ import glob
 import csv
 import sys
 from sets import Set
+import re
 
 import trace_utils as u
 
@@ -19,16 +20,13 @@ def file_info(szn_filename):
         benchmark = base_file_components[0]
         mode = "unknown"
     pattern = base_file_components[-2][0:-1]
-    maybe_tag_group = map(int, [component for component in base_file_components
-                                if component.isdigit()])
-    if len(maybe_tag_group) > 0:
-        tag = maybe_tag_group[0]
-    else:
-        tag = None
-    if len(maybe_tag_group) > 1:
-        group = maybe_tag_group[1]
-    else:
-        group = None
+    tag = None
+    group = None
+    for component in base_file_components[1:]:
+        matches = re.findall("l(\d*)r(\d*)", component)
+        if len(matches) == 1:
+            tag   = int(matches[0][0])
+            group = int(matches[0][1])
     trace_filename = ".".join(file_components[0:-2]) + ".trace"
     return (benchmark, mode, tag, group, pattern, trace_filename)
 

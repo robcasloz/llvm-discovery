@@ -519,7 +519,7 @@ def decompose_loops(G):
         Gt = remove_tags(Gt, tags - set([tag]))
         # For each loop run (group within a tag), generate a DDG.
         for group in group_nodes_map(Gt, tag).keys():
-            loop_id = str(tag) + "." + str(group)
+            loop_id = "l" + str(tag) + "r" + str(group)
             Gtg = filter_tag(Gt, tag, group)
             Gtg = normalize(Gtg)
             LGS.append((Gtg, loop_id))
@@ -539,7 +539,7 @@ def decompose_associative_components(G, min_nodes, top_components):
         c = 0
         for component in \
             weakly_connected_components(DDGi, min_nodes, top_components):
-            component_id = instr_name + "." + str(c)
+            component_id = "i" + instr_name + "c" + str(c)
             Gic = filter_by(Gi, lambda b: b in component)
             Gic = normalize(Gic)
             CGS.append((Gic, component_id))
