@@ -111,7 +111,8 @@ def discard_subsumed_linear_reductions(pattern_data):
     if not u.pat_twophasereduction in pattern_data:
         return
     twophasereductions = pattern_data[u.pat_twophasereduction]
-    if twophasereductions.keys() == [u.match]:
+    if twophasereductions.keys() == [u.match] and \
+       reductions.keys() == [u.match]:
         reductions[u.no_match] = reductions[u.match]
         del reductions[u.match]
     return
