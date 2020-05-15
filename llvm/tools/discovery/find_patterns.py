@@ -12,6 +12,7 @@ import glob
 import filecmp
 import time
 import csv
+import enum
 
 import trace_utils as u
 import process_trace as pt
@@ -19,6 +20,11 @@ import process_matches as pm
 import merge_matches as mm
 
 eol = "\n"
+
+class Level(enum.Enum):
+    top       = 1
+    iteration = 2
+    candidate = 3
 
 parser = argparse.ArgumentParser(description='Find parallel patterns in the given trace.')
 parser.add_argument('TRACE_FILE')
@@ -92,14 +98,18 @@ def run_minizinc(outfile, arguments):
 basedir = tempfile.mkdtemp(prefix = "discovery-")
 base = os.path.splitext(os.path.basename(args.TRACE_FILE))[0]
 iterdir = None
+canddir = None
 
 try:
 
-    def temp(extension):
-        if iterdir:
-            rootdir = iterdir
-        else:
+    def temp(extension, level):
+        if   level == Level.top:
             rootdir = basedir
+        elif level == Level.iteration:
+            rootdir = iterdir
+        elif level == Level.candidate:
+            rootdir = canddir
+        assert(rootdir)
         return os.path.join(rootdir, ".".join([base] + extension))
 
     def indir(filename):
@@ -127,7 +137,7 @@ try:
     if args.stats:
         finding_start = time.time()
 
-    simplified_trace = temp(["simple", "trace"])
+    simplified_trace = temp(["simple", "trace"], Level.top)
     start_measurement("simplification-time")
     run_process_trace(["-o", simplified_trace, "--output-format=plain",
                        "simplify", args.TRACE_FILE])
@@ -136,12 +146,12 @@ try:
     if args.stats:
         for (ext, trace) in [("trace-size", args.TRACE_FILE),
                              ("simplified-trace-size", simplified_trace)]:
-            size = temp([ext])
+            size = temp([ext], Level.top)
             run_process_trace(["-o", size, "query", "--print-size", trace])
             with open(size, "r") as size_file:
                 stats[ext] = int(size_file.readline())
 
-    original_trace = temp(["original", "trace"])
+    original_trace = temp(["original", "trace"], Level.top)
     run_process_trace(["-o", original_trace, "--output-format=plain",
                        "record", simplified_trace])
 
@@ -159,7 +169,7 @@ try:
     if args.level == u.arg_heuristic:
 
         iteration = 1
-        patterns_csv = temp(["patterns", "csv"])
+        patterns_csv = temp(["patterns", "csv"], Level.top)
         run_process_matches(["-o", patterns_csv] + simple_options)
 
         while True:
@@ -170,7 +180,7 @@ try:
             decompose_options = []
             if iteration > 1:
                 decompose_options = ["--no-associative-components"]
-            iter_original_trace = temp(["original", "trace"])
+            iter_original_trace = temp(["original", "trace"], Level.iteration)
             run_command(["cp", original_trace, iter_original_trace])
             start_measurement("decomposition-time")
             run_process_trace(["decompose"] + \
@@ -190,12 +200,14 @@ try:
 
             def make_dzn(subtrace_id):
                 pre = subtrace_prefix(subtrace_id)
-                subtrace = temp(pre + ["trace"])
-                compact_subtrace = temp(pre + ["collapsed", "trace"])
+                subtrace = temp(pre + ["trace"], Level.iteration)
+                compact_subtrace = \
+                    temp(pre + ["collapsed", "trace"], Level.iteration)
                 run_process_trace(["-o", compact_subtrace,
                                    "--output-format=plain", "transform",
                                    "--collapse-tags", "all", subtrace])
-                compact_subtrace_dzn = temp(pre + ["collapsed", "dzn"])
+                compact_subtrace_dzn = \
+                    temp(pre + ["collapsed", "dzn"], Level.iteration)
                 run_process_trace(["-o", compact_subtrace_dzn,
                                    "--output-format=minizinc",
                                    "print", compact_subtrace])
@@ -207,9 +219,11 @@ try:
 
             def make_szn((subtrace_id, pattern)):
                 pre = subtrace_prefix(subtrace_id)
-                compact_subtrace_dzn = temp(pre + ["collapsed", "dzn"])
+                compact_subtrace_dzn = \
+                    temp(pre + ["collapsed", "dzn"], Level.iteration)
                 compact_subtrace_pattern_szn = \
-                    temp(pre + ["collapsed", pattern + "s", "szn"])
+                    temp(pre + ["collapsed", pattern + "s", "szn"],
+                         Level.iteration)
                 run_minizinc(compact_subtrace_pattern_szn,
                              ["--time-limit", "60000", "-a", "--solver",
                               "chuffed", mzn(pattern), compact_subtrace_dzn])
@@ -224,27 +238,28 @@ try:
 
             def subtrace_szn_files(st_type):
                 return [temp(subtrace_prefix(st) + \
-                             ["collapsed", p + "s", "szn"])
+                             ["collapsed", p + "s", "szn"], Level.iteration)
                         for st in subtrace_ids
                         for p in  applicable_patterns(st_type)
                         if subtrace_type(st) == st_type]
 
             def update_patterns_csv(new):
-                tmp_csv = temp(["tmp", "csv"])
+                tmp_csv = temp(["tmp", "csv"], Level.iteration)
                 run_merge_matches([patterns_csv, new, "-o", tmp_csv] + \
                                   simple_options)
                 run_command(["mv", tmp_csv, patterns_csv])
 
             loop_szn_files = subtrace_szn_files(u.loop_subtrace)
-            loop_csv = temp(["loops", "csv"])
+            loop_csv = temp(["loops", "csv"], Level.iteration)
             run_process_matches(loop_szn_files + \
                                 ["-o", loop_csv] + \
                                 simple_options)
             update_patterns_csv(loop_csv)
             associative_component_szn_files = \
                 subtrace_szn_files(u.associative_component_subtrace)
-            associative_component_csv = temp(["associative_components", "csv"])
-            instructions = temp(["instructions"])
+            associative_component_csv = \
+                temp(["associative_components", "csv"], Level.iteration)
+            instructions = temp(["instructions"], Level.iteration)
             run_process_matches(associative_component_szn_files +
                                 ["-o", associative_component_csv,
                                  "--matched-instructions-prefix", iterdir] + \
@@ -253,7 +268,8 @@ try:
             if not os.path.isfile(instructions):
                 break
 
-            subtracted_trace = temp(["original", "subtracted", "trace"])
+            subtracted_trace = \
+                temp(["original", "subtracted", "trace"], Level.iteration)
             start_measurement("subtraction-time")
             run_process_trace(["-o", subtracted_trace, "--output-format=plain",
                                "transform", "--filter-out-instructions",
@@ -271,12 +287,13 @@ try:
 
     elif args.level == u.arg_complete:
 
-        simple_dzn = temp(["original", "dzn"])
+        simple_dzn = temp(["original", "dzn"], Level.top)
         run_process_trace(["-o", simple_dzn, "--output-format=minizinc", "print",
                            original_trace])
 
         def make_szn(pattern):
-            simple_pattern_szn = temp(["original", pattern + "s", "szn"])
+            simple_pattern_szn = \
+                temp(["original", pattern + "s", "szn"], Level.top)
             run_minizinc(simple_pattern_szn,
                          ["-a", "--solver", "chuffed", mzn(pattern),
                           simple_dzn])
@@ -286,7 +303,8 @@ try:
         list(ex.map(make_szn, u.pat_all))
         end_measurement("matching-time")
 
-        szn_files = [temp(["original", p + "s", "szn"]) for p in u.pat_all]
+        szn_files = \
+            [temp(["original", p + "s", "szn"], Level.top) for p in u.pat_all]
         run_process_matches(szn_files + simple_options)
 
 finally:
