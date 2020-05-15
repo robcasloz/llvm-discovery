@@ -28,7 +28,7 @@ class Level(enum.Enum):
 
 parser = argparse.ArgumentParser(description='Find parallel patterns in the given trace.')
 parser.add_argument('TRACE_FILE')
-parser.add_argument('-l,', '--level', dest='level', action='store', type=str, choices=[u.arg_heuristic, u.arg_complete], default=u.arg_heuristic)
+parser.add_argument('-l,', '--level', dest='level', action='store', type=str, choices=[u.arg_heuristic, u.arg_eager, u.arg_complete], default=u.arg_heuristic)
 parser.add_argument('-v', '--verbose', action='store_true')
 parser.add_argument('-j', '--jobs', metavar='N', type=int)
 parser.add_argument('--clean', dest='clean', action='store_true')
@@ -139,8 +139,7 @@ try:
 
     simplified_trace = temp(["simple", "trace"], Level.top)
     start_measurement("simplification-time")
-    run_process_trace(["-o", simplified_trace, "--output-format=plain",
-                       "simplify", args.TRACE_FILE])
+    run_process_trace(["-o", simplified_trace, "simplify", args.TRACE_FILE])
     end_measurement("simplification-time")
 
     if args.stats:
@@ -152,8 +151,7 @@ try:
                 stats[ext] = int(size_file.readline())
 
     original_trace = temp(["original", "trace"], Level.top)
-    run_process_trace(["-o", original_trace, "--output-format=plain",
-                       "record", simplified_trace])
+    run_process_trace(["-o", original_trace, "record", simplified_trace])
 
     ex = futures.ThreadPoolExecutor(max_workers=int(args.jobs))
 
@@ -162,7 +160,7 @@ try:
     else:
         simple_options = ["--simple"]
 
-    if args.level == u.arg_heuristic:
+    if args.level in [u.arg_heuristic, u.arg_eager]:
 
         iteration = 1
         patterns_csv = temp(["patterns", "csv"], Level.top)
@@ -186,7 +184,9 @@ try:
                               [iter_original_trace])
             end_measurement("decomposition-time")
             subtrace_ids = set()
-            for subtrace in glob.glob(os.path.join(canddir, "*.trace")):
+            def candidate_traces():
+                return glob.glob(os.path.join(canddir, "*.trace"))
+            for subtrace in candidate_traces():
                 base_subtrace = os.path.basename(os.path.splitext(subtrace)[0])
                 [_, first, second] = base_subtrace.rsplit(".", 2)
                 if first.isdigit(): # Loop sub-trace
@@ -196,13 +196,40 @@ try:
                     subtrace_ids.add((u.associative_component_subtrace,
                                       (first, int(second))))
 
+            # Generate all candidate subtraces eagerly (resulting from applying
+            # 'subtract' and 'compose' operations to each pair of sub-traces
+            # until a fixpoint is reached).
+            if args.level == u.arg_eager:
+                def make_subtraction((st1, st2)):
+                    def subtrace_id(st):
+                        base_st = os.path.basename(os.path.splitext(st)[0])
+                        [_, _, subtrace_id] = base_st.split(".", 2)
+                        return subtrace_id
+                    def paren(string):
+                        return "[" + string + "]"
+                    subtract_id = paren(subtrace_id(st1)) + "-" + \
+                                  paren(subtrace_id(st2))
+                    subtract_subtrace = \
+                        temp(["original", subtract_id, "trace"],
+                             Level.candidate)
+                    run_process_trace(["-o", subtract_subtrace, "subtract",
+                                       st1, st2, original_trace])
+
+                # The list conversion is just to force evaluation.
+                start_measurement("subtract-time")
+                list(ex.map(make_subtraction, [(st1, st2)
+                                       for st1 in candidate_traces()
+                                       for st2 in candidate_traces()
+                                       if st1 != st2]))
+                end_measurement("subtract-time")
+                exit(0)
+
             def make_dzn(subtrace_id):
                 pre = subtrace_prefix(subtrace_id)
                 subtrace = temp(pre + ["trace"], Level.candidate)
                 compact_subtrace = \
                     temp(pre + ["collapsed", "trace"], Level.iteration)
-                run_process_trace(["-o", compact_subtrace,
-                                   "--output-format=plain", "transform",
+                run_process_trace(["-o", compact_subtrace, "transform",
                                    "--collapse-tags", "all", subtrace])
                 compact_subtrace_dzn = \
                     temp(pre + ["collapsed", "dzn"], Level.iteration)
@@ -269,9 +296,9 @@ try:
             subtracted_trace = \
                 temp(["original", "subtracted", "trace"], Level.iteration)
             start_measurement("subtraction-time")
-            run_process_trace(["-o", subtracted_trace, "--output-format=plain",
-                               "transform", "--filter-out-instructions",
-                               instructions, original_trace])
+            run_process_trace(["-o", subtracted_trace, "transform",
+                               "--filter-out-instructions", instructions,
+                               original_trace])
             end_measurement("subtraction-time")
 
             if filecmp.cmp(original_trace, subtracted_trace):

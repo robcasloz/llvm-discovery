@@ -58,6 +58,7 @@ pat_twophasemapreduction = "twophasemapreduction"
 arg_nodes = "nodes"
 arg_location = "location"
 arg_heuristic = "heuristic"
+arg_eager = "eager"
 arg_complete = "complete"
 
 match_unknown = "?"
