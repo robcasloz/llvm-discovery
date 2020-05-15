@@ -11,6 +11,7 @@ import StringIO as sio
 import os
 import itertools
 import cgi
+import operator
 
 import trace_utils as u
 
@@ -22,6 +23,7 @@ arg_query = "query"
 arg_simplify = "simplify"
 arg_record = "record"
 arg_decompose = "decompose"
+arg_subtract = "subtract"
 arg_compose = "compose"
 arg_transform = "transform"
 arg_fold = "fold"
@@ -544,25 +546,40 @@ def decompose_associative_components(G, min_nodes, top_components):
             c += 1
     return CGS
 
+# Subtracts the sub-DDG SG2 from the sub-DDG w.r.t. the original DDG. The
+# resulting DDG is not compacted, even if the original sub-DDGs might be.
+def subtract(SG1, SG2, G):
+    return apply_operation(lambda n1, n2 : n1 - n2, SG1, SG2, G)
+
 # Composes the two given sub-DDGs w.r.t. to their original DDG. The resulting
-# composition is not compacted, even if the original sub-DDGs might be.
+# DDG is not compacted, even if the original sub-DDGs might be.
 def compose(SG1, SG2, G):
+    return apply_operation(lambda n1, n2 : n1 | n2, SG1, SG2, G)
+
+# Gives a DDG (subset of G) where 'op' is applied to SG1 and SG2.
+def apply_operation(op, SG1, SG2, G):
     def original_blocks((DDG, PB, _, __)):
         return set.union(*[set(PB[b].get(u.tk_original, []))
                            for b in DDG.nodes()])
-    blocks = set.union(*(map(original_blocks, [SG1, SG2])))
+    blocks = op(original_blocks(SG1), original_blocks(SG2))
     G = filter_blocks(G, blocks)
-    # Preserve only the tags in SG1 and SG2, for future compaction.
+    # Preserve the tags in SG1 & blocks and SG2 & blocks, for future compaction.
+    # Note that this is not equivalent to fetching the tags in DDG & blocks
+    # (loop decomposition leaves only the tag of each decomposed loop, and
+    # associative component decomposition removes all traces).
     G = remove_tags(G, u.tag_set(G))
     def add_tags((DDG, PB, _, PT), offset):
         tags = set()
         for b in DDG.nodes():
+            original = PB[b].get(u.tk_original, [])
+            if not (set(original) & blocks):
+                continue
             offset_tags = set()
             for (tag_name, tag_data) in PB[b].get(u.tk_tags, []):
                 tags.add((tag_name, tag_data))
                 offset_tags.add((tag_name + offset, tag_data))
             if offset_tags:
-                for ob in PB[b].get(u.tk_original, []):
+                for ob in original:
                     G[1][ob][u.tk_tags] = list(offset_tags)
         for tag in tags:
             G[3][u.tag_name(tag) + offset] = PT[u.tag_name(tag)]
@@ -1087,6 +1104,10 @@ def main(args):
     parser_decompose.set_defaults(associative_components=True)
     parser_decompose.add_argument('--output-dir', help='output directory')
 
+    parser_subtract = subparsers.add_parser(arg_subtract, help='subtract one subtrace from another')
+    parser_subtract.add_argument('SUBTRACE_FILE_1')
+    parser_subtract.add_argument('SUBTRACE_FILE_2')
+
     parser_compose = subparsers.add_parser(arg_compose, help='compose two subtraces into a single one')
     parser_compose.add_argument('SUBTRACE_FILE_1')
     parser_compose.add_argument('SUBTRACE_FILE_2')
@@ -1181,6 +1202,12 @@ def main(args):
             output_file = input_prefix + "." + subtrace_id + input_ext
             args.output_file = os.path.join(output_dir, output_file)
             output(G, args)
+    elif args.subparser == arg_subtract:
+        SG1 = load_trace(args.SUBTRACE_FILE_1)
+        SG2 = load_trace(args.SUBTRACE_FILE_2)
+        SG = subtract(SG1, SG2, G)
+        SG = normalize(SG)
+        output(SG, args)
     elif args.subparser == arg_compose:
         SG1 = load_trace(args.SUBTRACE_FILE_1)
         SG2 = load_trace(args.SUBTRACE_FILE_2)
