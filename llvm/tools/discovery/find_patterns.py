@@ -172,8 +172,10 @@ try:
 
             iterdir = os.path.join(basedir, str(iteration))
             os.mkdir(iterdir)
+            canddir = os.path.join(iterdir, "candidates")
+            os.mkdir(canddir)
 
-            decompose_options = ["--output-dir", iterdir]
+            decompose_options = ["--output-dir", canddir]
             if iteration > 1:
                 decompose_options += ["--no-associative-components"]
             iter_original_trace = temp(["original", "trace"], Level.iteration)
@@ -184,9 +186,7 @@ try:
                               [iter_original_trace])
             end_measurement("decomposition-time")
             subtrace_ids = set()
-            for subtrace in \
-                list(set(glob.glob(os.path.join(iterdir, "*.trace"))) \
-                     - set([iter_original_trace])):
+            for subtrace in glob.glob(os.path.join(canddir, "*.trace")):
                 base_subtrace = os.path.basename(os.path.splitext(subtrace)[0])
                 [_, first, second] = base_subtrace.rsplit(".", 2)
                 if first.isdigit(): # Loop sub-trace
@@ -198,7 +198,7 @@ try:
 
             def make_dzn(subtrace_id):
                 pre = subtrace_prefix(subtrace_id)
-                subtrace = temp(pre + ["trace"], Level.iteration)
+                subtrace = temp(pre + ["trace"], Level.candidate)
                 compact_subtrace = \
                     temp(pre + ["collapsed", "trace"], Level.iteration)
                 run_process_trace(["-o", compact_subtrace,
