@@ -118,6 +118,11 @@ try:
     def mzn(pattern):
         return indir(pattern + ".mzn")
 
+    def subtrace_id(subtrace):
+        base_subtrace = os.path.basename(os.path.splitext(subtrace)[0])
+        [_, _, subtrace_id] = base_subtrace.split(".", 2)
+        return subtrace_id
+
     def subtrace_type((st_type, _)):
         return st_type
 
@@ -201,10 +206,6 @@ try:
             # until a fixpoint is reached).
             if args.level == u.arg_eager:
                 def make_subtraction((st1, st2)):
-                    def subtrace_id(st):
-                        base_st = os.path.basename(os.path.splitext(st)[0])
-                        [_, _, subtrace_id] = base_st.split(".", 2)
-                        return subtrace_id
                     def paren(string):
                         return "[" + string + "]"
                     subtract_id = paren(subtrace_id(st1)) + "-" + \
@@ -224,22 +225,22 @@ try:
                 end_measurement("subtract-time")
                 exit(0)
 
-            def make_dzn(subtrace_id):
-                pre = subtrace_prefix(subtrace_id)
-                subtrace = temp(pre + ["trace"], Level.candidate)
-                compact_subtrace = \
-                    temp(pre + ["collapsed", "trace"], Level.iteration)
-                run_process_trace(["-o", compact_subtrace, "transform",
-                                   "--collapse-tags", "all", subtrace])
-                compact_subtrace_dzn = \
-                    temp(pre + ["collapsed", "dzn"], Level.iteration)
-                run_process_trace(["-o", compact_subtrace_dzn,
-                                   "--output-format=minizinc",
-                                   "print", compact_subtrace])
+            def make_dzn(st):
+                compact_st = \
+                    temp(["original", subtrace_id(st), "collapsed", "trace"],
+                         Level.iteration)
+                run_process_trace(["-o", compact_st, "transform",
+                                   "--collapse-tags", "all", st])
+                compact_st_dzn = \
+                    temp(["original", subtrace_id(st), "collapsed", "dzn"],
+                         Level.iteration)
+                run_process_trace(["-o", compact_st_dzn,
+                                   "--output-format=minizinc", "print",
+                                   compact_st])
 
             # The list conversion is just to force evaluation.
             start_measurement("compaction-time")
-            list(ex.map(make_dzn, subtrace_ids))
+            list(ex.map(make_dzn, candidate_traces()))
             end_measurement("compaction-time")
 
             def make_szn((subtrace_id, pattern)):
