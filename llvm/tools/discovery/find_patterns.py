@@ -173,9 +173,9 @@ try:
             iterdir = os.path.join(basedir, str(iteration))
             os.mkdir(iterdir)
 
-            decompose_options = []
+            decompose_options = ["--output-dir", iterdir]
             if iteration > 1:
-                decompose_options = ["--no-associative-components"]
+                decompose_options += ["--no-associative-components"]
             iter_original_trace = temp(["original", "trace"], Level.iteration)
             run_command(["cp", original_trace, iter_original_trace])
             start_measurement("decomposition-time")

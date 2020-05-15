@@ -1085,6 +1085,7 @@ def main(args):
     parser_decompose.add_argument('--associative-components',    dest='associative_components', action='store_true', help='extract associative component subtraces')
     parser_decompose.add_argument('--no-associative-components', dest='associative_components', action='store_false')
     parser_decompose.set_defaults(associative_components=True)
+    parser_decompose.add_argument('--output-dir', help='output directory')
 
     parser_compose = subparsers.add_parser(arg_compose, help='compose two subtraces into a single one')
     parser_compose.add_argument('SUBTRACE_FILE_1')
@@ -1169,9 +1170,16 @@ def main(args):
         if args.associative_components:
             GS.extend(decompose_associative_components(G, args.min_nodes,
                                                        args.top_components))
-        [root, ext] = os.path.splitext(args.TRACE_FILE)
+        input_dir    = os.path.dirname(args.TRACE_FILE)
+        input_file   = os.path.basename(args.TRACE_FILE)
+        input_prefix, input_ext = os.path.splitext(input_file)
+        if args.output_dir:
+            output_dir = args.output_dir
+        else:
+            output_dir = input_dir
         for (G, subtrace_id) in GS:
-            args.output_file = root + "." + subtrace_id + ext
+            output_file = input_prefix + "." + subtrace_id + input_ext
+            args.output_file = os.path.join(output_dir, output_file)
             output(G, args)
     elif args.subparser == arg_compose:
         SG1 = load_trace(args.SUBTRACE_FILE_1)
