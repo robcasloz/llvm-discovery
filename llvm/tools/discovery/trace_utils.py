@@ -71,6 +71,7 @@ no_match = "no"
 
 loop_subtrace                  = "loop"
 associative_component_subtrace = "associative-component"
+unknown_subtrace               = "unknown"
 
 # List with all supported unidimensional patterns.
 pat_all_uni = [pat_doall, pat_map, pat_mapfilter, pat_reduction, pat_scan]

@@ -132,7 +132,7 @@ try:
         elif st_id[0] == 'i': # Associative component sub-trace
             return u.associative_component_subtrace
         else:
-            assert(False)
+            return u.unknown_subtrace
 
     def applicable_patterns(st_type):
         if st_type == u.loop_subtrace:
@@ -140,7 +140,7 @@ try:
         elif st_type == u.associative_component_subtrace:
             return u.pat_all_associative
         else:
-            assert(False)
+            return u.pat_all_uni + [u.pat_twophasereduction]
 
     if args.stats:
         finding_start = time.time()
@@ -234,9 +234,6 @@ try:
             list(ex.map(make_dzn, candidate_traces()))
             end_measurement("compaction-time")
 
-            if args.level == u.arg_eager:
-                exit(0)
-
             def make_szn((st, pattern)):
                 compact_subtrace_dzn = \
                     temp([subtrace_id(st), "collapsed", "dzn"], Level.iteration)
@@ -254,6 +251,9 @@ try:
                          for st in candidate_traces()
                          for p  in applicable_patterns(subtrace_type(st))]))
             end_measurement("matching-time")
+
+            if args.level == u.arg_eager:
+                exit(0)
 
             def subtrace_szn_files(st_type):
                 return [temp([subtrace_id(st), "collapsed", p + "s", "szn"],
