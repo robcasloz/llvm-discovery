@@ -1,0 +1,837 @@
+BP 0 INSTRUCTION source
+IP source NAME source
+IP source REGION TRUE
+IP source IMPURE TRUE
+IP source NONCOMMUTATIVE TRUE
+IP examples/streamcluster.c:36 IMPURE TRUE
+IP examples/streamcluster.c:36 NONCOMMUTATIVE TRUE
+IP examples/streamcluster.c:36 NAME pthread_barrier_init
+IP examples/streamcluster.c:36 LOCATION examples/streamcluster.c:49:3
+BP 1 INSTRUCTION examples/streamcluster.c:36
+DF 0 1
+DF 0 1
+DF 0 1
+DF 0 1
+IP examples/streamcluster.c:37 IMPURE TRUE
+IP examples/streamcluster.c:37 NAME pthread_attr_init
+IP examples/streamcluster.c:37 LOCATION examples/streamcluster.c:53:3
+BP 2 INSTRUCTION examples/streamcluster.c:37
+DF 0 2
+DF 0 2
+IP examples/streamcluster.c:38 IMPURE TRUE
+IP examples/streamcluster.c:38 NAME pthread_attr_setscope
+IP examples/streamcluster.c:38 LOCATION examples/streamcluster.c:54:3
+BP 3 INSTRUCTION examples/streamcluster.c:38
+DF 0 3
+DF 0 3
+DF 0 3
+IP examples/streamcluster.c:39 ITERATOR TRUE
+IP examples/streamcluster.c:39 NAME icmp
+IP examples/streamcluster.c:39 LOCATION examples/streamcluster.c:55:17
+BP 4 INSTRUCTION examples/streamcluster.c:39
+DF 0 4
+BP 4 TAG examples/streamcluster.c:main:55:3-0-1
+DF 0 4
+BP 4 TAG examples/streamcluster.c:main:55:3-0-1
+IP examples/streamcluster.c:40 ITERATOR TRUE
+IP examples/streamcluster.c:40 CONTROL TRUE
+IP examples/streamcluster.c:40 NAME br
+IP examples/streamcluster.c:40 LOCATION examples/streamcluster.c:55:3
+BP 5 INSTRUCTION examples/streamcluster.c:40
+DF 4 5
+BP 5 TAG examples/streamcluster.c:main:55:3-0-1
+IP examples/streamcluster.c:41 NAME getelementptr
+IP examples/streamcluster.c:41 LOCATION examples/streamcluster.c:56:21
+BP 6 INSTRUCTION examples/streamcluster.c:41
+DF 0 6
+BP 6 TAG examples/streamcluster.c:main:55:3-0-1
+DF 0 6
+BP 6 TAG examples/streamcluster.c:main:55:3-0-1
+DF 0 6
+BP 6 TAG examples/streamcluster.c:main:55:3-0-1
+IP examples/streamcluster.c:42 NAME inttoptr
+IP examples/streamcluster.c:42 LOCATION examples/streamcluster.c:56:51
+BP 7 INSTRUCTION examples/streamcluster.c:42
+DF 0 7
+BP 7 TAG examples/streamcluster.c:main:55:3-0-1
+IP examples/streamcluster.c:43 IMPURE TRUE
+IP examples/streamcluster.c:43 NAME dfsw$pthread_create
+IP examples/streamcluster.c:43 LOCATION examples/streamcluster.c:56:5
+BP 8 INSTRUCTION examples/streamcluster.c:43
+DF 6 8
+BP 8 TAG examples/streamcluster.c:main:55:3-0-1
+DF 0 8
+BP 8 TAG examples/streamcluster.c:main:55:3-0-1
+DF 0 8
+BP 8 TAG examples/streamcluster.c:main:55:3-0-1
+DF 7 8
+BP 8 TAG examples/streamcluster.c:main:55:3-0-1
+DF 0 8
+BP 8 TAG examples/streamcluster.c:main:55:3-0-1
+IP examples/streamcluster.c:44 NAME add
+IP examples/streamcluster.c:44 LOCATION examples/streamcluster.c:55:23
+BP 9 INSTRUCTION examples/streamcluster.c:44
+DF 0 9
+DF 0 9
+IP examples/streamcluster.c:39 ITERATOR TRUE
+IP examples/streamcluster.c:39 NAME icmp
+IP examples/streamcluster.c:39 LOCATION examples/streamcluster.c:55:17
+BP 10 INSTRUCTION examples/streamcluster.c:39
+DF 9 10
+BP 10 TAG examples/streamcluster.c:main:55:3-0-2
+DF 0 10
+BP 10 TAG examples/streamcluster.c:main:55:3-0-2
+IP examples/streamcluster.c:1 NAME ptrtoint
+IP examples/streamcluster.c:40 ITERATOR TRUE
+IP examples/streamcluster.c:1 LOCATION examples/streamcluster.c:18:13
+IP examples/streamcluster.c:40 CONTROL TRUE
+IP examples/streamcluster.c:40 NAME br
+IP examples/streamcluster.c:40 LOCATION examples/streamcluster.c:55:3
+BP 11 INSTRUCTION examples/streamcluster.c:1
+BP 12 INSTRUCTION examples/streamcluster.c:40
+DF 0 11
+DF 10 12
+BP 12 TAG examples/streamcluster.c:main:55:3-0-2
+IP examples/streamcluster.c:41 NAME getelementptr
+IP examples/streamcluster.c:41 LOCATION examples/streamcluster.c:56:21
+BP 13 INSTRUCTION examples/streamcluster.c:41
+DF 0 13
+BP 13 TAG examples/streamcluster.c:main:55:3-0-2
+DF 0 13
+BP 13 TAG examples/streamcluster.c:main:55:3-0-2
+DF 9 13
+BP 13 TAG examples/streamcluster.c:main:55:3-0-2
+IP examples/streamcluster.c:42 NAME inttoptr
+IP examples/streamcluster.c:42 LOCATION examples/streamcluster.c:56:51
+BP 14 INSTRUCTION examples/streamcluster.c:42
+DF 9 14
+BP 14 TAG examples/streamcluster.c:main:55:3-0-2
+IP examples/streamcluster.c:43 IMPURE TRUE
+IP examples/streamcluster.c:43 NAME dfsw$pthread_create
+IP examples/streamcluster.c:43 LOCATION examples/streamcluster.c:56:5
+BP 15 INSTRUCTION examples/streamcluster.c:43
+DF 13 15
+IP examples/streamcluster.c:2 NAME icmp
+IP examples/streamcluster.c:2 LOCATION examples/streamcluster.c:21:10
+BP 16 INSTRUCTION examples/streamcluster.c:2
+DF 11 16
+BP 15 TAG examples/streamcluster.c:main:55:3-0-2
+DF 0 15
+BP 15 TAG examples/streamcluster.c:main:55:3-0-2
+DF 0 15
+BP 15 TAG examples/streamcluster.c:main:55:3-0-2
+DF 0 16
+DF 14 15
+BP 15 TAG examples/streamcluster.c:main:55:3-0-2
+DF 0 15
+BP 15 TAG examples/streamcluster.c:main:55:3-0-2
+IP examples/streamcluster.c:3 CONTROL TRUE
+IP examples/streamcluster.c:3 NAME br
+IP examples/streamcluster.c:3 LOCATION examples/streamcluster.c:21:7
+BP 17 INSTRUCTION examples/streamcluster.c:3
+DF 16 17
+IP examples/streamcluster.c:4 IMPURE TRUE
+IP examples/streamcluster.c:4 NONCOMMUTATIVE TRUE
+IP examples/streamcluster.c:4 NAME dfsw$calloc
+IP examples/streamcluster.c:4 LOCATION examples/streamcluster.c:22:20
+BP 18 INSTRUCTION examples/streamcluster.c:4
+DF 0 18
+DF 0 18
+DF 0 18
+IP examples/streamcluster.c:5 NAME bitcast
+IP examples/streamcluster.c:5 LOCATION examples/streamcluster.c:22:12
+BP 19 INSTRUCTION examples/streamcluster.c:5
+DF 0 19
+IP examples/streamcluster.c:6 NAME sext
+IP examples/streamcluster.c:6 LOCATION examples/streamcluster.c:26:21
+BP 20 INSTRUCTION examples/streamcluster.c:6
+DF 11 20
+IP examples/streamcluster.c:7 NAME mul
+IP examples/streamcluster.c:7 LOCATION examples/streamcluster.c:26:19
+BP 21 INSTRUCTION examples/streamcluster.c:7
+DF 0 21
+DF 20 21
+IP examples/streamcluster.c:8 NAME add
+IP examples/streamcluster.c:8 LOCATION examples/streamcluster.c:27:16
+BP 22 INSTRUCTION examples/streamcluster.c:8
+DF 21 22
+DF 0 22
+IP examples/streamcluster.c:9 IMPURE TRUE
+IP examples/streamcluster.c:9 NONCOMMUTATIVE TRUE
+IP examples/streamcluster.c:9 NAME pthread_barrier_wait
+IP examples/streamcluster.c:9 LOCATION examples/streamcluster.c:29:3
+BP 23 INSTRUCTION examples/streamcluster.c:9
+DF 0 23
+DF 0 23
+IP examples/streamcluster.c:44 NAME add
+IP examples/streamcluster.c:44 LOCATION examples/streamcluster.c:55:23
+BP 24 INSTRUCTION examples/streamcluster.c:44
+DF 9 24
+DF 0 24
+IP examples/streamcluster.c:39 ITERATOR TRUE
+IP examples/streamcluster.c:39 NAME icmp
+IP examples/streamcluster.c:39 LOCATION examples/streamcluster.c:55:17
+BP 25 INSTRUCTION examples/streamcluster.c:39
+DF 24 25
+BP 25 TAG examples/streamcluster.c:main:55:3-0-3
+DF 0 25
+BP 25 TAG examples/streamcluster.c:main:55:3-0-3
+IP examples/streamcluster.c:40 ITERATOR TRUE
+IP examples/streamcluster.c:40 CONTROL TRUE
+IP examples/streamcluster.c:40 NAME br
+IP examples/streamcluster.c:40 LOCATION examples/streamcluster.c:55:3
+BP 26 INSTRUCTION examples/streamcluster.c:40
+DF 25 26
+BP 26 TAG examples/streamcluster.c:main:55:3-0-3
+IP examples/streamcluster.c:45 ITERATOR TRUE
+IP examples/streamcluster.c:45 NAME icmp
+IP examples/streamcluster.c:45 LOCATION examples/streamcluster.c:57:17
+BP 27 INSTRUCTION examples/streamcluster.c:45
+DF 0 27
+IP examples/streamcluster.c:1 NAME ptrtoint
+IP examples/streamcluster.c:1 LOCATION examples/streamcluster.c:18:13
+BP 28 INSTRUCTION examples/streamcluster.c:1
+DF 0 28
+BP 27 TAG examples/streamcluster.c:main:57:3-0-4
+DF 0 27
+BP 27 TAG examples/streamcluster.c:main:57:3-0-4
+IP examples/streamcluster.c:46 ITERATOR TRUE
+IP examples/streamcluster.c:46 CONTROL TRUE
+IP examples/streamcluster.c:46 NAME br
+IP examples/streamcluster.c:46 LOCATION examples/streamcluster.c:57:3
+BP 29 INSTRUCTION examples/streamcluster.c:46
+DF 27 29
+BP 29 TAG examples/streamcluster.c:main:57:3-0-4
+IP examples/streamcluster.c:47 NAME getelementptr
+IP examples/streamcluster.c:47 LOCATION examples/streamcluster.c:58:18
+BP 30 INSTRUCTION examples/streamcluster.c:47
+DF 0 30
+BP 30 TAG examples/streamcluster.c:main:57:3-0-4
+DF 0 30
+BP 30 TAG examples/streamcluster.c:main:57:3-0-4
+DF 0 30
+BP 30 TAG examples/streamcluster.c:main:57:3-0-4
+IP examples/streamcluster.c:48 IMPURE TRUE
+IP examples/streamcluster.c:48 NAME pthread_join
+IP examples/streamcluster.c:48 LOCATION examples/streamcluster.c:58:5
+BP 31 INSTRUCTION examples/streamcluster.c:48
+DF 0 31
+BP 31 TAG examples/streamcluster.c:main:57:3-0-4
+DF 0 31
+BP 31 TAG examples/streamcluster.c:main:57:3-0-4
+DF 0 31
+BP 31 TAG examples/streamcluster.c:main:57:3-0-4
+IP examples/streamcluster.c:2 NAME icmp
+IP examples/streamcluster.c:2 LOCATION examples/streamcluster.c:21:10
+BP 32 INSTRUCTION examples/streamcluster.c:2
+DF 28 32
+DF 0 32
+IP examples/streamcluster.c:3 CONTROL TRUE
+IP examples/streamcluster.c:3 NAME br
+IP examples/streamcluster.c:3 LOCATION examples/streamcluster.c:21:7
+BP 33 INSTRUCTION examples/streamcluster.c:3
+DF 32 33
+IP examples/streamcluster.c:6 NAME sext
+IP examples/streamcluster.c:6 LOCATION examples/streamcluster.c:26:21
+BP 34 INSTRUCTION examples/streamcluster.c:6
+DF 28 34
+IP examples/streamcluster.c:7 NAME mul
+IP examples/streamcluster.c:7 LOCATION examples/streamcluster.c:26:19
+BP 35 INSTRUCTION examples/streamcluster.c:7
+DF 0 35
+DF 34 35
+IP examples/streamcluster.c:8 NAME add
+IP examples/streamcluster.c:8 LOCATION examples/streamcluster.c:27:16
+BP 36 INSTRUCTION examples/streamcluster.c:8
+DF 35 36
+DF 0 36
+IP examples/streamcluster.c:9 IMPURE TRUE
+IP examples/streamcluster.c:9 NONCOMMUTATIVE TRUE
+IP examples/streamcluster.c:9 NAME pthread_barrier_wait
+IP examples/streamcluster.c:9 LOCATION examples/streamcluster.c:29:3
+BP 37 INSTRUCTION examples/streamcluster.c:9
+DF 0 37
+DF 0 37
+IP examples/streamcluster.c:10 ITERATOR TRUE
+IP examples/streamcluster.c:10 NAME icmp
+IP examples/streamcluster.c:10 LOCATION examples/streamcluster.c:32:23
+BP 38 INSTRUCTION examples/streamcluster.c:10
+DF 35 38
+BP 38 TAG examples/streamcluster.c:pkmedian:32:3-0-5
+DF 36 38
+IP examples/streamcluster.c:10 ITERATOR TRUE
+BP 38 TAG examples/streamcluster.c:pkmedian:32:3-0-5
+IP examples/streamcluster.c:10 NAME icmp
+IP examples/streamcluster.c:11 ITERATOR TRUE
+IP examples/streamcluster.c:10 LOCATION examples/streamcluster.c:32:23
+IP examples/streamcluster.c:11 CONTROL TRUE
+BP 39 INSTRUCTION examples/streamcluster.c:10
+IP examples/streamcluster.c:11 NAME br
+DF 21 39
+IP examples/streamcluster.c:11 LOCATION examples/streamcluster.c:32:3
+BP 39 TAG examples/streamcluster.c:pkmedian:32:3-0-6
+BP 40 INSTRUCTION examples/streamcluster.c:11
+DF 22 39
+DF 38 40
+BP 40 TAG examples/streamcluster.c:pkmedian:32:3-0-5
+BP 39 TAG examples/streamcluster.c:pkmedian:32:3-0-6
+IP examples/streamcluster.c:12 NAME getelementptr
+IP examples/streamcluster.c:11 ITERATOR TRUE
+IP examples/streamcluster.c:12 LOCATION examples/streamcluster.c:33:19
+IP examples/streamcluster.c:11 CONTROL TRUE
+IP examples/streamcluster.c:11 NAME br
+BP 41 INSTRUCTION examples/streamcluster.c:12
+IP examples/streamcluster.c:11 LOCATION examples/streamcluster.c:32:3
+DF 0 41
+BP 42 INSTRUCTION examples/streamcluster.c:11
+BP 41 TAG examples/streamcluster.c:pkmedian:32:3-0-5
+DF 39 42
+DF 0 41
+BP 41 TAG examples/streamcluster.c:pkmedian:32:3-0-5
+DF 35 41
+BP 41 TAG examples/streamcluster.c:pkmedian:32:3-0-5
+BP 42 TAG examples/streamcluster.c:pkmedian:32:3-0-6
+IP examples/streamcluster.c:0 NAME fsub
+IP examples/streamcluster.c:12 NAME getelementptr
+IP examples/streamcluster.c:0 LOCATION examples/streamcluster.c:14:13
+IP examples/streamcluster.c:12 LOCATION examples/streamcluster.c:33:19
+BP 43 INSTRUCTION examples/streamcluster.c:0
+BP 44 INSTRUCTION examples/streamcluster.c:12
+DF 0 43
+DF 0 44
+BP 43 TAG examples/streamcluster.c:pkmedian:32:3-0-5
+DF 0 43
+BP 44 TAG examples/streamcluster.c:pkmedian:32:3-0-6
+BP 43 TAG examples/streamcluster.c:pkmedian:32:3-0-5
+IP examples/streamcluster.c:13 NAME getelementptr
+IP examples/streamcluster.c:13 LOCATION examples/streamcluster.c:33:34
+BP 45 INSTRUCTION examples/streamcluster.c:13
+DF 0 44
+DF 0 45
+BP 44 TAG examples/streamcluster.c:pkmedian:32:3-0-6
+BP 45 TAG examples/streamcluster.c:pkmedian:32:3-0-5
+DF 0 45
+BP 45 TAG examples/streamcluster.c:pkmedian:32:3-0-5
+DF 21 44
+DF 35 45
+BP 45 TAG examples/streamcluster.c:pkmedian:32:3-0-5
+BP 44 TAG examples/streamcluster.c:pkmedian:32:3-0-6
+IP examples/streamcluster.c:14 NAME fmul
+IP examples/streamcluster.c:0 NAME fsub
+IP examples/streamcluster.c:14 LOCATION examples/streamcluster.c:33:32
+BP 46 INSTRUCTION examples/streamcluster.c:14
+DF 43 46
+BP 46 TAG examples/streamcluster.c:pkmedian:32:3-0-5
+DF 0 46
+IP examples/streamcluster.c:0 LOCATION examples/streamcluster.c:14:13
+BP 46 TAG examples/streamcluster.c:pkmedian:32:3-0-5
+BP 47 INSTRUCTION examples/streamcluster.c:0
+IP examples/streamcluster.c:15 NAME fadd
+IP examples/streamcluster.c:15 LOCATION examples/streamcluster.c:33:11
+DF 0 47
+BP 48 INSTRUCTION examples/streamcluster.c:15
+BP 47 TAG examples/streamcluster.c:pkmedian:32:3-0-6
+DF 0 48
+DF 0 47
+BP 48 TAG examples/streamcluster.c:pkmedian:32:3-0-5
+DF 46 48
+BP 47 TAG examples/streamcluster.c:pkmedian:32:3-0-6
+BP 48 TAG examples/streamcluster.c:pkmedian:32:3-0-5
+IP examples/streamcluster.c:13 NAME getelementptr
+IP examples/streamcluster.c:13 LOCATION examples/streamcluster.c:33:34
+IP examples/streamcluster.c:16 NAME add
+BP 49 INSTRUCTION examples/streamcluster.c:13
+IP examples/streamcluster.c:16 LOCATION examples/streamcluster.c:32:31
+DF 0 49
+BP 49 TAG examples/streamcluster.c:pkmedian:32:3-0-6
+DF 0 49
+BP 49 TAG examples/streamcluster.c:pkmedian:32:3-0-6
+BP 50 INSTRUCTION examples/streamcluster.c:16
+DF 21 49
+DF 35 50
+BP 49 TAG examples/streamcluster.c:pkmedian:32:3-0-6
+DF 0 50
+IP examples/streamcluster.c:14 NAME fmul
+IP examples/streamcluster.c:14 LOCATION examples/streamcluster.c:33:32
+IP examples/streamcluster.c:10 ITERATOR TRUE
+IP examples/streamcluster.c:10 NAME icmp
+BP 51 INSTRUCTION examples/streamcluster.c:14
+IP examples/streamcluster.c:10 LOCATION examples/streamcluster.c:32:23
+DF 47 51
+BP 52 INSTRUCTION examples/streamcluster.c:10
+BP 51 TAG examples/streamcluster.c:pkmedian:32:3-0-6
+DF 0 51
+BP 51 TAG examples/streamcluster.c:pkmedian:32:3-0-6
+IP examples/streamcluster.c:15 NAME fadd
+DF 50 52
+IP examples/streamcluster.c:15 LOCATION examples/streamcluster.c:33:11
+BP 52 TAG examples/streamcluster.c:pkmedian:32:3-0-7
+DF 36 52
+BP 53 INSTRUCTION examples/streamcluster.c:15
+BP 52 TAG examples/streamcluster.c:pkmedian:32:3-0-7
+DF 0 53
+IP examples/streamcluster.c:11 ITERATOR TRUE
+BP 53 TAG examples/streamcluster.c:pkmedian:32:3-0-6
+IP examples/streamcluster.c:11 CONTROL TRUE
+DF 51 53
+IP examples/streamcluster.c:11 NAME br
+BP 53 TAG examples/streamcluster.c:pkmedian:32:3-0-6
+IP examples/streamcluster.c:11 LOCATION examples/streamcluster.c:32:3
+IP examples/streamcluster.c:16 NAME add
+BP 54 INSTRUCTION examples/streamcluster.c:11
+IP examples/streamcluster.c:16 LOCATION examples/streamcluster.c:32:31
+DF 52 54
+BP 55 INSTRUCTION examples/streamcluster.c:16
+BP 54 TAG examples/streamcluster.c:pkmedian:32:3-0-7
+IP examples/streamcluster.c:12 NAME getelementptr
+DF 21 55
+IP examples/streamcluster.c:12 LOCATION examples/streamcluster.c:33:19
+DF 0 55
+BP 56 INSTRUCTION examples/streamcluster.c:12
+DF 0 56
+BP 56 TAG examples/streamcluster.c:pkmedian:32:3-0-7
+IP examples/streamcluster.c:10 ITERATOR TRUE
+DF 0 56
+IP examples/streamcluster.c:10 NAME icmp
+BP 56 TAG examples/streamcluster.c:pkmedian:32:3-0-7
+IP examples/streamcluster.c:10 LOCATION examples/streamcluster.c:32:23
+DF 50 56
+BP 57 INSTRUCTION examples/streamcluster.c:10
+BP 56 TAG examples/streamcluster.c:pkmedian:32:3-0-7
+IP examples/streamcluster.c:0 NAME fsub
+DF 55 57
+IP examples/streamcluster.c:0 LOCATION examples/streamcluster.c:14:13
+BP 57 TAG examples/streamcluster.c:pkmedian:32:3-0-8
+DF 22 57
+BP 58 INSTRUCTION examples/streamcluster.c:0
+BP 57 TAG examples/streamcluster.c:pkmedian:32:3-0-8
+DF 0 58
+IP examples/streamcluster.c:11 ITERATOR TRUE
+BP 58 TAG examples/streamcluster.c:pkmedian:32:3-0-7
+IP examples/streamcluster.c:11 CONTROL TRUE
+DF 0 58
+IP examples/streamcluster.c:11 NAME br
+BP 58 TAG examples/streamcluster.c:pkmedian:32:3-0-7
+IP examples/streamcluster.c:11 LOCATION examples/streamcluster.c:32:3
+IP examples/streamcluster.c:13 NAME getelementptr
+BP 59 INSTRUCTION examples/streamcluster.c:11
+IP examples/streamcluster.c:13 LOCATION examples/streamcluster.c:33:34
+DF 57 59
+BP 60 INSTRUCTION examples/streamcluster.c:13
+BP 59 TAG examples/streamcluster.c:pkmedian:32:3-0-8
+DF 0 60
+IP examples/streamcluster.c:12 NAME getelementptr
+IP examples/streamcluster.c:12 LOCATION examples/streamcluster.c:33:19
+BP 61 INSTRUCTION examples/streamcluster.c:12
+DF 0 61
+BP 60 TAG examples/streamcluster.c:pkmedian:32:3-0-7
+DF 0 60
+BP 61 TAG examples/streamcluster.c:pkmedian:32:3-0-8
+DF 0 61
+BP 61 TAG examples/streamcluster.c:pkmedian:32:3-0-8
+BP 60 TAG examples/streamcluster.c:pkmedian:32:3-0-7
+DF 55 61
+DF 50 60
+BP 60 TAG examples/streamcluster.c:pkmedian:32:3-0-7
+BP 61 TAG examples/streamcluster.c:pkmedian:32:3-0-8
+IP examples/streamcluster.c:0 NAME fsub
+IP examples/streamcluster.c:0 LOCATION examples/streamcluster.c:14:13
+IP examples/streamcluster.c:14 NAME fmul
+BP 62 INSTRUCTION examples/streamcluster.c:0
+DF 0 62
+IP examples/streamcluster.c:14 LOCATION examples/streamcluster.c:33:32
+BP 62 TAG examples/streamcluster.c:pkmedian:32:3-0-8
+DF 0 62
+BP 63 INSTRUCTION examples/streamcluster.c:14
+BP 62 TAG examples/streamcluster.c:pkmedian:32:3-0-8
+DF 58 63
+IP examples/streamcluster.c:13 NAME getelementptr
+BP 63 TAG examples/streamcluster.c:pkmedian:32:3-0-7
+IP examples/streamcluster.c:13 LOCATION examples/streamcluster.c:33:34
+DF 0 63
+BP 64 INSTRUCTION examples/streamcluster.c:13
+BP 63 TAG examples/streamcluster.c:pkmedian:32:3-0-7
+DF 0 64
+IP examples/streamcluster.c:15 NAME fadd
+BP 64 TAG examples/streamcluster.c:pkmedian:32:3-0-8
+DF 0 64
+IP examples/streamcluster.c:15 LOCATION examples/streamcluster.c:33:11
+BP 64 TAG examples/streamcluster.c:pkmedian:32:3-0-8
+DF 55 64
+BP 65 INSTRUCTION examples/streamcluster.c:15
+BP 64 TAG examples/streamcluster.c:pkmedian:32:3-0-8
+DF 48 65
+IP examples/streamcluster.c:14 NAME fmul
+BP 65 TAG examples/streamcluster.c:pkmedian:32:3-0-7
+IP examples/streamcluster.c:14 LOCATION examples/streamcluster.c:33:32
+DF 63 65
+BP 66 INSTRUCTION examples/streamcluster.c:14
+BP 65 TAG examples/streamcluster.c:pkmedian:32:3-0-7
+DF 62 66
+IP examples/streamcluster.c:16 NAME add
+BP 66 TAG examples/streamcluster.c:pkmedian:32:3-0-8
+DF 0 66
+BP 66 TAG examples/streamcluster.c:pkmedian:32:3-0-8
+IP examples/streamcluster.c:15 NAME fadd
+IP examples/streamcluster.c:16 LOCATION examples/streamcluster.c:32:31
+IP examples/streamcluster.c:15 LOCATION examples/streamcluster.c:33:11
+BP 67 INSTRUCTION examples/streamcluster.c:16
+BP 68 INSTRUCTION examples/streamcluster.c:15
+DF 50 67
+DF 53 68
+DF 0 67
+BP 68 TAG examples/streamcluster.c:pkmedian:32:3-0-8
+DF 66 68
+BP 68 TAG examples/streamcluster.c:pkmedian:32:3-0-8
+IP examples/streamcluster.c:10 ITERATOR TRUE
+IP examples/streamcluster.c:16 NAME add
+IP examples/streamcluster.c:10 NAME icmp
+IP examples/streamcluster.c:10 LOCATION examples/streamcluster.c:32:23
+IP examples/streamcluster.c:16 LOCATION examples/streamcluster.c:32:31
+BP 69 INSTRUCTION examples/streamcluster.c:10
+DF 67 69
+BP 70 INSTRUCTION examples/streamcluster.c:16
+DF 55 70
+BP 69 TAG examples/streamcluster.c:pkmedian:32:3-0-9
+DF 0 70
+DF 36 69
+BP 69 TAG examples/streamcluster.c:pkmedian:32:3-0-9
+IP examples/streamcluster.c:10 ITERATOR TRUE
+IP examples/streamcluster.c:11 ITERATOR TRUE
+IP examples/streamcluster.c:10 NAME icmp
+IP examples/streamcluster.c:11 CONTROL TRUE
+IP examples/streamcluster.c:10 LOCATION examples/streamcluster.c:32:23
+IP examples/streamcluster.c:11 NAME br
+BP 71 INSTRUCTION examples/streamcluster.c:10
+IP examples/streamcluster.c:11 LOCATION examples/streamcluster.c:32:3
+BP 72 INSTRUCTION examples/streamcluster.c:11
+DF 70 71
+DF 69 72
+BP 71 TAG examples/streamcluster.c:pkmedian:32:3-0-10
+DF 22 71
+BP 72 TAG examples/streamcluster.c:pkmedian:32:3-0-9
+BP 71 TAG examples/streamcluster.c:pkmedian:32:3-0-10
+IP examples/streamcluster.c:11 ITERATOR TRUE
+IP examples/streamcluster.c:17 NAME sext
+IP examples/streamcluster.c:11 CONTROL TRUE
+IP examples/streamcluster.c:17 LOCATION examples/streamcluster.c:35:3
+IP examples/streamcluster.c:11 NAME br
+BP 73 INSTRUCTION examples/streamcluster.c:17
+IP examples/streamcluster.c:11 LOCATION examples/streamcluster.c:32:3
+DF 28 73
+BP 74 INSTRUCTION examples/streamcluster.c:11
+DF 71 74
+IP examples/streamcluster.c:18 NAME getelementptr
+BP 74 TAG examples/streamcluster.c:pkmedian:32:3-0-10
+IP examples/streamcluster.c:18 LOCATION examples/streamcluster.c:35:3
+BP 75 INSTRUCTION examples/streamcluster.c:18
+DF 19 75
+DF 73 75
+IP examples/streamcluster.c:17 NAME sext
+IP examples/streamcluster.c:17 LOCATION examples/streamcluster.c:35:3
+BP 76 INSTRUCTION examples/streamcluster.c:17
+DF 11 76
+IP examples/streamcluster.c:18 NAME getelementptr
+IP examples/streamcluster.c:18 LOCATION examples/streamcluster.c:35:3
+BP 77 INSTRUCTION examples/streamcluster.c:18
+IP examples/streamcluster.c:19 IMPURE TRUE
+DF 19 77
+IP examples/streamcluster.c:19 NONCOMMUTATIVE TRUE
+DF 76 77
+IP examples/streamcluster.c:19 IMPURE TRUE
+IP examples/streamcluster.c:19 NONCOMMUTATIVE TRUE
+IP examples/streamcluster.c:19 NAME pthread_barrier_wait
+IP examples/streamcluster.c:19 LOCATION examples/streamcluster.c:37:3
+BP 78 INSTRUCTION examples/streamcluster.c:19
+IP examples/streamcluster.c:19 NAME pthread_barrier_wait
+DF 0 78
+IP examples/streamcluster.c:19 LOCATION examples/streamcluster.c:37:3
+DF 0 78
+BP 79 INSTRUCTION examples/streamcluster.c:19
+DF 0 79
+DF 0 79
+IP examples/streamcluster.c:20 ITERATOR TRUE
+IP examples/streamcluster.c:20 NAME icmp
+IP examples/streamcluster.c:20 LOCATION examples/streamcluster.c:39:20
+BP 80 INSTRUCTION examples/streamcluster.c:20
+DF 0 80
+IP examples/streamcluster.c:20 ITERATOR TRUE
+BP 80 TAG examples/streamcluster.c:pkmedian:39:3-0-11
+IP examples/streamcluster.c:20 NAME icmp
+DF 0 80
+IP examples/streamcluster.c:20 LOCATION examples/streamcluster.c:39:20
+BP 80 TAG examples/streamcluster.c:pkmedian:39:3-0-11
+BP 81 INSTRUCTION examples/streamcluster.c:20
+DF 0 81
+BP 81 TAG examples/streamcluster.c:pkmedian:39:3-0-12
+DF 0 81
+BP 81 TAG examples/streamcluster.c:pkmedian:39:3-0-12
+IP examples/streamcluster.c:21 ITERATOR TRUE
+IP examples/streamcluster.c:21 ITERATOR TRUE
+IP examples/streamcluster.c:21 CONTROL TRUE
+IP examples/streamcluster.c:21 CONTROL TRUE
+IP examples/streamcluster.c:21 NAME br
+IP examples/streamcluster.c:21 NAME br
+IP examples/streamcluster.c:21 LOCATION examples/streamcluster.c:39:3
+IP examples/streamcluster.c:21 LOCATION examples/streamcluster.c:39:3
+BP 82 INSTRUCTION examples/streamcluster.c:21
+DF 81 82
+BP 83 INSTRUCTION examples/streamcluster.c:21
+DF 80 83
+BP 82 TAG examples/streamcluster.c:pkmedian:39:3-0-12
+BP 83 TAG examples/streamcluster.c:pkmedian:39:3-0-11
+IP examples/streamcluster.c:22 NAME sext
+IP examples/streamcluster.c:22 NAME sext
+IP examples/streamcluster.c:22 LOCATION examples/streamcluster.c:40:12
+IP examples/streamcluster.c:22 LOCATION examples/streamcluster.c:40:12
+BP 84 INSTRUCTION examples/streamcluster.c:22
+DF 0 84
+BP 85 INSTRUCTION examples/streamcluster.c:22
+BP 84 TAG examples/streamcluster.c:pkmedian:39:3-0-12
+IP examples/streamcluster.c:23 NAME getelementptr
+DF 0 85
+IP examples/streamcluster.c:23 LOCATION examples/streamcluster.c:40:12
+BP 85 TAG examples/streamcluster.c:pkmedian:39:3-0-11
+BP 86 INSTRUCTION examples/streamcluster.c:23
+IP examples/streamcluster.c:23 NAME getelementptr
+DF 19 86
+IP examples/streamcluster.c:23 LOCATION examples/streamcluster.c:40:12
+BP 86 TAG examples/streamcluster.c:pkmedian:39:3-0-12
+BP 87 INSTRUCTION examples/streamcluster.c:23
+DF 84 86
+DF 19 87
+BP 87 TAG examples/streamcluster.c:pkmedian:39:3-0-11
+DF 85 87
+BP 87 TAG examples/streamcluster.c:pkmedian:39:3-0-11
+BP 86 TAG examples/streamcluster.c:pkmedian:39:3-0-12
+IP examples/streamcluster.c:24 NAME fadd
+IP examples/streamcluster.c:24 LOCATION examples/streamcluster.c:40:9
+IP examples/streamcluster.c:24 NAME fadd
+BP 88 INSTRUCTION examples/streamcluster.c:24
+IP examples/streamcluster.c:24 LOCATION examples/streamcluster.c:40:9
+DF 0 88
+BP 89 INSTRUCTION examples/streamcluster.c:24
+BP 88 TAG examples/streamcluster.c:pkmedian:39:3-0-11
+DF 0 89
+DF 68 88
+BP 88 TAG examples/streamcluster.c:pkmedian:39:3-0-11
+BP 89 TAG examples/streamcluster.c:pkmedian:39:3-0-12
+DF 68 89
+IP examples/streamcluster.c:25 NAME add
+BP 89 TAG examples/streamcluster.c:pkmedian:39:3-0-12
+IP examples/streamcluster.c:25 LOCATION examples/streamcluster.c:39:26
+BP 90 INSTRUCTION examples/streamcluster.c:25
+IP examples/streamcluster.c:25 NAME add
+IP examples/streamcluster.c:25 LOCATION examples/streamcluster.c:39:26
+BP 91 INSTRUCTION examples/streamcluster.c:25
+DF 0 91
+DF 0 90
+DF 0 91
+DF 0 90
+IP examples/streamcluster.c:20 ITERATOR TRUE
+IP examples/streamcluster.c:20 ITERATOR TRUE
+IP examples/streamcluster.c:20 NAME icmp
+IP examples/streamcluster.c:20 NAME icmp
+IP examples/streamcluster.c:20 LOCATION examples/streamcluster.c:39:20
+IP examples/streamcluster.c:20 LOCATION examples/streamcluster.c:39:20
+BP 92 INSTRUCTION examples/streamcluster.c:20
+BP 93 INSTRUCTION examples/streamcluster.c:20
+DF 91 92
+DF 90 93
+BP 92 TAG examples/streamcluster.c:pkmedian:39:3-0-13
+BP 93 TAG examples/streamcluster.c:pkmedian:39:3-0-14
+DF 0 92
+DF 0 93
+BP 92 TAG examples/streamcluster.c:pkmedian:39:3-0-13
+BP 93 TAG examples/streamcluster.c:pkmedian:39:3-0-14
+IP examples/streamcluster.c:21 ITERATOR TRUE
+IP examples/streamcluster.c:21 CONTROL TRUE
+IP examples/streamcluster.c:21 ITERATOR TRUE
+IP examples/streamcluster.c:21 NAME br
+IP examples/streamcluster.c:21 CONTROL TRUE
+IP examples/streamcluster.c:21 LOCATION examples/streamcluster.c:39:3
+IP examples/streamcluster.c:21 NAME br
+IP examples/streamcluster.c:21 LOCATION examples/streamcluster.c:39:3
+BP 94 INSTRUCTION examples/streamcluster.c:21
+DF 92 94
+BP 95 INSTRUCTION examples/streamcluster.c:21
+BP 94 TAG examples/streamcluster.c:pkmedian:39:3-0-13
+DF 93 95
+IP examples/streamcluster.c:22 NAME sext
+BP 95 TAG examples/streamcluster.c:pkmedian:39:3-0-14
+IP examples/streamcluster.c:22 LOCATION examples/streamcluster.c:40:12
+IP examples/streamcluster.c:22 NAME sext
+IP examples/streamcluster.c:22 LOCATION examples/streamcluster.c:40:12
+BP 97 INSTRUCTION examples/streamcluster.c:22
+BP 96 INSTRUCTION examples/streamcluster.c:22
+DF 90 97
+DF 91 96
+BP 97 TAG examples/streamcluster.c:pkmedian:39:3-0-14
+BP 96 TAG examples/streamcluster.c:pkmedian:39:3-0-13
+IP examples/streamcluster.c:23 NAME getelementptr
+IP examples/streamcluster.c:23 NAME getelementptr
+IP examples/streamcluster.c:23 LOCATION examples/streamcluster.c:40:12
+IP examples/streamcluster.c:23 LOCATION examples/streamcluster.c:40:12
+BP 98 INSTRUCTION examples/streamcluster.c:23
+BP 99 INSTRUCTION examples/streamcluster.c:23
+DF 19 98
+DF 19 99
+BP 98 TAG examples/streamcluster.c:pkmedian:39:3-0-14
+DF 97 98
+BP 99 TAG examples/streamcluster.c:pkmedian:39:3-0-13
+BP 98 TAG examples/streamcluster.c:pkmedian:39:3-0-14
+IP examples/streamcluster.c:24 NAME fadd
+DF 96 99
+IP examples/streamcluster.c:24 LOCATION examples/streamcluster.c:40:9
+BP 99 TAG examples/streamcluster.c:pkmedian:39:3-0-13
+BP 100 INSTRUCTION examples/streamcluster.c:24
+DF 88 100
+IP examples/streamcluster.c:24 NAME fadd
+BP 100 TAG examples/streamcluster.c:pkmedian:39:3-0-14
+DF 65 100
+IP examples/streamcluster.c:24 LOCATION examples/streamcluster.c:40:9
+BP 100 TAG examples/streamcluster.c:pkmedian:39:3-0-14
+BP 101 INSTRUCTION examples/streamcluster.c:24
+DF 89 101
+IP examples/streamcluster.c:25 NAME add
+BP 101 TAG examples/streamcluster.c:pkmedian:39:3-0-13
+DF 65 101
+IP examples/streamcluster.c:25 LOCATION examples/streamcluster.c:39:26
+BP 101 TAG examples/streamcluster.c:pkmedian:39:3-0-13
+BP 102 INSTRUCTION examples/streamcluster.c:25
+IP examples/streamcluster.c:25 NAME add
+DF 90 102
+IP examples/streamcluster.c:25 LOCATION examples/streamcluster.c:39:26
+DF 0 102
+BP 103 INSTRUCTION examples/streamcluster.c:25
+DF 91 103
+DF 0 103
+IP examples/streamcluster.c:20 ITERATOR TRUE
+IP examples/streamcluster.c:20 NAME icmp
+IP examples/streamcluster.c:20 ITERATOR TRUE
+IP examples/streamcluster.c:20 LOCATION examples/streamcluster.c:39:20
+IP examples/streamcluster.c:20 NAME icmp
+IP examples/streamcluster.c:20 LOCATION examples/streamcluster.c:39:20
+BP 104 INSTRUCTION examples/streamcluster.c:20
+BP 105 INSTRUCTION examples/streamcluster.c:20
+DF 102 104
+DF 103 105
+BP 104 TAG examples/streamcluster.c:pkmedian:39:3-0-15
+DF 0 104
+BP 105 TAG examples/streamcluster.c:pkmedian:39:3-0-16
+BP 104 TAG examples/streamcluster.c:pkmedian:39:3-0-15
+IP examples/streamcluster.c:21 ITERATOR TRUE
+DF 0 105
+IP examples/streamcluster.c:21 CONTROL TRUE
+BP 105 TAG examples/streamcluster.c:pkmedian:39:3-0-16
+IP examples/streamcluster.c:21 ITERATOR TRUE
+IP examples/streamcluster.c:21 CONTROL TRUE
+IP examples/streamcluster.c:21 NAME br
+IP examples/streamcluster.c:21 NAME br
+IP examples/streamcluster.c:21 LOCATION examples/streamcluster.c:39:3
+IP examples/streamcluster.c:21 LOCATION examples/streamcluster.c:39:3
+BP 106 INSTRUCTION examples/streamcluster.c:21
+DF 104 106
+BP 107 INSTRUCTION examples/streamcluster.c:21
+BP 106 TAG examples/streamcluster.c:pkmedian:39:3-0-15
+DF 105 107
+IP examples/streamcluster.c:26 NAME fpext
+BP 107 TAG examples/streamcluster.c:pkmedian:39:3-0-16
+IP examples/streamcluster.c:26 LOCATION examples/streamcluster.c:43:34
+BP 108 INSTRUCTION examples/streamcluster.c:26
+IP examples/streamcluster.c:26 NAME fpext
+DF 100 108
+IP examples/streamcluster.c:26 LOCATION examples/streamcluster.c:43:34
+BP 109 INSTRUCTION examples/streamcluster.c:26
+IP examples/streamcluster.c:27 IMPURE TRUE
+DF 101 109
+IP examples/streamcluster.c:27 NAME printf
+IP examples/streamcluster.c:27 LOCATION examples/streamcluster.c:43:3
+IP examples/streamcluster.c:27 IMPURE TRUE
+BP 110 INSTRUCTION examples/streamcluster.c:27
+IP examples/streamcluster.c:27 NAME printf
+DF 0 110
+IP examples/streamcluster.c:27 LOCATION examples/streamcluster.c:43:3
+DF 11 110
+DF 108 110
+BP 111 INSTRUCTION examples/streamcluster.c:27
+DF 0 110
+DF 0 111
+DF 28 111
+DF 109 111
+DF 0 111
+IP examples/streamcluster.c:49 NAME add
+IP examples/streamcluster.c:49 LOCATION examples/streamcluster.c:57:23
+BP 112 INSTRUCTION examples/streamcluster.c:49
+DF 0 112
+DF 0 112
+IP examples/streamcluster.c:45 ITERATOR TRUE
+IP examples/streamcluster.c:45 NAME icmp
+IP examples/streamcluster.c:45 LOCATION examples/streamcluster.c:57:17
+BP 113 INSTRUCTION examples/streamcluster.c:45
+DF 112 113
+BP 113 TAG examples/streamcluster.c:main:57:3-0-17
+DF 0 113
+BP 113 TAG examples/streamcluster.c:main:57:3-0-17
+IP examples/streamcluster.c:46 ITERATOR TRUE
+IP examples/streamcluster.c:46 CONTROL TRUE
+IP examples/streamcluster.c:46 NAME br
+IP examples/streamcluster.c:46 LOCATION examples/streamcluster.c:57:3
+BP 114 INSTRUCTION examples/streamcluster.c:46
+DF 113 114
+BP 114 TAG examples/streamcluster.c:main:57:3-0-17
+IP examples/streamcluster.c:47 NAME getelementptr
+IP examples/streamcluster.c:47 LOCATION examples/streamcluster.c:58:18
+BP 115 INSTRUCTION examples/streamcluster.c:47
+DF 0 115
+BP 115 TAG examples/streamcluster.c:main:57:3-0-17
+DF 0 115
+BP 115 TAG examples/streamcluster.c:main:57:3-0-17
+DF 112 115
+BP 115 TAG examples/streamcluster.c:main:57:3-0-17
+IP examples/streamcluster.c:48 IMPURE TRUE
+IP examples/streamcluster.c:48 NAME pthread_join
+IP examples/streamcluster.c:48 LOCATION examples/streamcluster.c:58:5
+BP 116 INSTRUCTION examples/streamcluster.c:48
+DF 0 116
+BP 116 TAG examples/streamcluster.c:main:57:3-0-17
+DF 0 116
+BP 116 TAG examples/streamcluster.c:main:57:3-0-17
+DF 0 116
+BP 116 TAG examples/streamcluster.c:main:57:3-0-17
+IP examples/streamcluster.c:49 NAME add
+IP examples/streamcluster.c:49 LOCATION examples/streamcluster.c:57:23
+BP 117 INSTRUCTION examples/streamcluster.c:49
+DF 112 117
+DF 0 117
+IP examples/streamcluster.c:45 ITERATOR TRUE
+IP examples/streamcluster.c:45 NAME icmp
+IP examples/streamcluster.c:45 LOCATION examples/streamcluster.c:57:17
+BP 118 INSTRUCTION examples/streamcluster.c:45
+DF 117 118
+BP 118 TAG examples/streamcluster.c:main:57:3-0-18
+DF 0 118
+BP 118 TAG examples/streamcluster.c:main:57:3-0-18
+IP examples/streamcluster.c:46 ITERATOR TRUE
+IP examples/streamcluster.c:46 CONTROL TRUE
+IP examples/streamcluster.c:46 NAME br
+IP examples/streamcluster.c:46 LOCATION examples/streamcluster.c:57:3
+BP 119 INSTRUCTION examples/streamcluster.c:46
+DF 118 119
+BP 119 TAG examples/streamcluster.c:main:57:3-0-18
+IP examples/streamcluster.c:50 IMPURE TRUE
+IP examples/streamcluster.c:50 NONCOMMUTATIVE TRUE
+IP examples/streamcluster.c:50 NAME pthread_barrier_destroy
+IP examples/streamcluster.c:50 LOCATION examples/streamcluster.c:59:3
+BP 120 INSTRUCTION examples/streamcluster.c:50
+DF 0 120
+DF 0 120
+IP examples/streamcluster.c:51 NAME fptosi
+IP examples/streamcluster.c:51 LOCATION examples/streamcluster.c:60:10
+BP 121 INSTRUCTION examples/streamcluster.c:51
+DF 0 121
+IP examples/streamcluster.c:52 CONTROL TRUE
+IP examples/streamcluster.c:52 NAME ret
+IP examples/streamcluster.c:52 LOCATION examples/streamcluster.c:60:3
+BP 122 INSTRUCTION examples/streamcluster.c:52
+DF 121 122
