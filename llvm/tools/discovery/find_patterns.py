@@ -223,7 +223,6 @@ try:
                                        for st2 in candidate_traces()
                                        if st1 != st2]))
                 end_measurement("subtract-time")
-                exit(0)
 
             def make_dzn(st):
                 compact_st = \
@@ -242,6 +241,9 @@ try:
             start_measurement("compaction-time")
             list(ex.map(make_dzn, candidate_traces()))
             end_measurement("compaction-time")
+
+            if args.level == u.arg_eager:
+                exit(0)
 
             def make_szn((subtrace_id, pattern)):
                 pre = subtrace_prefix(subtrace_id)
