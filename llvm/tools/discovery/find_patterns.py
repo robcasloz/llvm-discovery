@@ -155,10 +155,6 @@ try:
     run_process_trace(["-o", original_trace, "--output-format=plain",
                        "record", simplified_trace])
 
-    def all_but_original_trace():
-        return list(set(glob.glob(os.path.join(iterdir, "*.trace"))) \
-                    - set([iter_original_trace]))
-
     ex = futures.ThreadPoolExecutor(max_workers=int(args.jobs))
 
     if args.detailed:
@@ -188,7 +184,9 @@ try:
                               [iter_original_trace])
             end_measurement("decomposition-time")
             subtrace_ids = set()
-            for subtrace in all_but_original_trace():
+            for subtrace in \
+                list(set(glob.glob(os.path.join(iterdir, "*.trace"))) \
+                     - set([iter_original_trace])):
                 base_subtrace = os.path.basename(os.path.splitext(subtrace)[0])
                 [_, first, second] = base_subtrace.rsplit(".", 2)
                 if first.isdigit(): # Loop sub-trace
