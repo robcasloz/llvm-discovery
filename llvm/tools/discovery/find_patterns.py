@@ -253,7 +253,13 @@ try:
             end_measurement("matching-time")
 
             if args.level == u.arg_eager:
-                exit(0)
+                szn_files = [temp([subtrace_id(st), "collapsed", p + "s",
+                                   "szn"], Level.iteration)
+                             for st in candidate_traces()
+                             for p  in applicable_patterns(subtrace_type(st))]
+                run_process_matches(szn_files + ["-o", patterns_csv] + \
+                                    simple_options)
+                break
 
             def subtrace_szn_files(st_type):
                 return [temp([subtrace_id(st), "collapsed", p + "s", "szn"],
