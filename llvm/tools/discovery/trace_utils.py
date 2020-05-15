@@ -444,3 +444,9 @@ def is_associative(i, PI):
 # perhaps even at instrumentation phase.
 associative_names = \
     set(["add", "fadd", "mul", "fmul", "and", "or", "xor", "sub", "fsub"])
+
+# Gives the set of original blocks corresponding to the DDG.
+def original_blocks((DDG, PB, _, __)):
+    if not DDG.nodes():
+        return set()
+    return set.union(*[set(PB[b].get(tk_original, [])) for b in DDG.nodes()])

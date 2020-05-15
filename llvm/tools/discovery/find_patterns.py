@@ -199,15 +199,30 @@ try:
             # 'subtract' and 'compose' operations to each pair of sub-traces
             # until a fixpoint is reached).
             if args.level == u.arg_eager:
+
+                def original_nodes(st):
+                    G = u.read_trace(st)
+                    return u.original_blocks(G)
+
+                # Map from candidate sub-DDG to original node set. Allows to
+                # quickly examine the node set of each candidate sub-trace.
+                candidates = {}
+                for st in candidate_traces():
+                    candidates[st] = original_nodes(st)
+
                 def make_subtraction((st1, st2)):
+                    # If the result would not be a new sub-trace (because it
+                    # would be empty or equal to st1), do not bother.
+                    if (candidates[st1] - candidates[st2] == set()) or \
+                       (candidates[st1] & candidates[st2] == set()):
+                        return
                     def paren(string):
                         return "[" + string + "]"
                     subtract_id = paren(subtrace_id(st1)) + "-" + \
                                   paren(subtrace_id(st2))
-                    subtract_subtrace = \
-                        temp([subtract_id, "trace"], Level.candidate)
-                    run_process_trace(["-o", subtract_subtrace, "subtract",
-                                       st1, st2, original_trace])
+                    subtract_st = temp([subtract_id, "trace"], Level.candidate)
+                    run_process_trace(["-o", subtract_st, "subtract", st1, st2,
+                                       original_trace])
 
                 # The list conversion is just to force evaluation.
                 start_measurement("subtract-time")
@@ -216,6 +231,9 @@ try:
                                        for st2 in candidate_traces()
                                        if st1 != st2]))
                 end_measurement("subtract-time")
+
+                for st in candidate_traces():
+                    candidates[st] = original_nodes(st)
 
             def make_dzn(st):
                 compact_st = \

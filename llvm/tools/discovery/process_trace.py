@@ -558,10 +558,7 @@ def compose(SG1, SG2, G):
 
 # Gives a DDG (subset of G) where 'op' is applied to SG1 and SG2.
 def apply_operation(op, SG1, SG2, G):
-    def original_blocks((DDG, PB, _, __)):
-        return set.union(*[set(PB[b].get(u.tk_original, []))
-                           for b in DDG.nodes()])
-    blocks = op(original_blocks(SG1), original_blocks(SG2))
+    blocks = op(u.original_blocks(SG1), u.original_blocks(SG2))
     G = filter_blocks(G, blocks)
     # Preserve the tags in SG1 & blocks and SG2 & blocks, for future compaction.
     # Note that this is not equivalent to fetching the tags in DDG & blocks
