@@ -41,11 +41,13 @@ parser.add_argument('-j', '--jobs', metavar='N', type=int)
 parser.add_argument('--clean', dest='clean', action='store_true')
 parser.add_argument('--no-clean', dest='clean', action='store_false')
 parser.add_argument('--detailed', dest='detailed', action='store_true')
+parser.add_argument('--deep', dest='deep', action='store_true')
 parser.add_argument('--stats')
 parser.set_defaults(jobs=multiprocessing.cpu_count())
 parser.set_defaults(clean=True)
 parser.set_defaults(detailed=False)
 parser.set_defaults(stats=False)
+parser.set_defaults(deep=False)
 
 args = parser.parse_args()
 
@@ -168,7 +170,7 @@ def update(ctx, nodes, loops):
             tags.add(G[3][tag].get(u.tk_alias))
         loops[st] = tags
 
-def remove_duplicates(nodes, loops):
+def remove_new_duplicates(nodes, loops, new):
     duplicates = {}
     for st in nodes.keys():
         key = (frozenset(nodes[st]), frozenset(loops[st]))
@@ -176,24 +178,28 @@ def remove_duplicates(nodes, loops):
             duplicates[key] = set()
         duplicates[key].add(st)
     for sts in duplicates.itervalues():
-        preserved = None
-        for st in sts:
-            if preserved:
+        if len(sts) > 1:
+            for st in sts & new:
+                #print "REMOVING", st
                 os.remove(st)
                 del nodes[st]
                 del loops[st]
-            else:
-                preserved = st
+
+def subtraction_id(left, right):
+    sub = "-"
+    def maybe_paren(string):
+        if sub in string:
+            return "[" + string + "]"
+        else:
+            return string
+    return maybe_paren(left) + sub + maybe_paren(right)
 
 def make_subtraction((ctx, st1, st2, n1, n2)):
     # If the result would not be a new sub-trace (because it
     # would be empty or equal to st1), do not bother.
     if (n1 - n2 == set()) or (n1 & n2 == set()):
         return
-    def paren(string):
-        return "[" + string + "]"
-    subtract_id = paren(subtrace_id(ctx, st1)) + "-" + \
-                  paren(subtrace_id(ctx, st2))
+    subtract_id = subtraction_id(subtrace_id(ctx, st1), subtrace_id(ctx, st2))
     subtract_st = temp(ctx, [subtract_id, "trace"], Level.candidate)
     run_process_trace(["-o", subtract_st, "subtract", st1, st2,
                        original_trace(ctx)])
@@ -301,16 +307,24 @@ try:
 
                 # The list conversion is just to force evaluation.
                 start_measurement("subtract-time")
-                list(ex.map(make_subtraction, [(ctx, st1, st2,
-                                                nodes[st1],
-                                                nodes[st2])
-                                               for st1 in candidate_traces(ctx)
-                                               for st2 in candidate_traces(ctx)
-                                               if st1 != st2]))
+                subtraces_before = set()
+                subtraces_after  = set(candidate_traces(ctx))
+                while subtraces_after != subtraces_before:
+                    subtraces_before = subtraces_after
+                    list(ex.map(make_subtraction,
+                                [(ctx, st1, st2,
+                                  nodes[st1],
+                                  nodes[st2])
+                                 for st1 in candidate_traces(ctx)
+                                 for st2 in candidate_traces(ctx)
+                                 if st1 != st2]))
+                    update(ctx, nodes, loops)
+                    new = set(candidate_traces(ctx)) - subtraces_before
+                    remove_new_duplicates(nodes, loops, new)
+                    subtraces_after = set(candidate_traces(ctx))
+                    if not args.deep:
+                        break
                 end_measurement("subtract-time")
-
-                update(ctx, nodes, loops)
-                remove_duplicates(nodes, loops)
 
             # The list conversion is just to force evaluation.
             start_measurement("compaction-time")
