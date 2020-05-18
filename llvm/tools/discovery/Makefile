@@ -217,16 +217,16 @@ TOP_COMPONENTS ?= 50
 %.tiled_map_reductions.pdf: %.tiled_map_reductions.szn %.trace
 	$(PROCESS_TRACE) -o $@ visualize $^ $(GRAPHVIZ_FLAGS)
 
-# Scan pattern matches in MiniZinc solution format.
-%.scans.szn: %.dzn $(DISCOVERY_DIR)/scan.mzn $(DISCOVERY_DIR)/common.mzn
-	-minizinc $(MINIZINC_FLAGS) $(DISCOVERY_DIR)/scan.mzn $< > $@
+# Linear scan pattern matches in MiniZinc solution format.
+%.linear_scans.szn: %.dzn $(DISCOVERY_DIR)/linear_scan.mzn $(DISCOVERY_DIR)/common.mzn
+	-minizinc $(MINIZINC_FLAGS) $(DISCOVERY_DIR)/linear_scan.mzn $< > $@
 
-# Scan pattern matches in PDF format.
-%.scans.pdf: %.scans.szn %.trace
+# Linear scan pattern matches in PDF format.
+%.linear_scans.pdf: %.linear_scans.szn %.trace
 	$(PROCESS_TRACE) -o $@ visualize $^ $(GRAPHVIZ_FLAGS)
 
-# Scan pattern matches in YAML LLVM remarks format.
-%.scans.yaml: %.scans.szn %.trace
+# Linear scan pattern matches in YAML LLVM remarks format.
+%.linear_scans.yaml: %.linear_scans.szn %.trace
 	$(PROCESS_TRACE) report $^ > $@
 
 # Pipeline pattern matches in MiniZinc solution format.
@@ -242,7 +242,7 @@ TOP_COMPONENTS ?= 50
 	$(PROCESS_TRACE) report $^ > $@
 
 # Combined pattern matches in YAML LLVM remarks format.
-%.patterns.yaml: %.doalls.yaml %.maps.yaml %.conditional_maps.yaml %.linear_reductions.yaml %.scans.yaml %.pipelines.yaml
+%.patterns.yaml: %.doalls.yaml %.maps.yaml %.conditional_maps.yaml %.linear_reductions.yaml %.linear_scans.yaml %.pipelines.yaml
 	cat $^ > $@
 
 # Instrumented LLVM IR for single C++ source file.

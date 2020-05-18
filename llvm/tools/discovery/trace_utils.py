@@ -49,7 +49,7 @@ pat_doall = "doall"
 pat_map = "map"
 pat_conditional_map = "conditional_map"
 pat_linear_reduction = "linear_reduction"
-pat_scan = "scan"
+pat_linear_scan = "linear_scan"
 pat_pipeline = "pipeline"
 pat_tiled_reduction = "tiled_reduction"
 pat_linear_map_reduction = "linear_map_reduction"
@@ -77,13 +77,13 @@ unknown_subtrace               = "unknown"
 pat_all_disconnected = [pat_doall, pat_map, pat_conditional_map]
 
 # List with all patterns that require asociativity.
-pat_all_associative = [pat_linear_reduction, pat_scan, pat_tiled_reduction]
+pat_all_associative = [pat_linear_reduction, pat_linear_scan, pat_tiled_reduction]
 
 # List with all supported patterns.
 pat_all = pat_all_disconnected + pat_all_associative + [pat_pipeline]
 
 # List with all supported unidimensional patterns.
-pat_all_uni = pat_all_disconnected + [pat_linear_reduction, pat_scan]
+pat_all_uni = pat_all_disconnected + [pat_linear_reduction, pat_linear_scan]
 
 # Returns a labeled DDG from a trace loaded from the given file.
 def read_trace(trace_file):

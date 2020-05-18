@@ -1,4 +1,4 @@
-% MiniZinc model for finding scans.
+% MiniZinc model for finding linear scans.
 
 include "partition_set.mzn";
 include "disjoint.mzn";
@@ -15,7 +15,7 @@ set of int: steps = 0..m-1;
 
 %%% VARIABLES
 
-% SC is the set of nodes in the scan pattern.
+% SC is the set of nodes in the linear scan pattern.
 var set of nodes: SC;
 
 % SCc is the complement of SC (nodes not in the scan pattern).
@@ -161,4 +161,4 @@ forall (sc in static_classes, i, j in sc where j > i)
 
 solve satisfy;
 
-output ["scan: "] ++ [ show(S[i]) ++ " " | i in steps ];
+output ["linear_scan: "] ++ [ show(S[i]) ++ " " | i in steps ];

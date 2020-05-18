@@ -34,7 +34,7 @@ doall_index = legend.index(u.pat_doall)
 map_index = legend.index(u.pat_map)
 conditional_map_index = legend.index(u.pat_conditional_map)
 reduction_index = legend.index(u.pat_linear_reduction)
-scan_index = legend.index(u.pat_scan)
+linear_scan_index = legend.index(u.pat_linear_scan)
 tiled_reduction_index = legend.index(u.pat_tiled_reduction)
 found = False
 occurrence = 0
@@ -58,7 +58,7 @@ for line in r:
                           (u.pat_map, line[map_index]),
                           (u.pat_conditional_map, line[conditional_map_index]),
                           (u.pat_linear_reduction, line[reduction_index]),
-                          (u.pat_scan, line[scan_index]),
+                          (u.pat_linear_scan, line[linear_scan_index]),
                           (u.pat_tiled_reduction, line[tiled_reduction_index])]
 
         actual_matches = set([match_name(p, m) for (p, m) in actual_results

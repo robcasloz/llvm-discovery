@@ -178,7 +178,7 @@ def format_match(pattern, match):
     if pattern in u.pat_all_uni:
         if pattern in [u.pat_doall, u.pat_map, u.pat_conditional_map]:
             unit = "runs"
-        elif pattern in [u.pat_linear_reduction, u.pat_scan]:
+        elif pattern in [u.pat_linear_reduction, u.pat_linear_scan]:
             unit = "steps"
         legend = "(" + str(len(match)) + " " + unit + ")"
         color_map = {node: colors[(step % len(colors))]

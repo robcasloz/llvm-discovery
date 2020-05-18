@@ -17,7 +17,7 @@ set (files
   "doall.mzn"
   "linear_reduction.mzn"
   "map.mzn"
-  "scan.mzn"
+  "linear_scan.mzn"
   "commutative.txt")
 
 foreach (file ${files})
