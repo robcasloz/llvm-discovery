@@ -73,14 +73,17 @@ loop_subtrace                  = "loop"
 associative_component_subtrace = "associative-component"
 unknown_subtrace               = "unknown"
 
-# List with all supported unidimensional patterns.
-pat_all_uni = [pat_doall, pat_map, pat_mapfilter, pat_reduction, pat_scan]
-
-# List with all supported patterns.
-pat_all = pat_all_uni + [pat_twophasereduction, pat_pipeline]
+# List with all map-like patterns that are disconnected.
+pat_all_disconnected = [pat_doall, pat_map, pat_mapfilter]
 
 # List with all patterns that require asociativity.
 pat_all_associative = [pat_reduction, pat_scan, pat_twophasereduction]
+
+# List with all supported patterns.
+pat_all = pat_all_disconnected + pat_all_associative + [pat_pipeline]
+
+# List with all supported unidimensional patterns.
+pat_all_uni = pat_all_disconnected + [pat_reduction, pat_scan]
 
 # Returns a labeled DDG from a trace loaded from the given file.
 def read_trace(trace_file):

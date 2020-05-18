@@ -136,13 +136,19 @@ def subtrace_type(ctx, st):
     else:
         return u.unknown_subtrace
 
-def applicable_patterns(st_type):
-    if st_type == u.loop_subtrace:
-        return u.pat_all_uni
-    elif st_type == u.associative_component_subtrace:
+def applicable_patterns(ctx, st, loops):
+    st_type = subtrace_type(ctx, st)
+    if   (st_type == u.loop_subtrace) or \
+         (st_type == u.unknown_subtrace and loops):
+        # The trace is derived from a loop, do not bother looking for reductions
+        # and scans (these are findable by associative components).
+        return u.pat_all_disconnected
+    elif (st_type == u.associative_component_subtrace) or \
+         (st_type == u.unknown_subtrace and not loops):
+        # The trace is derived from an associative component, do not bother
+        # looking for disconnected patterns (these are findable by loops).
         return u.pat_all_associative
-    else:
-        return u.pat_all_uni + [u.pat_twophasereduction]
+    assert(False)
 
 def applicable_match_trivial(pattern):
     if pattern == u.pat_twophasereduction:
@@ -254,31 +260,39 @@ try:
             def candidate_traces():
                 return glob.glob(os.path.join(ctx.canddir, "*.trace"))
 
+            # Maps from candidate sub-DDG to original node and loop
+            # set. Allows to quickly examine the node set of each candidate
+            # sub-trace (only used in eager mode).
+            nodes = {}
+            loops = {}
+
             # Generate all candidate subtraces eagerly (resulting from applying
             # 'subtract' and 'compose' operations to each pair of sub-traces
             # until a fixpoint is reached).
             if args.level == u.arg_eager:
 
-                def update(candidates):
+                def update(nodes, loops):
                     for st in candidate_traces():
-                        candidates[st] = u.original_blocks(u.read_trace(st))
+                        G = u.read_trace(st)
+                        nodes[st] = u.original_blocks(G)
+                        tags = set()
+                        for tag in u.tag_set(G):
+                            tags.add(G[3][tag].get(u.tk_alias))
+                        loops[st] = tags
 
-                # Map from candidate sub-DDG to original node set. Allows to
-                # quickly examine the node set of each candidate sub-trace.
-                candidates = {}
-                update(candidates)
+                update(nodes, loops)
 
                 # The list conversion is just to force evaluation.
                 start_measurement("subtract-time")
                 list(ex.map(make_subtraction, [(ctx, st1, st2,
-                                                candidates[st1],
-                                                candidates[st2])
+                                                nodes[st1],
+                                                nodes[st2])
                                                for st1 in candidate_traces()
                                                for st2 in candidate_traces()
                                                if st1 != st2]))
                 end_measurement("subtract-time")
 
-                update(candidates)
+                update(nodes, loops)
 
             # The list conversion is just to force evaluation.
             start_measurement("compaction-time")
@@ -290,7 +304,8 @@ try:
             list(ex.map(make_szn,
                         [(ctx, st, p, mt)
                          for st in candidate_traces()
-                         for p  in applicable_patterns(subtrace_type(ctx, st))
+                         for p  in applicable_patterns(ctx, st,
+                                                       loops.get(st, {}))
                          for mt in applicable_match_trivial(p)]))
             end_measurement("matching-time")
 
@@ -298,7 +313,8 @@ try:
                 szn_files = [temp(ctx, [subtrace_id(ctx, st), "collapsed", p + "s",
                                         "szn"], Level.iteration)
                              for st in candidate_traces()
-                             for p  in applicable_patterns(subtrace_type(ctx, st))]
+                             for p  in applicable_patterns(ctx, st,
+                                                           loops.get(st, {}))]
                 run_process_matches(szn_files + ["-o", patterns_csv] + \
                                     simple_options)
                 break
@@ -307,7 +323,8 @@ try:
                 return [temp(ctx, [subtrace_id(ctx, st), "collapsed", p + "s",
                                    "szn"], Level.iteration)
                         for st in candidate_traces()
-                        for p in  applicable_patterns(subtrace_type(ctx, st))
+                        for p in  applicable_patterns(ctx, st,
+                                                      loops.get(st, {}))
                         if subtrace_type(ctx, st) == st_type]
 
             def update_patterns_csv(new):
