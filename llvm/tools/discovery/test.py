@@ -9,8 +9,8 @@ import glob
 from concurrent import futures
 import multiprocessing
 
-patterns = ["map", "reduction", "scan", "pipeline", "twophasereduction",
-            "mapreduction", "twophasemapreduction"]
+patterns = ["map", "linear_reduction", "scan", "pipeline", "tiled_reduction",
+            "linear_map_reduction", "tiled_map_reduction"]
 
 test_cases = {
     "map" : [
@@ -21,7 +21,7 @@ test_cases = {
         "map-reduction-list",
         "map-reduction-parallel"
     ],
-    "reduction" : [
+    "linear_reduction" : [
         "complex-reduction",
         "list-reduction",
         "map-reduce-nodata",
@@ -29,7 +29,7 @@ test_cases = {
         "reduction",
         "reduction-max",
         "double-reduction",
-        "reduction-coarse",
+        "reduction-coarse"
     ],
     "scan" : [
         "scan"
@@ -38,13 +38,13 @@ test_cases = {
         "sequential-pipe",
         "complex-pipe"
     ],
-    "twophasereduction" : [
+    "tiled_reduction" : [
         "reduction-parallel"
     ],
-    "mapreduction" : [
+    "linear_map_reduction" : [
         "linear-mapreduce"
     ],
-    "twophasemapreduction" : [
+    "tiled_map_reduction" : [
         "mapreduce"
     ]
 

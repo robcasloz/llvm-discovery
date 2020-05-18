@@ -96,13 +96,13 @@ def generalize_partial_maps(pattern_data):
     return
 
 def discard_subsumed_linear_reductions(pattern_data):
-    if not u.pat_reduction in pattern_data:
+    if not u.pat_linear_reduction in pattern_data:
         return
-    reductions = pattern_data[u.pat_reduction]
-    if not u.pat_twophasereduction in pattern_data:
+    reductions = pattern_data[u.pat_linear_reduction]
+    if not u.pat_tiled_reduction in pattern_data:
         return
-    twophasereductions = pattern_data[u.pat_twophasereduction]
-    if twophasereductions.keys() == [u.match] and \
+    tiled_reductions = pattern_data[u.pat_tiled_reduction]
+    if tiled_reductions.keys() == [u.match] and \
        reductions.keys() == [u.match]:
         reductions[u.no_match] = reductions[u.match]
         del reductions[u.match]
@@ -210,7 +210,7 @@ def process_matches(szn_files, simple, generalize_maps, discard_subsumed,
                 # Possibly generalize partial matches of map-like patterns into
                 # full 'mapfilter' matches.
                 generalize_partial_maps(pattern_data)
-                # If there are both linear and two-phase reductions, discard the
+                # If there are both linear and tiled reductions, discard the
                 # former.
                 if discard_subsumed:
                     discard_subsumed_linear_reductions(pattern_data)

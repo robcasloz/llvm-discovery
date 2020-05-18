@@ -48,12 +48,12 @@ tk_sol_status_empty = "empty"
 pat_doall = "doall"
 pat_map = "map"
 pat_mapfilter = "mapfilter"
-pat_reduction = "reduction"
+pat_linear_reduction = "linear_reduction"
 pat_scan = "scan"
 pat_pipeline = "pipeline"
-pat_twophasereduction = "twophasereduction"
-pat_mapreduction = "mapreduction"
-pat_twophasemapreduction = "twophasemapreduction"
+pat_tiled_reduction = "tiled_reduction"
+pat_linear_map_reduction = "linear_map_reduction"
+pat_tiled_map_reduction = "tiled_map_reduction"
 
 arg_nodes = "nodes"
 arg_location = "location"
@@ -77,13 +77,13 @@ unknown_subtrace               = "unknown"
 pat_all_disconnected = [pat_doall, pat_map, pat_mapfilter]
 
 # List with all patterns that require asociativity.
-pat_all_associative = [pat_reduction, pat_scan, pat_twophasereduction]
+pat_all_associative = [pat_linear_reduction, pat_scan, pat_tiled_reduction]
 
 # List with all supported patterns.
 pat_all = pat_all_disconnected + pat_all_associative + [pat_pipeline]
 
 # List with all supported unidimensional patterns.
-pat_all_uni = pat_all_disconnected + [pat_reduction, pat_scan]
+pat_all_uni = pat_all_disconnected + [pat_linear_reduction, pat_scan]
 
 # Returns a labeled DDG from a trace loaded from the given file.
 def read_trace(trace_file):
@@ -188,7 +188,7 @@ def insts_to_steps(G, pattern, matches):
         elif pattern == pat_pipeline:
             (stages, runs) = match
             steps = len(stages) * len(runs)
-        elif pattern == pat_twophasereduction:
+        elif pattern == pat_tiled_reduction:
             partial_steps = [len(p) for (f, p) in match]
             steps = sum(partial_steps) + len(partial_steps)
         sol_insts = Set()
@@ -208,7 +208,7 @@ def match_nodes(pattern, match):
     elif pattern == pat_pipeline:
         (stages, runs) = match
         nodes = index_map(stages).keys()
-    elif pattern == pat_twophasereduction:
+    elif pattern == pat_tiled_reduction:
         nodes = flatten(match)
     return nodes
 
@@ -298,8 +298,8 @@ def read_matches(match_file):
                 status = tk_sol_status_error
                 continue
             pattern = tokens[0][:-1]
-            if pattern in [pat_pipeline, pat_mapreduction,
-                           pat_twophasereduction, pat_twophasemapreduction]:
+            if pattern in [pat_pipeline, pat_linear_map_reduction,
+                           pat_tiled_reduction, pat_tiled_map_reduction]:
                 typ  = tokens[1]
                 rest = tokens[2:]
             else:
@@ -313,7 +313,7 @@ def read_matches(match_file):
                     # Partial solution, rest of the solution is in next line.
                     stages = array
                     continue
-            elif pattern == pat_mapreduction:
+            elif pattern == pat_linear_map_reduction:
                 if runs:
                     match = (runs, array)
                     runs = None
@@ -321,7 +321,7 @@ def read_matches(match_file):
                     # Partial solution, rest of the solution is in next line.
                     runs = array
                     continue
-            elif pattern in [pat_twophasereduction, pat_twophasemapreduction]:
+            elif pattern in [pat_tiled_reduction, pat_tiled_map_reduction]:
                 # Map in a map-reduction.
                 if typ == "map:":
                     map_runs = array
@@ -331,7 +331,7 @@ def read_matches(match_file):
                     if array:
                         final = array[0]
                         continue # Partial solution, keep reading.
-                    else: # End of two-phase reduction
+                    else: # End of tiled reduction.
                         if partials:
                             match = partials
                             partials = []
@@ -341,9 +341,9 @@ def read_matches(match_file):
                     if final:
                         # This partial corresponds to a final, even if the
                         # partial may be empty (in a trivial solution).
-                        if pattern == pat_twophasereduction:
+                        if pattern == pat_tiled_reduction:
                             partial = (final, array)
-                        elif pattern == pat_twophasemapreduction:
+                        elif pattern == pat_tiled_map_reduction:
                             runs = map_runs[0:len(array)]
                             map_runs = map_runs[len(array):]
                             partial = (runs, final, array)

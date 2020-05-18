@@ -178,7 +178,7 @@ def format_match(pattern, match):
     if pattern in u.pat_all_uni:
         if pattern in [u.pat_doall, u.pat_map, u.pat_mapfilter]:
             unit = "runs"
-        elif pattern in [u.pat_reduction, u.pat_scan]:
+        elif pattern in [u.pat_linear_reduction, u.pat_scan]:
             unit = "steps"
         legend = "(" + str(len(match)) + " " + unit + ")"
         color_map = {node: colors[(step % len(colors))]
@@ -195,15 +195,15 @@ def format_match(pattern, match):
             factor = run_completion * 0.5
             original_color = colors[node_stage[k] % len(colors)]
             color_map[k] = adjust_color(original_color, factor)
-    elif pattern == u.pat_mapreduction:
+    elif pattern == u.pat_linear_map_reduction:
         (runs, steps) = match
         legend = "(" + str(len(steps)) + " steps)"
         color_map = {node: colors[(step % len(colors))]
                      for node, step
                      in u.index_map(runs).items() + u.index_map(steps).items()}
         contrast_colors(color_map, set(u.concat(runs)))
-    elif pattern in [u.pat_twophasereduction, u.pat_twophasemapreduction]:
-        if pattern == u.pat_twophasereduction:
+    elif pattern in [u.pat_tiled_reduction, u.pat_tiled_map_reduction]:
+        if pattern == u.pat_tiled_reduction:
             unified_match = [([], f, p) for f, p in match]
         else:
             unified_match = match

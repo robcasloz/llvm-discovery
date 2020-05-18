@@ -1,4 +1,4 @@
-% MiniZinc model for finding two-phase reductions.
+% MiniZinc model for finding tiled reductions.
 
 include "partition_set.mzn";
 include "disjoint.mzn";
@@ -18,10 +18,10 @@ set of int: partial_steps = 0..m-1;
 
 %%% VARIABLES
 
-% R is the set of nodes in the entire two-phase reduction.
+% R is the set of nodes in the entire tiled reduction.
 var set of nodes: R;
 
-% Rc is the complement of R (nodes not in the entire two-phase reduction).
+% Rc is the complement of R (nodes not in the entire tiled reduction).
 var set of nodes: Rc;
 
 % FR is the set of nodes in the final reduction.
@@ -66,9 +66,8 @@ array[insts] of var 0..n: PCount;
 
 %%% CONSTRAINTS
 
-% Ensure that the partial and final reduction variables form a two-phase
-% reduction.
-constraint twophasereduction(R, Rc,
+% Ensure that the partial and final reduction variables form a tiled reduction.
+constraint tiled_reduction(R, Rc,
                              PR, PRc, PS, PStep, PLast, PCount,
                              FR, FRc, FS, FStep, FLast, FCount);
 
@@ -87,7 +86,7 @@ match_trivial \/
 solve satisfy;
 
 output
-["twophasereduction: final:   " ++ show(FS[i]) ++ "\n" ++
- "twophasereduction: partial: " ++
+["tiled_reduction: final:   " ++ show(FS[i]) ++ "\n" ++
+ "tiled_reduction: partial: " ++
  concat([show(PS[i,j]) ++ " " | j in partial_steps]) ++ "\n"
  | i in final_steps ]

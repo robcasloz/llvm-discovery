@@ -1,7 +1,0 @@
-twophasemapreduction: final:   10..10
-twophasemapreduction: final:   9..9
-twophasemapreduction: final:   {}
-twophasemapreduction: map:     1..1 2..2 3..3 4..4 
-twophasemapreduction: partial: 5..5 6..6 {} {} 
-twophasemapreduction: partial: 7..7 8..8 {} {} 
-twophasemapreduction: partial: {} {} {} {} 

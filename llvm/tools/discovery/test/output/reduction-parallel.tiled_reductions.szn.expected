@@ -1,0 +1,14 @@
+tiled_reduction: final:   10..10
+tiled_reduction: final:   11..11
+tiled_reduction: final:   12..12
+tiled_reduction: final:   9..9
+tiled_reduction: final:   {}
+tiled_reduction: partial: 1..1 2..2 {} {} {} {} {} 
+tiled_reduction: partial: 2..2 {} {} {} {} {} {} 
+tiled_reduction: partial: 3..3 4..4 {} {} {} {} {} 
+tiled_reduction: partial: 4..4 {} {} {} {} {} {} 
+tiled_reduction: partial: 5..5 6..6 {} {} {} {} {} 
+tiled_reduction: partial: 6..6 {} {} {} {} {} {} 
+tiled_reduction: partial: 7..7 8..8 {} {} {} {} {} 
+tiled_reduction: partial: 8..8 {} {} {} {} {} {} 
+tiled_reduction: partial: {} {} {} {} {} {} {} 

@@ -151,7 +151,7 @@ def applicable_patterns(ctx, st, loops):
     assert(False)
 
 def applicable_match_trivial(pattern):
-    if pattern == u.pat_twophasereduction:
+    if pattern == u.pat_tiled_reduction:
         return [False, True]
     else:
         return [False]

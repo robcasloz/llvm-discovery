@@ -1,4 +1,4 @@
-% MiniZinc model for finding two-phase map-reductions.
+% MiniZinc model for finding tiled map-reductions.
 
 include "partition_set.mzn";
 include "disjoint.mzn";
@@ -21,10 +21,10 @@ set of int: partial_steps = 0..m-1;
 
 %%% VARIABLES
 
-% MapR is the set of nodes in the two-phase map-reduction.
+% MapR is the set of nodes in the tiled map-reduction.
 var set of nodes: MapR;
 
-% MapRc is the complement of MapR (nodes not in the two-phase map-reduction).
+% MapRc is the complement of MapR (nodes not in tiled map-reduction).
 var set of nodes: MapRc;
 
 % M is the set of nodes in the map pattern.
@@ -53,10 +53,10 @@ var runs: MLast;
 % global constraints available).
 array[insts] of var 0..n: MCount;
 
-% R is the set of nodes in the two-phase reduction.
+% R is the set of nodes in the tiled reduction.
 var set of nodes: R;
 
-% Rc is the complement of R (nodes not in the two-phase reduction).
+% Rc is the complement of R (nodes not in the tiled reduction).
 var set of nodes: Rc;
 
 % FR is the set of nodes in the final reduction.
@@ -119,9 +119,8 @@ partition_set([M, R, MapRc], nodes);
 % Ensure that the map variables form a map.
 constraint map(M, Mc, MR, MRun, MLast, MCount);
 
-% Ensure that the partial and final reduction variables form a two-phase
-% reduction.
-constraint twophasereduction(R, Rc,
+% Ensure that the partial and final reduction variables form a tiled reduction.
+constraint tiled_reduction(R, Rc,
                              PR, PRc, PS, PStep, PLast, PCount,
                              FR, FRc, FS, FStep, FLast, FCount);
 
@@ -175,9 +174,9 @@ constraint static_covering(array_union(PR));
 solve satisfy;
 
 output
- ["twophasemapreduction: map:     " ++
+ ["tiled_map_reduction: map:     " ++
   concat([show(MR[i]) ++ " " | i in runs]) ++ "\n"] ++
- ["twophasemapreduction: final:   " ++ show(FS[i]) ++ "\n" ++
- "twophasemapreduction: partial: " ++
+ ["tiled_map_reduction: final:   " ++ show(FS[i]) ++ "\n" ++
+ "tiled_map_reduction: partial: " ++
  concat([show(PS[i,j]) ++ " " | j in partial_steps]) ++ "\n"
  | i in final_steps ]

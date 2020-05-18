@@ -1,4 +1,4 @@
-% MiniZinc model for finding map-reductions.
+% MiniZinc model for finding linear map-reductions.
 
 include "partition_set.mzn";
 include "disjoint.mzn";
@@ -18,10 +18,10 @@ set of int: steps = 0..m-1;
 
 %%% VARIABLES
 
-% MapR is the set of nodes in the map-reduction.
+% MapR is the set of nodes in the linear map-reduction.
 var set of nodes: MapR;
 
-% MapRc is the complement of MapR (nodes not in the map-reduction).
+% MapRc is the complement of MapR (nodes not in the linear map-reduction).
 var set of nodes: MapRc;
 
 % M is the set of nodes in the map pattern.
@@ -81,8 +81,8 @@ array[insts] of var 0..n: RCount;
 % Ensure that the map variables form a map.
 constraint map(M, Mc, MR, MRun, MLast, MCount);
 
-% Ensure that the reduction variables form a reduction.
-constraint reduction(R, Rc, RS, RStep, RLast, RCount);
+% Ensure that the reduction variables form a linear reduction.
+constraint linear_reduction(R, Rc, RS, RStep, RLast, RCount);
 
 % Ensure that there are as many map runs as reduction steps.
 constraint MLast == RLast;
@@ -120,6 +120,6 @@ constraint minimum_components(RS, 2);
 solve satisfy;
 
 output
- ["mapreduction: map:       "] ++
+ ["linear_map_reduction: map:       "] ++
  [show(MR[i]) ++ " " | i in runs ] ++ ["\n"] ++
- ["mapreduction: reduction: "] ++ [ show(RS[i]) ++ " " | i in steps ];
+ ["linear_map_reduction: reduction: "] ++ [ show(RS[i]) ++ " " | i in steps ];

@@ -177,44 +177,44 @@ TOP_COMPONENTS ?= 50
 %.mapfilters.yaml: %.mapfilters.szn %.trace
 	$(PROCESS_TRACE) report $^ > $@
 
-# Reduction pattern matches in MiniZinc solution format.
-%.reductions.szn: %.dzn $(DISCOVERY_DIR)/reduction.mzn $(DISCOVERY_DIR)/common.mzn
-	-minizinc $(MINIZINC_FLAGS) $(DISCOVERY_DIR)/reduction.mzn $< > $@
+# Linear reduction pattern matches in MiniZinc solution format.
+%.linear_reductions.szn: %.dzn $(DISCOVERY_DIR)/linear_reduction.mzn $(DISCOVERY_DIR)/common.mzn
+	-minizinc $(MINIZINC_FLAGS) $(DISCOVERY_DIR)/linear_reduction.mzn $< > $@
 
-# Reduction pattern matches in PDF format.
-%.reductions.pdf: %.reductions.szn %.trace
+# Linear reduction pattern matches in PDF format.
+%.linear_reductions.pdf: %.linear_reductions.szn %.trace
 	$(PROCESS_TRACE) -o $@ visualize $^ $(GRAPHVIZ_FLAGS)
 
-# Reduction pattern matches in YAML LLVM remarks format.
-%.reductions.yaml: %.reductions.szn %.trace
+# Linear reduction pattern matches in YAML LLVM remarks format.
+%.linear_reductions.yaml: %.linear_reductions.szn %.trace
 	$(PROCESS_TRACE) report $^ > $@
 
-# Two-phase reduction pattern matches in MiniZinc solution format.
-%.twophasereductions.szn: %.dzn $(DISCOVERY_DIR)/twophasereduction.mzn $(DISCOVERY_DIR)/common.mzn
-	-minizinc $(MINIZINC_FLAGS) $(DISCOVERY_DIR)/twophasereduction.mzn $< > $@
+# Tiled reduction pattern matches in MiniZinc solution format.
+%.tiled_reductions.szn: %.dzn $(DISCOVERY_DIR)/tiled_reduction.mzn $(DISCOVERY_DIR)/common.mzn
+	-minizinc $(MINIZINC_FLAGS) $(DISCOVERY_DIR)/tiled_reduction.mzn $< > $@
 
-# Two-phase reduction pattern matches in PDF format.
-%.twophasereductions.pdf: %.twophasereductions.szn %.trace
+# Tiled reduction pattern matches in PDF format.
+%.tiled_reductions.pdf: %.tiled_reductions.szn %.trace
 	$(PROCESS_TRACE) -o $@ visualize $^ $(GRAPHVIZ_FLAGS)
 
-# Two-phase reduction pattern matches in YAML LLVM remarks format.
-%.twophasereductions.yaml: %.twophasereductions.szn %.trace
+# Tiled reduction pattern matches in YAML LLVM remarks format.
+%.tiled_reductions.yaml: %.tiled_reductions.szn %.trace
 	$(PROCESS_TRACE) report $^ > $@
 
-# Map-reduction pattern matches in MiniZinc solution format.
-%.mapreductions.szn: %.dzn $(DISCOVERY_DIR)/mapreduction.mzn $(DISCOVERY_DIR)/common.mzn
-	-minizinc $(MINIZINC_FLAGS) $(DISCOVERY_DIR)/mapreduction.mzn $< > $@
+# Linear map-reduction pattern matches in MiniZinc solution format.
+%.linear_map_reductions.szn: %.dzn $(DISCOVERY_DIR)/linear_map_reduction.mzn $(DISCOVERY_DIR)/common.mzn
+	-minizinc $(MINIZINC_FLAGS) $(DISCOVERY_DIR)/linear_map_reduction.mzn $< > $@
 
 # Map-reduction pattern matches in PDF format.
-%.mapreductions.pdf: %.mapreductions.szn %.trace
+%.linear_map_reductions.pdf: %.linear_map_reductions.szn %.trace
 	$(PROCESS_TRACE) -o $@ visualize $^ $(GRAPHVIZ_FLAGS)
 
-# Two-phase map-reduction pattern matches in MiniZinc solution format.
-%.twophasemapreductions.szn: %.dzn $(DISCOVERY_DIR)/twophasemapreduction.mzn $(DISCOVERY_DIR)/common.mzn
-	-minizinc $(MINIZINC_FLAGS) $(DISCOVERY_DIR)/twophasemapreduction.mzn $< > $@
+# Tiled map-reduction pattern matches in MiniZinc solution format.
+%.tiled_map_reductions.szn: %.dzn $(DISCOVERY_DIR)/tiled_map_reduction.mzn $(DISCOVERY_DIR)/common.mzn
+	-minizinc $(MINIZINC_FLAGS) $(DISCOVERY_DIR)/tiled_map_reduction.mzn $< > $@
 
-# Two-phase map-reduction pattern matches in PDF format.
-%.twophasemapreductions.pdf: %.twophasemapreductions.szn %.trace
+# Tiled map-reduction pattern matches in PDF format.
+%.tiled_map_reductions.pdf: %.tiled_map_reductions.szn %.trace
 	$(PROCESS_TRACE) -o $@ visualize $^ $(GRAPHVIZ_FLAGS)
 
 # Scan pattern matches in MiniZinc solution format.

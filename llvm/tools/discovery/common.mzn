@@ -194,13 +194,13 @@ let {set of int: runs = index_set(R);} in
  exists (k in insts diff branches) (Count[k] > 0)
 );
 
-% Ensures that the given variables capture a reduction pattern.
-predicate reduction(var set of int: R,
-                    var set of int: Rc,
-                    array[int] of var set of int: S,
-                    array[int] of var int: Step,
-                    var int: Last,
-                    array[int] of var int: Count) =
+% Ensures that the given variables capture a linear reduction pattern.
+predicate linear_reduction(var set of int: R,
+                           var set of int: Rc,
+                           array[int] of var set of int: S,
+                           array[int] of var int: Step,
+                           var int: Last,
+                           array[int] of var int: Count) =
 let {set of int: steps = index_set(S);} in
 (
  % Ensure that R contains only matchable nodes.
@@ -321,32 +321,32 @@ let {set of int: steps = index_set(S);} in
  (associative(S[i]))
 );
 
-% Ensures that the given variables capture a two-phase reduction pattern.
-predicate twophasereduction(var set of int: R,
-                            var set of int: Rc,
-                            array[int] of var set of int: PR,
-                            array[int] of var set of int: PRc,
-                            array[int, int] of var set of int: PS,
-                            array[int, int] of var int: PStep,
-                            array[int] of var int: PLast,
-                            array[int] of var int: PCount,
-                            var set of int: FR,
-                            var set of int: FRc,
-                            array[int] of var set of int: FS,
-                            array[int] of var int: FStep,
-                            var int: FLast,
-                            array[int] of var int: FCount) =
+% Ensures that the given variables capture a tiled reduction pattern.
+predicate tiled_reduction(var set of int: R,
+                          var set of int: Rc,
+                          array[int] of var set of int: PR,
+                          array[int] of var set of int: PRc,
+                          array[int, int] of var set of int: PS,
+                          array[int, int] of var int: PStep,
+                          array[int] of var int: PLast,
+                          array[int] of var int: PCount,
+                          var set of int: FR,
+                          var set of int: FRc,
+                          array[int] of var set of int: FS,
+                          array[int] of var int: FStep,
+                          var int: FLast,
+                          array[int] of var int: FCount) =
 let {set of int: partial_steps = index_set_2of2(PS);
      set of int: final_steps   = index_set(FS);} in
 (
- % Ensure that the final reduction variables form a reduction.
- reduction(FR, FRc, FS, FStep, FLast, FCount)
+ % Ensure that the final reduction variables form a linear reduction.
+ linear_reduction(FR, FRc, FS, FStep, FLast, FCount)
 )
 /\
 (
- % Ensure that each set of partial reduction variables forms a reduction.
+ % Ensure that each set of partial reduction variables forms a linear reduction.
  forall (i in 0..FLast)
- (reduction(PR[i], PRc[i], row(PS, i), row(PStep, i), PLast[i], PCount))
+ (linear_reduction(PR[i], PRc[i], row(PS, i), row(PStep, i), PLast[i], PCount))
 )
 /\
 (

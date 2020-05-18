@@ -1,4 +1,4 @@
-% MiniZinc model for finding reductions.
+% MiniZinc model for finding linear reductions.
 
 include "partition_set.mzn";
 include "disjoint.mzn";
@@ -15,10 +15,10 @@ set of int: steps = 0..m-1;
 
 %%% VARIABLES
 
-% R is the set of nodes in the reduction pattern.
+% R is the set of nodes in the linear reduction pattern.
 var set of nodes: R;
 
-% Rc is the complement of R (nodes not in the reduction pattern).
+% Rc is the complement of R (nodes not in the linear reduction pattern).
 var set of nodes: Rc;
 
 % S[i] is the set of nodes of step i in the reduction.
@@ -27,7 +27,7 @@ array[steps] of var set of nodes: S;
 % Step[j] is the step of node j (or m if j does not belong to R).
 array[nodes] of var 0..m: Step;
 
-% Last step in the reduction.
+% Last step in the linear reduction.
 var steps: Last;
 
 % Count[k] is the number of nodes that correspond to instruction k in a
@@ -43,7 +43,7 @@ array[insts] of var 0..n: Count;
 
 %%% CONSTRAINTS
 
-constraint reduction(R, Rc, S, Step, Last, Count);
+constraint linear_reduction(R, Rc, S, Step, Last, Count);
 
 constraint static_covering(R);
 
@@ -53,4 +53,4 @@ constraint minimum_components(S, 2);
 
 solve satisfy;
 
-output ["reduction: "] ++ [ show(S[i]) ++ " " | i in steps ];
+output ["linear_reduction: "] ++ [ show(S[i]) ++ " " | i in steps ];
