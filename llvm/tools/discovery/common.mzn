@@ -30,6 +30,9 @@ set of 0..c-1: associative;
 % Maximum number of nodes of the same instruction in each pattern component.
 array[0..c-1] of 0..n: max_count;
 
+% Whether trivial patterns are matched.
+bool: match_trivial;
+
 %%% AUXILIARY DEFINITIONS
 
 % Set of nodes in the DDG.

@@ -144,6 +144,12 @@ def applicable_patterns(st_type):
     else:
         return u.pat_all_uni + [u.pat_twophasereduction]
 
+def applicable_match_trivial(pattern):
+    if pattern == u.pat_twophasereduction:
+        return [False, True]
+    else:
+        return [False]
+
 def make_subtraction((ctx, st1, st2, n1, n2)):
     # If the result would not be a new sub-trace (because it
     # would be empty or equal to st1), do not bother.
@@ -167,20 +173,26 @@ def make_dzn((ctx, st)):
     run_process_trace(["-o", compact_st_dzn, "--output-format=minizinc",
                        "print", compact_st])
 
-def make_szn((ctx, st, pattern)):
+def make_szn((ctx, st, pattern, match_trivial)):
     compact_subtrace_dzn = temp(ctx, [subtrace_id(ctx, st), "collapsed", "dzn"],
                                 Level.iteration)
+    trivial_extension = []
+    if match_trivial:
+        trivial_extension.append("trivial")
     compact_subtrace_pattern_szn = \
-        temp(ctx, [subtrace_id(ctx, st), "collapsed", pattern + "s", "szn"],
+        temp(ctx, [subtrace_id(ctx, st), "collapsed", pattern + "s"] + \
+             trivial_extension + ["szn"],
              Level.iteration)
     run_minizinc(compact_subtrace_pattern_szn,
-                 ["--time-limit", "60000", "-a", "--solver", "chuffed",
+                 ["-D", "match_trivial=" + str(match_trivial).lower(),
+                  "--time-limit", "60000", "-a", "--solver", "chuffed",
                   mzn(pattern), compact_subtrace_dzn])
 
 def make_complete_szn((ctx, pattern)):
     simple_pattern_szn = temp(ctx, ["original", pattern + "s", "szn"],
                               Level.top)
-    run_minizinc(simple_pattern_szn, ["-a", "--solver", "chuffed", mzn(pattern),
+    run_minizinc(simple_pattern_szn, ["-D", "match_trivial=false", "-a",
+                                      "--solver", "chuffed", mzn(pattern),
                                       simple_dzn])
 
 
@@ -276,9 +288,10 @@ try:
             # The list conversion is just to force evaluation.
             start_measurement("matching-time")
             list(ex.map(make_szn,
-                        [(ctx, st, p)
+                        [(ctx, st, p, mt)
                          for st in candidate_traces()
-                         for p  in applicable_patterns(subtrace_type(ctx, st))]))
+                         for p  in applicable_patterns(subtrace_type(ctx, st))
+                         for mt in applicable_match_trivial(p)]))
             end_measurement("matching-time")
 
             if args.level == u.arg_eager:

@@ -13,7 +13,7 @@ PROCESS_MATCHES = $(DISCOVERY_DIR)/process_matches.py
 PROCESS_STATS = $(DISCOVERY_DIR)/process_stats.py
 PROCESS_RUNTIMES = $(DISCOVERY_DIR)/process_runtimes.py
 GRAPHVIZ_FLAGS = --simplify-loc
-MINIZINC_FLAGS ?= -a --solver chuffed
+MINIZINC_FLAGS ?= -D match_trivial=false -a --solver chuffed
 MINIZINC_DZN_FLAGS ?=
 OPT_VIEWER = $(DISCOVERY_DIR)/../opt-viewer/opt-viewer.py
 TAG ?= 0

@@ -335,7 +335,9 @@ def read_matches(match_file):
                         else:
                             continue # Partial solution, keep reading.
                 elif typ == "partial:":
-                    if array:
+                    if final:
+                        # This partial corresponds to a final, even if the
+                        # partial may be empty (in a trivial solution).
                         if pattern == pat_twophasereduction:
                             partial = (final, array)
                         elif pattern == pat_twophasemapreduction:
@@ -343,6 +345,7 @@ def read_matches(match_file):
                             map_runs = map_runs[len(array):]
                             partial = (runs, final, array)
                         partials.append(partial)
+                        final = []
                     continue # Partial solution, keep reading.
                 else:
                     assert False

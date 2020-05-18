@@ -77,8 +77,10 @@ constraint minimum_components(FS, 2);
 
 % Ensure that at least one of the partial reductions has two steps.
 constraint
-exists (i in 0..FLast)
-(minimum_components(row(PS, i), 2));
+match_trivial \/
+(
+ exists (i in 0..FLast) (minimum_components(row(PS, i), 2))
+);
 
 %%% SOLVER SPECIFICATION
 

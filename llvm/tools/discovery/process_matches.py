@@ -147,7 +147,8 @@ def process_matches(szn_files, simple, generalize_maps, discard_subsumed,
     # For each solution file, a corresponding trace called
     # [BENCHMARK]-[MODE] ... .trace is expected.
     for filename in szn_files:
-        if os.path.isfile(filename) and filename.endswith(".szn"):
+        if os.path.isfile(filename) and filename.endswith(".szn") and \
+           not filename.endswith(".trivial.szn"):
             # Gather all data.
             (benchmark, mode, pattern, trace_filename) = file_info(filename)
             G = u.read_trace(trace_filename)
@@ -160,6 +161,14 @@ def process_matches(szn_files, simple, generalize_maps, discard_subsumed,
                                      (not u.is_sink(b, PB, PI)), DDG.nodes()))
             if inner_nodes <= 1:
                 continue
+            # If there are no matches but the trivial version does contain
+            # matches, the trace is inconclusive and should be skipped.
+            # TODO: This could generalize the single-node check above.
+            trivial_filename = os.path.splitext(filename)[0] + ".trivial.szn"
+            if not matches and os.path.isfile(trivial_filename):
+                (_, trivial_matches, __) = u.read_matches(trivial_filename)
+                if trivial_matches:
+                    continue
 
             # For all matches of 'pattern' in the file (possibly different
             # subsets of DDG):
