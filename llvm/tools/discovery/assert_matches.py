@@ -18,7 +18,6 @@ parser.add_argument('RESULTS_FILE')
 parser.add_argument('BENCHMARK_MODE')
 parser.add_argument('LOCATION')
 parser.add_argument('--matches', nargs="*", help='patterns expected to be matched')
-parser.add_argument('--occurrence', help='specific occurrence of (benchmark, location) where the patterns are expected')
 parser.add_argument('--loop', help='whether the location specifies a loop', dest='loop', action='store_true', default=False)
 args = parser.parse_args()
 
@@ -50,22 +49,15 @@ for line in r:
     mode = line[mode_index]
     if "-".join([benchmark, mode]) == args.BENCHMARK_MODE and \
        matches_location(line):
-        occurrence += 1
-        if args.occurrence and int(args.occurrence) != occurrence:
-            continue
-        found = True
         actual_results = [(u.pat_doall, line[doall_index]),
                           (u.pat_map, line[map_index]),
                           (u.pat_conditional_map, line[conditional_map_index]),
                           (u.pat_linear_reduction, line[reduction_index]),
                           (u.pat_linear_scan, line[linear_scan_index]),
                           (u.pat_tiled_reduction, line[tiled_reduction_index])]
-
         actual_matches = set([match_name(p, m) for (p, m) in actual_results
                               if m in [u.match_full, u.match_partial]])
-        assert actual_matches == expected_matches, \
-            "the matched patterns " + str(list(actual_matches)) + \
-            " differ from the expected ones " + str(list(expected_matches))
-        break
-if not found:
-    assert False, "no pattern was found at the given location"
+        if actual_matches == expected_matches:
+            exit(0)
+sys.stderr.write("The expected pattern was not found at the given location\n")
+exit(1)
