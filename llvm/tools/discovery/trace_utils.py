@@ -47,7 +47,7 @@ tk_sol_status_empty = "empty"
 
 pat_doall = "doall"
 pat_map = "map"
-pat_mapfilter = "mapfilter"
+pat_conditional_map = "conditional_map"
 pat_linear_reduction = "linear_reduction"
 pat_scan = "scan"
 pat_pipeline = "pipeline"
@@ -74,7 +74,7 @@ associative_component_subtrace = "associative-component"
 unknown_subtrace               = "unknown"
 
 # List with all map-like patterns that are disconnected.
-pat_all_disconnected = [pat_doall, pat_map, pat_mapfilter]
+pat_all_disconnected = [pat_doall, pat_map, pat_conditional_map]
 
 # List with all patterns that require asociativity.
 pat_all_associative = [pat_linear_reduction, pat_scan, pat_tiled_reduction]

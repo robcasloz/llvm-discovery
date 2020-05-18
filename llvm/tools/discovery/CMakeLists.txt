@@ -11,7 +11,7 @@ set (files
   "test.py"
   "common.mzn"
   "linear_map_reduction.mzn"
-  "mapfilter.mzn"
+  "conditional_map.mzn"
   "pipeline.mzn"
   "tiled_map_reduction.mzn"
   "doall.mzn"

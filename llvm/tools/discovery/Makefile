@@ -165,16 +165,16 @@ TOP_COMPONENTS ?= 50
 %.maps.yaml: %.maps.szn %.trace
 	$(PROCESS_TRACE) report $^ > $@
 
-# Map-filter pattern matches in MiniZinc solution format.
-%.mapfilters.szn: %.dzn $(DISCOVERY_DIR)/mapfilter.mzn $(DISCOVERY_DIR)/common.mzn
-	-minizinc $(MINIZINC_FLAGS) $(DISCOVERY_DIR)/mapfilter.mzn $< > $@
+# Conditional map pattern matches in MiniZinc solution format.
+%.conditional_maps.szn: %.dzn $(DISCOVERY_DIR)/conditional_map.mzn $(DISCOVERY_DIR)/common.mzn
+	-minizinc $(MINIZINC_FLAGS) $(DISCOVERY_DIR)/conditional_map.mzn $< > $@
 
-# Map-filter pattern matches in PDF format.
-%.mapfilters.pdf: %.mapfilters.szn %.trace
+# Conditional map pattern matches in PDF format.
+%.conditional_maps.pdf: %.conditional_maps.szn %.trace
 	$(PROCESS_TRACE) -o $@ visualize $^ $(GRAPHVIZ_FLAGS)
 
-# Map-filter pattern matches in YAML LLVM remarks format.
-%.mapfilters.yaml: %.mapfilters.szn %.trace
+# Conditional map pattern matches in YAML LLVM remarks format.
+%.conditional_maps.yaml: %.conditional_maps.szn %.trace
 	$(PROCESS_TRACE) report $^ > $@
 
 # Linear reduction pattern matches in MiniZinc solution format.
@@ -242,7 +242,7 @@ TOP_COMPONENTS ?= 50
 	$(PROCESS_TRACE) report $^ > $@
 
 # Combined pattern matches in YAML LLVM remarks format.
-%.patterns.yaml: %.doalls.yaml %.maps.yaml %.mapfilters.yaml %.reductions.yaml %.scans.yaml %.pipelines.yaml
+%.patterns.yaml: %.doalls.yaml %.maps.yaml %.conditional_maps.yaml %.linear_reductions.yaml %.scans.yaml %.pipelines.yaml
 	cat $^ > $@
 
 # Instrumented LLVM IR for single C++ source file.
@@ -278,29 +278,6 @@ TOP_COMPONENTS ?= 50
 # PDF of a given GraphViz trace.
 %.pdf : %.gv
 	dot -Tpdf $< > $@
-
-# Prefix of all .trace files under BASENAME.
-ALL_TRACES = $(basename $(wildcard $(BASENAME)*.trace))
-
-# DO-ALL patterns found by collapsing the nodes in each trace.
-all-collapsed-doalls-szn: TAG=all
-all-collapsed-doalls-szn: $(addsuffix .collapsed.doalls.szn, $(ALL_TRACES))
-
-# Map patterns found by collapsing the nodes in each trace.
-all-collapsed-maps-szn: TAG=all
-all-collapsed-maps-szn: $(addsuffix .collapsed.maps.szn, $(ALL_TRACES))
-
-# Map-filter patterns found by collapsing the nodes in each trace.
-all-collapsed-mapfilters-szn: TAG=all
-all-collapsed-mapfilters-szn: $(addsuffix .collapsed.mapfilters.szn, $(ALL_TRACES))
-
-# Reduction patterns found by collapsing the nodes in each trace.
-all-collapsed-reductions-szn: TAG=all
-all-collapsed-reductions-szn: $(addsuffix .collapsed.reductions.szn, $(ALL_TRACES))
-
-# Scan patterns found by collapsing the nodes in each trace.
-all-collapsed-scans-szn: TAG=all
-all-collapsed-scans-szn: $(addsuffix .collapsed.scans.szn, $(ALL_TRACES))
 
 # Clean all intermediate files.
 clean:

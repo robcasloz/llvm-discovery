@@ -61,7 +61,7 @@ def match_consensus(pattern, pattern_data):
     assert(False)
 
 def generalize_partial_maps(pattern_data):
-    maplike_patterns = [u.pat_doall, u.pat_map, u.pat_mapfilter]
+    maplike_patterns = [u.pat_doall, u.pat_map, u.pat_conditional_map]
     # If the trace is matched as something else, nothing to do.
     for pattern in set(u.pat_all) - set(maplike_patterns):
         if pattern in pattern_data and u.match in pattern_data[pattern]:
@@ -89,10 +89,10 @@ def generalize_partial_maps(pattern_data):
                     common_result_data.update(result_data)
     if yes_traces != all_traces:
         return
-    # The trace can be generalized as a mapfilter, now do it.
+    # The trace can be generalized as a conditional map, now do it.
     pattern_data[u.pat_doall]     = {u.no_match  : common_result_data}
     pattern_data[u.pat_map]       = {u.no_match  : common_result_data}
-    pattern_data[u.pat_mapfilter] = {u.match : common_result_data}
+    pattern_data[u.pat_conditional_map] = {u.match : common_result_data}
     return
 
 def discard_subsumed_linear_reductions(pattern_data):
@@ -208,7 +208,7 @@ def process_matches(szn_files, simple, generalize_maps, discard_subsumed,
         for (mode, mode_data) in sorted(benchmark_data.iteritems()):
             for ((iset, lset), pattern_data) in sorted(mode_data.iteritems()):
                 # Possibly generalize partial matches of map-like patterns into
-                # full 'mapfilter' matches.
+                # full conditional map matches.
                 generalize_partial_maps(pattern_data)
                 # If there are both linear and tiled reductions, discard the
                 # former.

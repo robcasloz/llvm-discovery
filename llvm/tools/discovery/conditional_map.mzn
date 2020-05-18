@@ -1,4 +1,4 @@
-% MiniZinc model for finding map-filters.
+% MiniZinc model for finding conditional maps.
 
 include "partition_set.mzn";
 include "disjoint.mzn";
@@ -172,4 +172,4 @@ increasing([if card(R[i]) > 0 then min(R[i]) else n + 1 endif | i in runs]);
 
 solve satisfy;
 
-output ["mapfilter: "] ++ [ show(R[i]) ++ " " | i in runs ];
+output ["conditional_map: "] ++ [ show(R[i]) ++ " " | i in runs ];

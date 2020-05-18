@@ -17,7 +17,7 @@ parser = argparse.ArgumentParser(description='Asserts that an expected pattern i
 parser.add_argument('RESULTS_FILE')
 parser.add_argument('BENCHMARK_MODE')
 parser.add_argument('LOCATION')
-parser.add_argument('--matches', nargs="*", help='patterns (doall, map, mapfilter, reduction, scan) expected to be matched')
+parser.add_argument('--matches', nargs="*", help='patterns expected to be matched')
 parser.add_argument('--occurrence', help='specific occurrence of (benchmark, location) where the patterns are expected')
 parser.add_argument('--loop', help='whether the location specifies a loop', dest='loop', action='store_true', default=False)
 args = parser.parse_args()
@@ -32,7 +32,7 @@ location_index = legend.index("location")
 loops_index = legend.index("loops")
 doall_index = legend.index(u.pat_doall)
 map_index = legend.index(u.pat_map)
-mapfilter_index = legend.index(u.pat_mapfilter)
+conditional_map_index = legend.index(u.pat_conditional_map)
 reduction_index = legend.index(u.pat_linear_reduction)
 scan_index = legend.index(u.pat_scan)
 tiled_reduction_index = legend.index(u.pat_tiled_reduction)
@@ -56,7 +56,7 @@ for line in r:
         found = True
         actual_results = [(u.pat_doall, line[doall_index]),
                           (u.pat_map, line[map_index]),
-                          (u.pat_mapfilter, line[mapfilter_index]),
+                          (u.pat_conditional_map, line[conditional_map_index]),
                           (u.pat_linear_reduction, line[reduction_index]),
                           (u.pat_scan, line[scan_index]),
                           (u.pat_tiled_reduction, line[tiled_reduction_index])]

@@ -176,7 +176,7 @@ def contrast_colors(color_map, darker_nodes):
 # Returns a legend and a color map to be applied to a match visualization.
 def format_match(pattern, match):
     if pattern in u.pat_all_uni:
-        if pattern in [u.pat_doall, u.pat_map, u.pat_mapfilter]:
+        if pattern in [u.pat_doall, u.pat_map, u.pat_conditional_map]:
             unit = "runs"
         elif pattern in [u.pat_linear_reduction, u.pat_scan]:
             unit = "steps"
