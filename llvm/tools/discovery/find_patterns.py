@@ -169,7 +169,7 @@ def applicable_match_trivial(pattern):
 def candidate_traces(ctx):
     return glob.glob(os.path.join(ctx.canddir, "*.trace"))
 
-def update(ctx, nodes, loops):
+def update(ctx, nodes, loops, succ):
     for st in candidate_traces(ctx):
         G = u.read_trace(st)
         nodes[st] = u.original_blocks(G)
@@ -177,21 +177,28 @@ def update(ctx, nodes, loops):
         for tag in u.tag_set(G):
             tags.add(G[3][tag].get(u.tk_alias))
         loops[st] = tags
+        s = set()
+        (ODDG, _, __, ___) = u.read_trace(original_trace(ctx))
+        for n in nodes[st]:
+            s |= (set(ODDG.successors(n)) - nodes[st])
+        succ[st] = s
 
 def remove_new_duplicates(nodes, loops, new):
-    duplicates = {}
+    def get_key(st):
+        return (frozenset(nodes[st]), frozenset(loops[st]))
+    subtraces = {}
     for st in nodes.keys():
-        key = (frozenset(nodes[st]), frozenset(loops[st]))
-        if not key in duplicates:
-            duplicates[key] = set()
-        duplicates[key].add(st)
-    for sts in duplicates.itervalues():
-        if len(sts) > 1:
-            for st in sts & new:
-                #print "REMOVING", st
-                os.remove(st)
-                del nodes[st]
-                del loops[st]
+        key = get_key(st)
+        if not key in subtraces:
+            subtraces[key] = set()
+        subtraces[key].add(st)
+    for st in new:
+        key = get_key(st)
+        if len(subtraces[key]) > 1:
+            os.remove(st)
+            del nodes[st]
+            del loops[st]
+            subtraces[key].remove(st)
 
 def maybe_paren(string):
     if sub in string or add in string:
@@ -207,10 +214,35 @@ def make_subtraction((ctx, st1, st2, n1, n2)):
     # would be empty or equal to st1), do not bother.
     if (n1 - n2 == set()) or (n1 & n2 == set()):
         return
+    # If the result would not be matchable, do not bother. This is the case for
+    # subtractions of loops from associative components.
+    if subtrace_type(ctx, st1) == u.associative_component_subtrace and \
+       subtrace_type(ctx, st2) == u.loop_subtrace:
+        return
     subtract_id = \
         operation_id(sub, subtrace_id(ctx, st1), subtrace_id(ctx, st2))
     subtract_st = temp(ctx, [subtract_id, "trace"], Level.candidate)
     run_process_trace(["-o", subtract_st, "subtract", st1, st2,
+                       original_trace(ctx)])
+
+def make_composition((ctx, st1, st2, n1, l1, s1, n2, l2, s2)):
+    # Check that the node sets do not overlap.
+    if not n1.isdisjoint(n2):
+        return
+    # If the result would be equal to st1 or st2, do not bother.
+    (ns, ls) = (n1 | n2, l1 | l2)
+    if ((ns, ls) == (n1, l1)) or ((ns, ls) == (n2, l2)):
+        return
+    # If the result would not be matchable for fused map or map-reduction
+    # patterns, do not bother. This is the case if none of the subtraces is
+    # loop-based or the subtraces are not adjacent.
+    if not l1 and not l2:
+        return
+    if not (s1.issubset(n2) or s2.issubset(n1)):
+        return
+    compose_id = operation_id(add, subtrace_id(ctx, st1), subtrace_id(ctx, st2))
+    compose_st = temp(ctx, [compose_id, "trace"], Level.candidate)
+    run_process_trace(["-o", compose_st, "compose", st1, st2,
                        original_trace(ctx)])
 
 def make_dzn((ctx, st)):
@@ -301,18 +333,19 @@ try:
                               [iter_original_trace])
             end_measurement("decomposition-time")
 
-            # Maps from candidate sub-DDG to original node and loop
-            # set. Allows to quickly examine the content of each candidate
-            # sub-trace (only used in eager mode).
+            # Maps from candidate sub-DDG to original node and loop set, and set
+            # of external successors. Allows to quickly examine the content and
+            # properties of each candidate sub-trace (only used in eager mode).
             nodes = {}
             loops = {}
+            succ  = {}
 
             # Generate all candidate subtraces eagerly (resulting from applying
             # 'subtract' and 'compose' operations to each pair of sub-traces
             # until a fixpoint is reached).
             if args.level == u.arg_eager:
 
-                update(ctx, nodes, loops)
+                update(ctx, nodes, loops, succ)
 
                 # The list conversion is just to force evaluation.
                 start_measurement("eager-generation-time")
@@ -325,9 +358,18 @@ try:
                                  for st1 in candidate_traces(ctx)
                                  for st2 in candidate_traces(ctx)
                                  if st1 != st2]))
-                    update(ctx, nodes, loops)
+                    update(ctx, nodes, loops, succ)
                     new = set(candidate_traces(ctx)) - subtraces_before
                     remove_new_duplicates(nodes, loops, new)
+                    subtraces_between = set(candidate_traces(ctx))
+                    list(ex.map(make_composition,
+                                [(ctx, st1, st2,
+                                  nodes[st1], loops[st1], succ[st1],
+                                  nodes[st2], loops[st2], succ[st2])
+                                 for st1 in candidate_traces(ctx)
+                                 for st2 in candidate_traces(ctx)
+                                 if st1 < st2]))
+                    update(ctx, nodes, loops, succ)
                     subtraces_after = set(candidate_traces(ctx))
                     if not args.deep:
                         break

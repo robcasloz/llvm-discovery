@@ -173,7 +173,7 @@ def process_matches(szn_files, simple, generalize_maps, discard_subsumed,
             # For all matches of 'pattern' in the file (possibly different
             # subsets of DDG):
             for match in matches:
-                nodes = u.match_nodes(pattern, match)
+                nodes = u.match_nodes(match)
                 total_nodes = 0
                 loops = set()
                 # Collect precise instruction information.

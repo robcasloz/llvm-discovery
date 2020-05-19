@@ -195,7 +195,7 @@ def insts_to_steps(G, pattern, matches):
             partial_steps = [len(p) for (f, p) in match]
             steps = sum(partial_steps) + len(partial_steps)
         sol_insts = Set()
-        for n in match_nodes(pattern, match):
+        for n in match_nodes(match):
                 sol_insts.update(node_instructions(G, n))
         si = frozenset(sol_insts)
         if si in i_to_s:
@@ -204,18 +204,9 @@ def insts_to_steps(G, pattern, matches):
             i_to_s[si] = set([steps])
     return i_to_s
 
-# Takes a pattern name and a match and gives the set of nodes.
-def match_nodes(pattern, match):
-    if pattern in pat_all_uni:
-        nodes = index_map(match).keys()
-    elif pattern == pat_pipeline:
-        (stages, runs) = match
-        nodes = index_map(stages).keys()
-    elif pattern in [pat_tiled_reduction, pat_tiled_map_reduction]:
-        nodes = flatten(match)
-    else:
-        assert(False)
-    return nodes
+# Gives the set of nodes in a match.
+def match_nodes(match):
+    return sorted(list(set(flatten(match))))
 
 # Gives the instruction(s) corresponding to a node.
 def node_instructions((_, PB, PI, __), node):
