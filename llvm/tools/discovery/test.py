@@ -19,7 +19,8 @@ test_cases = {
         "map-reduction",
         "complex-map",
         "map-reduction-list",
-        "map-reduction-parallel"
+        "map-reduction-parallel",
+        "fused-map"
     ],
     "linear_reduction" : [
         "complex-reduction",
