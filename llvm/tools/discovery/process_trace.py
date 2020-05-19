@@ -997,6 +997,9 @@ def print_minizinc((DDG, PB, PI, PT), match_regions_only):
     for instr in PIp.keys():
         mc = len(instr2blocks[instr]) / 2
         # We only allow a single execution of each region per component.
+        # FIXME: generalize: allow as many executions per component as the size
+        # of the smallest connected component of the instr-induced subgraph.
+        # See case with partial map in examples/streamcluster.c.
         if PIp[instr].get(u.tk_region) == u.tk_true:
             mc = min(mc, 1)
         max_count.append(mc)
