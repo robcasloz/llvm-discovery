@@ -434,17 +434,17 @@ try:
                                  for p  in applicable_patterns(ctx, st,
                                                                loops.get(st, {}))]
                 patterns_iter_csv = temp(ctx, ["patterns", "csv"], Level.iteration)
-                matched_csv = temp(ctx, ["matched", "csv"], Level.iteration)
-                run_process_matches(iter_szn_files + \
-                                    ["-o", patterns_iter_csv,
-                                     "--matched-traces-file", matched_csv] + \
-                                    simple_options)
+                run_process_matches(iter_szn_files + ["-o", patterns_iter_csv])
                 last_matched = []
-                with open(matched_csv) as csv_file:
-                    for line in csv.reader(csv_file, delimiter=","):
-                        st = temp(ctx, [subtrace_id(ctx, line[0]), "trace"],
-                                  Level.candidate)
-                        last_matched.append(st)
+                with open(patterns_iter_csv) as csv_file:
+                    r = csv.reader(csv_file, delimiter=",")
+                    legend = r.next()
+                    trace_index = legend.index("trace")
+                    for line in r:
+                        for cst in line[trace_index].split(";"):
+                            st = temp(ctx, [subtrace_id(ctx, cst), "trace"],
+                                      Level.candidate)
+                            last_matched.append(st)
 
                 # If we are in eager mode or in lazy mode but not more patterns
                 # are found, terminate.
