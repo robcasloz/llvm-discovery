@@ -430,10 +430,7 @@ def is_sink(b, PB, PI):
 def is_associative(i, PI):
     props = PI[i]
     if props.get(tk_region) == tk_true:
-        children = props.get(tk_children)
-        if not children or len(children) != 1:
-            return False
-        return (PI[children[0]].get(tk_name) in associative_names)
+        return False
     else:
         return props.get(tk_name) in associative_names
 
