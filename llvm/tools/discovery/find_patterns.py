@@ -424,6 +424,8 @@ try:
             if args.level == u.arg_eager or args.level == u.arg_lazy:
 
                 # Compute traces where a pattern was found in the iteration.
+                # TODO: refine by including only traces where a *new* pattern
+                # has been found.
                 iter_szn_files = [temp(ctx, [subtrace_id(ctx, st), "collapsed",
                                              p + "s", "szn"], Level.iteration)
                                  for st in candidate_traces_iter(ctx)
