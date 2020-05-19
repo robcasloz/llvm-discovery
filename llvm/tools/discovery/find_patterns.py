@@ -175,15 +175,15 @@ def applicable_match_trivial(pattern):
         return [False]
 
 def candidate_traces(ctx):
-    sts = []
+    sts = set()
     for itr in range(1, ctx.itr + 1):
         itr_ctx = copy.deepcopy(ctx)
         itr_ctx.itr = itr
-        sts += candidate_traces_iter(itr_ctx)
+        sts |= candidate_traces_iter(itr_ctx)
     return sts
 
 def candidate_traces_iter(ctx):
-    return glob.glob(os.path.join(ctx.canddir(), "*.trace"))
+    return set(glob.glob(os.path.join(ctx.canddir(), "*.trace")))
 
 def update(ctx, nodes, loops, succ):
     # TODO: do this in parallel.
@@ -333,7 +333,9 @@ try:
     if args.level in [u.arg_heuristic, u.arg_eager, u.arg_lazy]:
 
         # Traces where a pattern was found in the previous iteration.
-        last_matched = []
+        last_matched = set()
+        # Set of found matches (location, loops).
+        matched = set()
         ctx.itr = 1
         patterns_csv = temp(ctx, ["patterns", "csv"], Level.top)
         run_process_matches(["-o", patterns_csv] + simple_options)
@@ -382,7 +384,7 @@ try:
                 # The list conversion is just to force evaluation.
                 start_measurement("eager-generation-time")
                 subtraces_before = set()
-                subtraces_after  = set(candidate_traces(ctx))
+                subtraces_after  = candidate_traces(ctx)
                 while subtraces_after != subtraces_before:
                     subtraces_before = subtraces_after
                     list(ex.map(make_subtraction,
@@ -391,9 +393,9 @@ try:
                                  for st2 in active_traces(ctx)
                                  if st1 != st2]))
                     update(ctx, nodes, loops, succ)
-                    new = set(candidate_traces(ctx)) - subtraces_before
+                    new = candidate_traces(ctx) - subtraces_before
                     remove_new_duplicates(nodes, loops, new)
-                    subtraces_between = set(candidate_traces(ctx))
+                    subtraces_between = candidate_traces(ctx)
                     list(ex.map(make_composition,
                                 [(ctx, st1, st2,
                                   nodes[st1], loops[st1], succ[st1],
@@ -402,7 +404,7 @@ try:
                                  for st2 in active_traces(ctx)
                                  if st1 < st2]))
                     update(ctx, nodes, loops, succ)
-                    subtraces_after = set(candidate_traces(ctx))
+                    subtraces_after = candidate_traces(ctx)
                     if not args.deep:
                         break
                 end_measurement("eager-generation-time")
@@ -435,16 +437,21 @@ try:
                                                                loops.get(st, {}))]
                 patterns_iter_csv = temp(ctx, ["patterns", "csv"], Level.iteration)
                 run_process_matches(iter_szn_files + ["-o", patterns_iter_csv])
-                last_matched = []
+                last_matched = set()
                 with open(patterns_iter_csv) as csv_file:
                     r = csv.reader(csv_file, delimiter=",")
                     legend = r.next()
                     trace_index = legend.index("trace")
+                    location_index = legend.index("location")
+                    loops_index = legend.index("loops")
                     for line in r:
+                        key = (line[location_index], line[loops_index])
                         for cst in line[trace_index].split(";"):
                             st = temp(ctx, [subtrace_id(ctx, cst), "trace"],
                                       Level.candidate)
-                            last_matched.append(st)
+                            if not key in matched:
+                                matched.add(key)
+                                last_matched.add(st)
 
                 # If we are in eager mode or in lazy mode but not more patterns
                 # are found, terminate.
@@ -456,8 +463,8 @@ try:
                                  .replace(".trace", ".collapsed." + p + "s.szn")
                     szn_files = [candidate_to_szn(ctx, st, p)
                                  for st in candidate_traces(ctx)
-                                 for p  in applicable_patterns(ctx, st,
-                                                               loops.get(st, {}))]
+                                 for p  in applicable_patterns(
+                                         ctx, st, loops.get(st, {}))]
                     run_process_matches(szn_files + ["-o", patterns_csv] + \
                                         simple_options)
                     break
