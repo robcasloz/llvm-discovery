@@ -52,6 +52,7 @@ parser.add_argument('--clean', dest='clean', action='store_true')
 parser.add_argument('--no-clean', dest='clean', action='store_false')
 parser.add_argument('--detailed', dest='detailed', action='store_true')
 parser.add_argument('--deep', dest='deep', action='store_true')
+parser.add_argument('--max-iterations', type=int)
 parser.add_argument('--stats')
 parser.set_defaults(jobs=multiprocessing.cpu_count())
 parser.set_defaults(clean=True)
@@ -185,6 +186,7 @@ def candidate_traces_iter(ctx):
     return glob.glob(os.path.join(ctx.canddir(), "*.trace"))
 
 def update(ctx, nodes, loops, succ):
+    # TODO: do this in parallel.
     for st in candidate_traces(ctx):
         G = u.read_trace(st)
         nodes[st] = u.original_blocks(G)
@@ -446,7 +448,8 @@ try:
 
                 # If we are in eager mode or in lazy mode but not more patterns
                 # are found, terminate.
-                if args.level == u.arg_eager or not last_matched:
+                if args.level == u.arg_eager or not last_matched or \
+                   (args.max_iterations and ctx.itr == args.max_iterations):
                     def candidate_to_szn(ctx, st, p):
                         # FIXME: do this properly.
                         return st.replace("/candidates", "")\
