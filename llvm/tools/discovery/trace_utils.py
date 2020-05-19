@@ -79,8 +79,11 @@ pat_all_disconnected = [pat_doall, pat_map, pat_conditional_map]
 # List with all patterns that require asociativity.
 pat_all_associative = [pat_linear_reduction, pat_linear_scan, pat_tiled_reduction]
 
+# List with all patterns that combine maps and reductions.
+pat_all_map_reductions = [pat_linear_map_reduction, pat_tiled_map_reduction]
+
 # List with all supported patterns.
-pat_all = pat_all_disconnected + pat_all_associative + [pat_pipeline]
+pat_all = pat_all_disconnected + pat_all_associative + pat_all_map_reductions
 
 # List with all supported unidimensional patterns.
 pat_all_uni = pat_all_disconnected + [pat_linear_reduction, pat_linear_scan]
@@ -208,8 +211,10 @@ def match_nodes(pattern, match):
     elif pattern == pat_pipeline:
         (stages, runs) = match
         nodes = index_map(stages).keys()
-    elif pattern == pat_tiled_reduction:
+    elif pattern in [pat_tiled_reduction, pat_tiled_map_reduction]:
         nodes = flatten(match)
+    else:
+        assert(False)
     return nodes
 
 # Gives the instruction(s) corresponding to a node.

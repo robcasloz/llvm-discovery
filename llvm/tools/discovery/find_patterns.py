@@ -22,6 +22,9 @@ import merge_matches as mm
 
 eol = "\n"
 
+sub = "-"
+add = "+"
+
 class Level(enum.Enum):
     top       = 1
     iteration = 2
@@ -131,20 +134,25 @@ def subtrace_id(ctx, st):
 
 def subtrace_type(ctx, st):
     st_id = subtrace_id(ctx, st)
-    if st_id[0] == 'l': # Loop sub-trace
-        return u.loop_subtrace
-    elif st_id[0] == 'i': # Associative component sub-trace
-        return u.associative_component_subtrace
-    else:
+    if sub in st_id or add in st_id:
         return u.unknown_subtrace
+    else:
+        if st_id[0] == 'l': # Loop sub-trace
+            return u.loop_subtrace
+        elif st_id[0] == 'i': # Associative component sub-trace
+            return u.associative_component_subtrace
+    assert(False)
 
 def applicable_patterns(ctx, st, loops):
     st_type = subtrace_type(ctx, st)
-    if   (st_type == u.loop_subtrace) or \
-         (st_type == u.unknown_subtrace and loops):
-        # The trace is derived from a loop, do not bother looking for reductions
-        # and scans (these are findable by associative components).
+    if   (st_type == u.loop_subtrace):
+        # Basic loop trace, do not bother looking for reductions and scans
+        # (these are findable by associative components).
         return u.pat_all_disconnected
+    elif (st_type == u.unknown_subtrace and loops):
+        # The trace is derived from a loop, do not bother looking for reductions
+        # and scans, but add map-reductions.
+        return u.pat_all_disconnected + u.pat_all_map_reductions
     elif (st_type == u.associative_component_subtrace) or \
          (st_type == u.unknown_subtrace and not loops):
         # The trace is derived from an associative component, do not bother
@@ -185,21 +193,22 @@ def remove_new_duplicates(nodes, loops, new):
                 del nodes[st]
                 del loops[st]
 
-def subtraction_id(left, right):
-    sub = "-"
-    def maybe_paren(string):
-        if sub in string:
-            return "[" + string + "]"
-        else:
-            return string
-    return maybe_paren(left) + sub + maybe_paren(right)
+def maybe_paren(string):
+    if sub in string or add in string:
+        return "[" + string + "]"
+    else:
+        return string
+
+def operation_id(op, left, right):
+    return maybe_paren(left) + op + maybe_paren(right)
 
 def make_subtraction((ctx, st1, st2, n1, n2)):
     # If the result would not be a new sub-trace (because it
     # would be empty or equal to st1), do not bother.
     if (n1 - n2 == set()) or (n1 & n2 == set()):
         return
-    subtract_id = subtraction_id(subtrace_id(ctx, st1), subtrace_id(ctx, st2))
+    subtract_id = \
+        operation_id(sub, subtrace_id(ctx, st1), subtrace_id(ctx, st2))
     subtract_st = temp(ctx, [subtract_id, "trace"], Level.candidate)
     run_process_trace(["-o", subtract_st, "subtract", st1, st2,
                        original_trace(ctx)])
@@ -293,7 +302,7 @@ try:
             end_measurement("decomposition-time")
 
             # Maps from candidate sub-DDG to original node and loop
-            # set. Allows to quickly examine the node set of each candidate
+            # set. Allows to quickly examine the content of each candidate
             # sub-trace (only used in eager mode).
             nodes = {}
             loops = {}
@@ -306,15 +315,13 @@ try:
                 update(ctx, nodes, loops)
 
                 # The list conversion is just to force evaluation.
-                start_measurement("subtract-time")
+                start_measurement("eager-generation-time")
                 subtraces_before = set()
                 subtraces_after  = set(candidate_traces(ctx))
                 while subtraces_after != subtraces_before:
                     subtraces_before = subtraces_after
                     list(ex.map(make_subtraction,
-                                [(ctx, st1, st2,
-                                  nodes[st1],
-                                  nodes[st2])
+                                [(ctx, st1, st2, nodes[st1], nodes[st2])
                                  for st1 in candidate_traces(ctx)
                                  for st2 in candidate_traces(ctx)
                                  if st1 != st2]))
@@ -324,7 +331,7 @@ try:
                     subtraces_after = set(candidate_traces(ctx))
                     if not args.deep:
                         break
-                end_measurement("subtract-time")
+                end_measurement("eager-generation-time")
 
             # The list conversion is just to force evaluation.
             start_measurement("compaction-time")
