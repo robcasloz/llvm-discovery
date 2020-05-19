@@ -259,7 +259,6 @@ def main(args):
     parser.add_argument('--discard-subsumed-patterns', dest='discard_subsumed', action='store_true', default=True)
     parser.add_argument('--discard-no-matches', dest='discard_no_matches', action='store_true', default=True)
     parser.add_argument('-s,', '--sort', dest='sort', action='store', type=str, choices=[u.arg_nodes, u.arg_location], default=u.arg_nodes)
-    parser.add_argument('--matched-traces-file', dest='matched_traces_file')
     parser.add_argument('--extract-matched-instructions', dest='extract_matched_instructions', action='store_true', default=True)
     parser.add_argument('--matched-instructions-prefix')
     args = parser.parse_args(args)
@@ -310,16 +309,6 @@ def main(args):
 
     if args.output_file:
         out.close()
-
-    if args.matched_traces_file:
-        traces = set()
-        for r in results:
-            for t in r["trace"].split(";"):
-                traces.add(t)
-        with open(args.matched_traces_file ,"w+") as outfile:
-            for t in traces:
-                line = t + "\n"
-                outfile.write(line)
 
     # Generate a file for each benchmark and mode with all instructions matched.
     if args.extract_matched_instructions:
