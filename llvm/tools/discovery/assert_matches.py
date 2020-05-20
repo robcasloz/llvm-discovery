@@ -29,7 +29,6 @@ benchmark_index = legend.index("benchmark")
 mode_index = legend.index("mode")
 location_index = legend.index("location")
 loops_index = legend.index("loops")
-doall_index = legend.index(u.pat_doall)
 map_index = legend.index(u.pat_map)
 conditional_map_index = legend.index(u.pat_conditional_map)
 reduction_index = legend.index(u.pat_linear_reduction)
@@ -49,8 +48,7 @@ for line in r:
     mode = line[mode_index]
     if "-".join([benchmark, mode]) == args.BENCHMARK_MODE and \
        matches_location(line):
-        actual_results = [(u.pat_doall, line[doall_index]),
-                          (u.pat_map, line[map_index]),
+        actual_results = [(u.pat_map, line[map_index]),
                           (u.pat_conditional_map, line[conditional_map_index]),
                           (u.pat_linear_reduction, line[reduction_index]),
                           (u.pat_linear_scan, line[linear_scan_index]),
