@@ -43,6 +43,17 @@ class Context:
     def canddir(self):
         return os.path.join(self.iterdir(), "candidates")
 
+rank = {
+    u.pat_doall : 1,
+    u.pat_map : 1,
+    u.pat_conditional_map : 1,
+    u.pat_linear_reduction : 1,
+    u.pat_linear_scan : 1,
+    u.pat_tiled_reduction : 2,
+    u.pat_linear_map_reduction : 2,
+    u.pat_tiled_map_reduction : 3
+}
+
 parser = argparse.ArgumentParser(description='Find parallel patterns in the given trace.')
 parser.add_argument('TRACE_FILE')
 parser.add_argument('-l,', '--level', dest='level', action='store', type=str, choices=[u.arg_heuristic, u.arg_eager, u.arg_lazy, u.arg_complete], default=u.arg_heuristic)
@@ -81,30 +92,28 @@ def end_measurement(measurement):
     end = time.time()
     stats[measurement] += (end - start)
 
-def run_command(cmd):
+def print_debug(message, level = 1):
     if args.verbose:
-        sys.stderr.write(" ".join(cmd) + eol)
+        sys.stderr.write(("    " * level) + message + eol)
+
+def run_command(cmd):
+    print_debug(" ".join(cmd))
     subprocess.check_output(cmd)
 
 def run_process_trace(arguments):
-    if args.verbose:
-        sys.stderr.write(indir("process_trace.py") + " " + " ".join(arguments) + eol)
+    print_debug(indir("process_trace.py") + " " + " ".join(arguments))
     pt.main(arguments)
 
 def run_process_matches(arguments):
-    if args.verbose:
-        sys.stderr.write(indir("process_matches.py") + " " + " ".join(arguments) + eol)
+    print_debug(indir("process_matches.py") + " " + " ".join(arguments))
     pm.main(arguments)
 
 def run_merge_matches(arguments):
-    if args.verbose:
-        sys.stderr.write(indir("merge_matches.py") + " " + " ".join(arguments) + eol)
+    print_debug(indir("merge_matches.py") + " " + " ".join(arguments))
     mm.main(arguments)
 
 def run_minizinc(outfile, arguments):
-    if args.verbose:
-        sys.stderr.write("minizinc " + " ".join(arguments) + " > " + outfile +
-                         eol)
+    print_debug("minizinc " + " ".join(arguments) + " > " + outfile)
     try:
         p = subprocess.Popen(["minizinc"] + arguments, stdout=subprocess.PIPE,
                              stderr=subprocess.PIPE)
@@ -334,15 +343,17 @@ try:
 
         # Traces to be subtracted and composed in the current iteration.
         iteration_traces = set()
-        # Set of locations (location, loops) where a pattern has been found.
-        matched_locations = set()
-        # Map from candidate sub-DDG to pattern found.
+        # Map from candidate sub-DDG to maximum-rank pattern found.
         pattern_matched = dict()
         ctx.itr = 1
         patterns_csv = temp(ctx, ["patterns", "csv"], Level.top)
         run_process_matches(["-o", patterns_csv] + simple_options)
 
         while True:
+
+            print_debug("iteration " + str(ctx.itr), level = 0)
+            print_debug(str(len(iteration_traces)) + " iteration traces: " + \
+                        str(iteration_traces), level = 0)
 
             os.mkdir(ctx.iterdir())
             os.mkdir(ctx.canddir())
@@ -437,7 +448,8 @@ try:
                                  for p  in applicable_patterns(ctx, st,
                                                                loops.get(st, {}))]
                 patterns_iter_csv = temp(ctx, ["patterns", "csv"], Level.iteration)
-                run_process_matches(iter_szn_files + ["-o", patterns_iter_csv])
+                run_process_matches(iter_szn_files + \
+                                    ["-o", patterns_iter_csv, "--show-doall"])
                 iteration_traces = set()
                 with open(patterns_iter_csv) as csv_file:
                     r = csv.reader(csv_file, delimiter=",")
@@ -445,24 +457,31 @@ try:
                     trace_index = legend.index("trace")
                     location_index = legend.index("location")
                     loops_index = legend.index("loops")
+                    new_traces = set()
                     for line in r:
                         key = (line[location_index], line[loops_index])
                         for cst in line[trace_index].split(";"):
                             st = temp(ctx, [subtrace_id(ctx, cst), "trace"],
                                       Level.candidate)
-                            pattern = None
-                            for p in [u.pat_map, u.pat_conditional_map,
-                                      u.pat_linear_reduction, u.pat_linear_scan,
-                                      u.pat_tiled_reduction]:
+                            for p in u.pat_all:
                                 if line[legend.index(p)] == u.match_full:
                                     pattern = p
                                     break
-                            # If the trace contains a "useful" pattern (see list
-                            # above) on a new location, add for next iteration.
-                            if pattern and (not key in matched_locations):
-                                matched_locations.add(key)
-                                iteration_traces.add(st)
+                            assert(pattern)
+                            if st in pattern_matched:
+                                pattern_matched[st] = \
+                                    max([pattern_matched[st], pattern],
+                                        key=lambda p : rank[p])
+                            else:
                                 pattern_matched[st] = pattern
+                            new_traces.add(st)
+                    # Select all new traces where a useful pattern has been
+                    # found for the new iteration.
+                    for st in new_traces:
+                        p = pattern_matched[st]
+                        if p in [u.pat_map, u.pat_conditional_map] + \
+                           u.pat_all_associative:
+                            iteration_traces.add(st)
 
                 # If we are in eager mode or in lazy mode but not more patterns
                 # are found, terminate.
