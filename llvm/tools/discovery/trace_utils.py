@@ -75,7 +75,7 @@ associative_component_subtrace = "associative-component"
 unknown_subtrace               = "unknown"
 
 # List with all map-like patterns that are disconnected.
-pat_all_disconnected = [pat_doall, pat_map, pat_conditional_map]
+pat_all_map_like = [pat_doall, pat_map, pat_conditional_map]
 
 # List with all patterns that require asociativity.
 pat_all_associative = [pat_linear_reduction, pat_linear_scan, pat_tiled_reduction]
@@ -84,10 +84,10 @@ pat_all_associative = [pat_linear_reduction, pat_linear_scan, pat_tiled_reductio
 pat_all_map_reductions = [pat_linear_map_reduction, pat_tiled_map_reduction]
 
 # List with all supported patterns.
-pat_all = pat_all_disconnected + pat_all_associative + pat_all_map_reductions
+pat_all = pat_all_map_like + pat_all_associative + pat_all_map_reductions
 
 # List with all supported unidimensional patterns.
-pat_all_uni = pat_all_disconnected + [pat_linear_reduction, pat_linear_scan]
+pat_all_uni = pat_all_map_like + [pat_linear_reduction, pat_linear_scan]
 
 # Returns a labeled DDG from a trace loaded from the given file.
 def read_trace(trace_file):

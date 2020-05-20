@@ -156,11 +156,11 @@ def applicable_patterns(ctx, st, loops):
     if   (st_type == u.loop_subtrace):
         # Basic loop trace, do not bother looking for reductions and scans
         # (these are findable by associative components).
-        return u.pat_all_disconnected
+        return u.pat_all_map_like
     elif (st_type == u.unknown_subtrace and loops):
         # The trace is derived from a loop, do not bother looking for reductions
         # and scans, but add map-reductions.
-        return u.pat_all_disconnected + u.pat_all_map_reductions
+        return u.pat_all_map_like + u.pat_all_map_reductions
     elif (st_type == u.associative_component_subtrace) or \
          (st_type == u.unknown_subtrace and not loops):
         # The trace is derived from an associative component, do not bother
@@ -332,10 +332,12 @@ try:
 
     if args.level in [u.arg_heuristic, u.arg_eager, u.arg_lazy]:
 
-        # Traces where a pattern was found in the previous iteration.
-        last_matched = set()
-        # Set of found matches (location, loops).
-        matched = set()
+        # Traces to be subtracted and composed in the current iteration.
+        iteration_traces = set()
+        # Set of locations (location, loops) where a pattern has been found.
+        matched_locations = set()
+        # Map from candidate sub-DDG to pattern found.
+        pattern_matched = dict()
         ctx.itr = 1
         patterns_csv = temp(ctx, ["patterns", "csv"], Level.top)
         run_process_matches(["-o", patterns_csv] + simple_options)
@@ -367,15 +369,14 @@ try:
             # and 'compose' operations to pairs of sub-traces).
             if args.level == u.arg_eager or args.level == u.arg_lazy:
 
-                # In early mode, consider all pairs of candidate traces. In lazy
-                # mode, consider pairs of candidate traces and last-matched
-                # traces.
+                # In eager mode, consider all pairs of candidate traces. In lazy
+                # mode, consider (candidate trace, iteration trace) pairs.
                 if   args.level == u.arg_eager:
                     def active_traces(ctx):
                         return candidate_traces(ctx)
                 elif args.level == u.arg_lazy:
                     def active_traces(ctx):
-                        return last_matched
+                        return iteration_traces
                 else:
                     assert(False)
 
@@ -437,7 +438,7 @@ try:
                                                                loops.get(st, {}))]
                 patterns_iter_csv = temp(ctx, ["patterns", "csv"], Level.iteration)
                 run_process_matches(iter_szn_files + ["-o", patterns_iter_csv])
-                last_matched = set()
+                iteration_traces = set()
                 with open(patterns_iter_csv) as csv_file:
                     r = csv.reader(csv_file, delimiter=",")
                     legend = r.next()
@@ -449,13 +450,23 @@ try:
                         for cst in line[trace_index].split(";"):
                             st = temp(ctx, [subtrace_id(ctx, cst), "trace"],
                                       Level.candidate)
-                            if not key in matched:
-                                matched.add(key)
-                                last_matched.add(st)
+                            pattern = None
+                            for p in [u.pat_map, u.pat_conditional_map,
+                                      u.pat_linear_reduction, u.pat_linear_scan,
+                                      u.pat_tiled_reduction]:
+                                if line[legend.index(p)] == u.match_full:
+                                    pattern = p
+                                    break
+                            # If the trace contains a "useful" pattern (see list
+                            # above) on a new location, add for next iteration.
+                            if pattern and (not key in matched_locations):
+                                matched_locations.add(key)
+                                iteration_traces.add(st)
+                                pattern_matched[st] = pattern
 
                 # If we are in eager mode or in lazy mode but not more patterns
                 # are found, terminate.
-                if args.level == u.arg_eager or not last_matched or \
+                if args.level == u.arg_eager or not iteration_traces or \
                    (args.max_iterations and ctx.itr == args.max_iterations):
                     def candidate_to_szn(ctx, st, p):
                         # FIXME: do this properly.

@@ -61,7 +61,7 @@ def match_consensus(pattern, pattern_data):
     assert(False)
 
 def generalize_partial_maps(pattern_data):
-    maplike_patterns = [u.pat_doall, u.pat_map, u.pat_conditional_map]
+    maplike_patterns = u.pat_all_map_like
     # If the trace is matched as something else, nothing to do.
     for pattern in set(u.pat_all) - set(maplike_patterns):
         if pattern in pattern_data and u.match in pattern_data[pattern]:
