@@ -6,7 +6,7 @@ import glob
 import csv
 import sys
 from sets import Set
-import re
+import copy
 
 import trace_utils as u
 
@@ -261,6 +261,7 @@ def main(args):
     parser.add_argument('-s,', '--sort', dest='sort', action='store', type=str, choices=[u.arg_nodes, u.arg_location], default=u.arg_nodes)
     parser.add_argument('--extract-matched-instructions', dest='extract_matched_instructions', action='store_true', default=True)
     parser.add_argument('--matched-instructions-prefix')
+    parser.add_argument('--show-doall', dest='show_doall', action='store_true', default=False)
     args = parser.parse_args(args)
 
     # Gather results.
@@ -277,11 +278,15 @@ def main(args):
         out = sys.stdout
     csvwriter = csv.writer(out, delimiter=",", quoting=csv.QUOTE_MINIMAL)
 
+    patterns_to_show = copy.deepcopy(u.pat_all)
+    if not args.show_doall:
+        patterns_to_show.remove(u.pat_doall)
+
     if args.simple:
-        legend = ["location", "loops"] + u.pat_all
+        legend = ["location", "loops"] + patterns_to_show
     else:
         legend = ["benchmark", "mode", "location", "loops", "repetitions",
-                  "nodes", "trace"] + u.pat_all
+                  "nodes", "trace"] + patterns_to_show
     csvwriter.writerow(legend)
 
     # Sort results according to given criterion.
@@ -304,7 +309,11 @@ def main(args):
                    r["repetitions"],
                    r["nodes"],
                    r["trace"]]
-        row += [r[p] for p in u.pat_all]
+        matches = [r[p] for p in patterns_to_show]
+        if args.discard_no_matches and \
+           all([m == u.match_none for m in matches]):
+            continue
+        row += matches
         csvwriter.writerow(row)
 
     if args.output_file:
