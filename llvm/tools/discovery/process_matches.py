@@ -193,15 +193,20 @@ def process_matches(szn_files, simple, generalize_maps, discard_subsumed,
             # partial patterns):
             if not matches and status == u.tk_sol_status_normal:
                 all_insts = Set()
-                for n in DDG.nodes():
-                    if u.is_source(n, PB, PI) or u.is_sink(n, PB, PI):
+                loops = set()
+                for node in DDG.nodes():
+                    if u.is_source(node, PB, PI) or u.is_sink(node, PB, PI):
                         continue
-                    all_insts.update(u.node_instructions(G, n))
+                    all_insts.update(u.node_instructions(G, node))
+                    tags = PB[node].get(u.tk_tags)
+                    if tags != None:
+                        loops.update([PT[u.tag_name(t)][u.tk_alias]
+                                      for t in tags])
                 instructions = []
                 for inst in all_insts:
                     instructions.append((PI[inst].get(u.tk_name),
                                          PI[inst].get(u.tk_location)))
-                register_match(benchmark, mode, instructions, set(), pattern,
+                register_match(benchmark, mode, instructions, loops, pattern,
                                u.no_match, trace_filename, -1)
     results = []
     for (benchmark, benchmark_data) in sorted(data.iteritems()):
