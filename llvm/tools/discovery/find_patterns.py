@@ -236,20 +236,19 @@ def operation_id(op, left, right):
     return maybe_paren(left) + op + maybe_paren(right)
 
 def make_subtraction((ctx, (st1, n1, p1), (st2, n2, p2))):
-    # This operation only leads to finding more patterns up to the second
-    # iteration. In later iterations, do not bother.
+    # Check that we are in first re-iteration. Subtraction only leads to more
+    # pattern finding early.
     if ctx.itr > 2:
         return
-    # If the result would not be matchable, do not bother.
+    # Check that the result is matchable.
     if subtrace_type(ctx, st1) != u.loop_subtrace:
         return
     if not (p2 in u.pat_all_associative):
         return
-    # If st1 has already been identified as a map-like pattern, do not bother.
+    # Check that st1 has not yet been found as a map-like pattern.
     if p1 in u.pat_all_map_like:
         return
-    # If the result would not be a new sub-trace (because it
-    # would be empty or equal to st1), do not bother.
+    # Check that the result is a new sub-trace.
     if (n1 - n2 == set()) or (n1 & n2 == set()):
         return
     subtract_id = \
@@ -258,20 +257,33 @@ def make_subtraction((ctx, (st1, n1, p1), (st2, n2, p2))):
     run_process_trace(["-o", subtract_st, "subtract", st1, st2,
                        original_trace(ctx)])
 
-def make_composition((ctx, st1, st2, n1, l1, s1, n2, l2, s2)):
+def make_composition((ctx, (st1, n1, l1, s1, p1), (st2, n2, l2, s2, p2))):
+    # Check that the result is matchable.
+    if None in [p1, p2]:
+        return
     # Check that the node sets do not overlap.
     if not n1.isdisjoint(n2):
         return
-    # If the result would be equal to st1 or st2, do not bother.
+    # Check that the subtraces are adjacent, and record pred and succ patterns.
+    if s1.issubset(n2):
+        (p_fst, p_snd) = (p1, p2)
+    elif s2.issubset(n1):
+        (p_fst, p_snd) = (p2, p1)
+    else:
+        return
+    # Check that the patterns are compatible.
+    if not (p_fst, p_snd) in \
+       [(u.pat_map, u.pat_map),
+        (u.pat_map, u.pat_conditional_map),
+        (u.pat_conditional_map, u.pat_map),
+        (u.pat_map, u.pat_linear_reduction),
+        (u.pat_map, u.pat_tiled_reduction),
+        (u.pat_map, u.pat_linear_map_reduction),
+        (u.pat_map, u.pat_tiled_map_reduction)]:
+        return
+    # Check that the result is different to st1 and st2.
     (ns, ls) = (n1 | n2, l1 | l2)
     if ((ns, ls) == (n1, l1)) or ((ns, ls) == (n2, l2)):
-        return
-    # If the result would not be matchable for fused map or map-reduction
-    # patterns, do not bother. This is the case if none of the subtraces is
-    # loop-based or the subtraces are not adjacent.
-    if not l1 and not l2:
-        return
-    if not (s1.issubset(n2) or s2.issubset(n1)):
         return
     compose_id = operation_id(add, subtrace_id(ctx, st1), subtrace_id(ctx, st2))
     compose_st = temp(ctx, [compose_id, "trace"], Level.candidate)
@@ -415,9 +427,11 @@ try:
                     remove_new_duplicates(nodes, loops, new)
                     subtraces_between = candidate_traces(ctx)
                     list(ex.map(make_composition,
-                                [(ctx, st1, st2,
-                                  nodes[st1], loops[st1], succ[st1],
-                                  nodes[st2], loops[st2], succ[st2])
+                                [(ctx,
+                                  (st1, nodes[st1], loops[st1], succ[st1],
+                                   pattern_matched.get(st1)),
+                                  (st2, nodes[st2], loops[st2], succ[st2],
+                                   pattern_matched.get(st2)))
                                  for st1 in candidate_traces(ctx)
                                  for st2 in active_traces(ctx)
                                  if st1 < st2]))
