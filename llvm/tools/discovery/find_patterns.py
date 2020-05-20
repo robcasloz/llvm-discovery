@@ -235,19 +235,22 @@ def maybe_paren(string):
 def operation_id(op, left, right):
     return maybe_paren(left) + op + maybe_paren(right)
 
-def make_subtraction((ctx, st1, st2, n1, n2)):
+def make_subtraction((ctx, (st1, n1, p1), (st2, n2, p2))):
     # This operation only leads to finding more patterns up to the second
     # iteration. In later iterations, do not bother.
     if ctx.itr > 2:
         return
+    # If the result would not be matchable, do not bother.
+    if subtrace_type(ctx, st1) != u.loop_subtrace:
+        return
+    if not (p2 in u.pat_all_associative):
+        return
+    # If st1 has already been identified as a map-like pattern, do not bother.
+    if p1 in u.pat_all_map_like:
+        return
     # If the result would not be a new sub-trace (because it
     # would be empty or equal to st1), do not bother.
     if (n1 - n2 == set()) or (n1 & n2 == set()):
-        return
-    # If the result would not be matchable, do not bother. This is the case for
-    # subtractions of loops from associative components.
-    if subtrace_type(ctx, st1) == u.associative_component_subtrace and \
-       subtrace_type(ctx, st2) == u.loop_subtrace:
         return
     subtract_id = \
         operation_id(sub, subtrace_id(ctx, st1), subtrace_id(ctx, st2))
@@ -351,10 +354,6 @@ try:
 
         while True:
 
-            print_debug("iteration " + str(ctx.itr), level = 0)
-            print_debug(str(len(iteration_traces)) + " iteration traces: " + \
-                        str(iteration_traces), level = 0)
-
             os.mkdir(ctx.iterdir())
             os.mkdir(ctx.canddir())
 
@@ -380,6 +379,11 @@ try:
             # and 'compose' operations to pairs of sub-traces).
             if args.level == u.arg_eager or args.level == u.arg_lazy:
 
+                print_debug("iteration " + str(ctx.itr), level = 0)
+                print_debug(str(len(iteration_traces)) + \
+                            " iteration traces: " + \
+                            str(iteration_traces), level = 0)
+
                 # In eager mode, consider all pairs of candidate traces. In lazy
                 # mode, consider (candidate trace, iteration trace) pairs.
                 if   args.level == u.arg_eager:
@@ -400,7 +404,9 @@ try:
                 while subtraces_after != subtraces_before:
                     subtraces_before = subtraces_after
                     list(ex.map(make_subtraction,
-                                [(ctx, st1, st2, nodes[st1], nodes[st2])
+                                [(ctx,
+                                  (st1, nodes[st1], pattern_matched.get(st1)),
+                                  (st2, nodes[st2], pattern_matched.get(st2)))
                                  for st1 in candidate_traces(ctx)
                                  for st2 in active_traces(ctx)
                                  if st1 != st2]))
