@@ -75,22 +75,20 @@ args = parser.parse_args()
 
 if args.stats:
     stats = {}
-    start = 0.0
+    start = {}
 
 def start_measurement(measurement):
-    global start
     if not args.stats:
         return
     if not measurement in stats:
         stats[measurement] = 0.0
-    start = time.time()
+    start[measurement] = time.time()
 
 def end_measurement(measurement):
-    global start
     if not args.stats:
         return
     end = time.time()
-    stats[measurement] += (end - start)
+    stats[measurement] += (end - start[measurement])
 
 def print_debug(message, level = 1):
     if args.verbose:
@@ -195,6 +193,7 @@ def candidate_traces_iter(ctx):
     return set(glob.glob(os.path.join(ctx.canddir(), "*.trace")))
 
 def update(ctx, nodes, loops, succ):
+    (ODDG, _, __, ___) = u.read_trace(original_trace(ctx))
     # TODO: do this in parallel.
     for st in candidate_traces(ctx):
         G = u.read_trace(st)
@@ -204,7 +203,6 @@ def update(ctx, nodes, loops, succ):
             tags.add(G[3][tag].get(u.tk_alias))
         loops[st] = tags
         s = set()
-        (ODDG, _, __, ___) = u.read_trace(original_trace(ctx))
         for n in nodes[st]:
             s |= (set(ODDG.successors(n)) - nodes[st])
         succ[st] = s
@@ -407,7 +405,9 @@ try:
                 else:
                     assert(False)
 
+                start_measurement("update-time")
                 update(ctx, nodes, loops, succ)
+                end_measurement("update-time")
 
                 # The list conversion is just to force evaluation.
                 start_measurement("eager-generation-time")
@@ -422,7 +422,9 @@ try:
                                  for st1 in candidate_traces(ctx)
                                  for st2 in active_traces(ctx)
                                  if st1 != st2]))
+                    start_measurement("update-time")
                     update(ctx, nodes, loops, succ)
+                    end_measurement("update-time")
                     new = candidate_traces(ctx) - subtraces_before
                     remove_new_duplicates(nodes, loops, new)
                     subtraces_between = candidate_traces(ctx)
@@ -435,7 +437,9 @@ try:
                                  for st1 in candidate_traces(ctx)
                                  for st2 in active_traces(ctx)
                                  if st1 < st2]))
+                    start_measurement("update-time")
                     update(ctx, nodes, loops, succ)
+                    end_measurement("update-time")
                     subtraces_after = candidate_traces(ctx)
                     if not args.deep:
                         break
