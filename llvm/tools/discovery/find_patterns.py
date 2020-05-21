@@ -483,11 +483,14 @@ try:
                         for cst in line[trace_index].split(";"):
                             st = temp(ctx, [subtrace_id(ctx, cst), "trace"],
                                       Level.candidate)
+                            pattern = None
                             for p in u.pat_all:
                                 if line[legend.index(p)] == u.match_full:
                                     pattern = p
                                     break
-                            assert(pattern)
+                            if not pattern:
+                                # Can happen if there are only partial matches.
+                                continue
                             if st in pattern_matched:
                                 pattern_matched[st] = \
                                     max([pattern_matched[st], pattern],
