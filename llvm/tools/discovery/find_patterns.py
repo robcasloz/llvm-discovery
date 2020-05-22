@@ -271,6 +271,9 @@ def make_composition((ctx, (st1, n1, l1, s1, p1), (st2, n2, l2, s2, p2))):
     # Check that the node sets do not overlap.
     if not n1.isdisjoint(n2):
         return
+    # Check that the loop sets do not overlap.
+    if not l1.isdisjoint(l2):
+        return
     # Check that the subtraces are adjacent, and record pred and succ patterns.
     if s1.issubset(n2):
         (p_fst, p_snd) = (p1, p2)
