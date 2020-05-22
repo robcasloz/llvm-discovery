@@ -192,20 +192,29 @@ def candidate_traces(ctx):
 def candidate_traces_iter(ctx):
     return set(glob.glob(os.path.join(ctx.canddir(), "*.trace")))
 
-def update(ctx, nodes, loops, succ):
+def subtrace_nodes_loops(st):
+    G = u.read_trace(st)
+    st_nodes = u.original_blocks(G)
+    tags = set()
+    for tag in u.tag_set(G):
+        tags.add(G[3][tag].get(u.tk_alias))
+    st_loops = tags
+    return (st_nodes, st_loops)
+
+def update(ex, ctx, nodes, loops, succ):
+    start_measurement("update-time")
     (ODDG, _, __, ___) = u.read_trace(original_trace(ctx))
-    # TODO: do this in parallel.
-    for st in candidate_traces(ctx):
-        G = u.read_trace(st)
-        nodes[st] = u.original_blocks(G)
-        tags = set()
-        for tag in u.tag_set(G):
-            tags.add(G[3][tag].get(u.tk_alias))
-        loops[st] = tags
-        s = set()
-        for n in nodes[st]:
-            s |= (set(ODDG.successors(n)) - nodes[st])
-        succ[st] = s
+    update_traces = [st for st in candidate_traces(ctx)
+                     if not ((st in nodes) and (st in loops) and (st in succ))]
+    for (st, (st_nodes, st_loops)) in \
+        zip(update_traces, ex.map(subtrace_nodes_loops, update_traces)):
+        nodes[st] = st_nodes
+        loops[st] = st_loops
+        st_succ = set()
+        for n in st_nodes:
+            st_succ |= (set(ODDG.successors(n)) - st_nodes)
+        succ[st] = st_succ
+    end_measurement("update-time")
 
 def remove_new_duplicates(nodes, loops, new):
     def get_key(st):
@@ -405,9 +414,7 @@ try:
                 else:
                     assert(False)
 
-                start_measurement("update-time")
-                update(ctx, nodes, loops, succ)
-                end_measurement("update-time")
+                update(ex, ctx, nodes, loops, succ)
 
                 # The list conversion is just to force evaluation.
                 start_measurement("eager-generation-time")
@@ -422,9 +429,7 @@ try:
                                  for st1 in candidate_traces(ctx)
                                  for st2 in active_traces(ctx)
                                  if st1 != st2]))
-                    start_measurement("update-time")
-                    update(ctx, nodes, loops, succ)
-                    end_measurement("update-time")
+                    update(ex, ctx, nodes, loops, succ)
                     new = candidate_traces(ctx) - subtraces_before
                     remove_new_duplicates(nodes, loops, new)
                     subtraces_between = candidate_traces(ctx)
@@ -437,9 +442,7 @@ try:
                                  for st1 in candidate_traces(ctx)
                                  for st2 in active_traces(ctx)
                                  if st1 < st2]))
-                    start_measurement("update-time")
-                    update(ctx, nodes, loops, succ)
-                    end_measurement("update-time")
+                    update(ex, ctx, nodes, loops, succ)
                     subtraces_after = candidate_traces(ctx)
                     if not args.deep:
                         break
