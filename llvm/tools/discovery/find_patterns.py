@@ -242,7 +242,22 @@ def maybe_paren(string):
 def operation_id(op, left, right):
     return maybe_paren(left) + op + maybe_paren(right)
 
-def make_subtraction((ctx, (st1, n1, p1), (st2, n2, p2))):
+def is_subtrahend(st1, st2, nodes, pattern_matched):
+    if st1 == st2:
+        return False
+    p2 = pattern_matched[st2]
+    if not (p2 in u.pat_all_associative):
+        return False
+    n1 = nodes[st1]
+    n2 = nodes[st2]
+    if (n1 - n2 == set()) or (n1 & n2 == set()):
+        return False
+    return True
+
+def make_subtraction((ctx, (st1, n1, p1), st2s)):
+    # Check that there is something to subtract.
+    if not st2s:
+        return
     # Check that we are in first re-iteration. Subtraction only leads to more
     # pattern finding early.
     if ctx.itr > 2:
@@ -250,18 +265,29 @@ def make_subtraction((ctx, (st1, n1, p1), (st2, n2, p2))):
     # Check that the result is matchable.
     if subtrace_type(ctx, st1) != u.loop_subtrace:
         return
-    if not (p2 in u.pat_all_associative):
-        return
     # Check that st1 has not yet been found as a map-like pattern.
     if p1 in u.pat_all_map_like:
         return
-    # Check that the result is a new sub-trace.
-    if (n1 - n2 == set()) or (n1 & n2 == set()):
-        return
-    subtract_id = \
-        operation_id(sub, subtrace_id(ctx, st1), subtrace_id(ctx, st2))
+    n2s = set()
+    for st2, n2 in st2s:
+        n2s |= n2
+    st1_id  = subtrace_id(ctx, st1)
+    if len(st2s) == 1:
+        st2s_id = subtrace_id(ctx, st2s[0][0])
+    else:
+        st2s_id = "a" + str(ctx.itr - 1)
+    # TODO: embed this into a single "subtract-nodes" command.
+    subtrahend_id = st1_id + "." + st2s_id
+    subtrahend_nodes = temp(ctx, [subtrahend_id, "nodes"], Level.iteration)
+    with open(subtrahend_nodes, 'w+') as outfile:
+        for n in n2s:
+            outfile.write(str(n) + "\n")
+    subtrahend_st = temp(ctx, [subtrahend_id, "trace"], Level.iteration)
+    run_process_trace(["-o", subtrahend_st, "transform", "--filter-blocks",
+                       subtrahend_nodes, original_trace(ctx)])
+    subtract_id = operation_id(sub, st1_id, st2s_id)
     subtract_st = temp(ctx, [subtract_id, "trace"], Level.candidate)
-    run_process_trace(["-o", subtract_st, "subtract", st1, st2,
+    run_process_trace(["-o", subtract_st, "subtract", st1, subtrahend_st,
                        original_trace(ctx)])
 
 def make_composition((ctx, (st1, n1, l1, s1, p1), (st2, n2, l2, s2, p2))):
@@ -420,22 +446,26 @@ try:
                 update(ex, ctx, nodes, loops, succ)
 
                 # The list conversion is just to force evaluation.
-                start_measurement("eager-generation-time")
+                start_measurement("expansion-time")
                 subtraces_before = set()
                 subtraces_after  = candidate_traces(ctx)
                 while subtraces_after != subtraces_before:
                     subtraces_before = subtraces_after
+                    start_measurement("subtraction-time")
                     list(ex.map(make_subtraction,
                                 [(ctx,
                                   (st1, nodes[st1], pattern_matched.get(st1)),
-                                  (st2, nodes[st2], pattern_matched.get(st2)))
-                                 for st1 in candidate_traces(ctx)
-                                 for st2 in active_traces(ctx)
-                                 if st1 != st2]))
+                                  [(st2, nodes[st2])
+                                   for st2 in active_traces(ctx)
+                                   if is_subtrahend(
+                                           st1, st2, nodes, pattern_matched)])
+                                 for st1 in candidate_traces(ctx)]))
+                    end_measurement("subtraction-time")
                     update(ex, ctx, nodes, loops, succ)
                     new = candidate_traces(ctx) - subtraces_before
                     remove_new_duplicates(nodes, loops, new)
                     subtraces_between = candidate_traces(ctx)
+                    start_measurement("composition-time")
                     list(ex.map(make_composition,
                                 [(ctx,
                                   (st1, nodes[st1], loops[st1], succ[st1],
@@ -445,11 +475,12 @@ try:
                                  for st1 in candidate_traces(ctx)
                                  for st2 in active_traces(ctx)
                                  if st1 < st2]))
+                    end_measurement("composition-time")
                     update(ex, ctx, nodes, loops, succ)
                     subtraces_after = candidate_traces(ctx)
                     if not args.deep:
                         break
-                end_measurement("eager-generation-time")
+                end_measurement("expansion-time")
 
             # The list conversion is just to force evaluation.
             start_measurement("compaction-time")

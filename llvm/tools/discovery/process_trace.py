@@ -1115,6 +1115,7 @@ def main(args):
     parser_transform = subparsers.add_parser(arg_transform, help='apply filter and collapse operations to the trace')
     parser_transform.add_argument('--filter-location', help='filters blocks by location according to a regexp')
     parser_transform.add_argument('--filter-name', help='filters blocks by name according to a regexp')
+    parser_transform.add_argument('--filter-blocks', help='filters blocks specified in a file')
     parser_transform.add_argument('--filter-out-instructions', help='filters out blocks from instructions specified in a file')
     parser_transform.add_argument('--filter-tags', nargs="*", help='filters tagged blocks')
     parser_transform.add_argument('--filter-group', help='filters a specific group (used together with --filter-tags)')
@@ -1219,6 +1220,13 @@ def main(args):
             G = filter_location(G, args.filter_location)
         if args.filter_name:
             G = filter_name(G, args.filter_name)
+        if args.filter_blocks:
+            blocks = set([])
+            with open(args.filter_blocks, "r") as blocks_file:
+                for line in blocks_file:
+                    blocks.add(int(line))
+            G = filter_blocks(G, blocks)
+            G = remove_tags(G, u.tag_set(G))
         if args.filter_out_instructions:
             instructions = []
             with open(args.filter_out_instructions, "r") as instructions_file:
