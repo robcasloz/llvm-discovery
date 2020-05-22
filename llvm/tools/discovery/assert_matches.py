@@ -34,6 +34,8 @@ conditional_map_index = legend.index(u.pat_conditional_map)
 reduction_index = legend.index(u.pat_linear_reduction)
 linear_scan_index = legend.index(u.pat_linear_scan)
 tiled_reduction_index = legend.index(u.pat_tiled_reduction)
+linear_map_reduction_index = legend.index(u.pat_linear_map_reduction)
+tiled_map_reduction_index = legend.index(u.pat_tiled_map_reduction)
 found = False
 occurrence = 0
 
@@ -52,7 +54,9 @@ for line in r:
                           (u.pat_conditional_map, line[conditional_map_index]),
                           (u.pat_linear_reduction, line[reduction_index]),
                           (u.pat_linear_scan, line[linear_scan_index]),
-                          (u.pat_tiled_reduction, line[tiled_reduction_index])]
+                          (u.pat_tiled_reduction, line[tiled_reduction_index]),
+                          (u.pat_linear_map_reduction, line[linear_map_reduction_index]),
+                          (u.pat_tiled_map_reduction, line[tiled_map_reduction_index])]
         actual_matches = set([match_name(p, m) for (p, m) in actual_results
                               if m in [u.match_full, u.match_partial]])
         if actual_matches == expected_matches:
