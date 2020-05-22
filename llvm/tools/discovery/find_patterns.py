@@ -56,7 +56,7 @@ rank = {
 
 parser = argparse.ArgumentParser(description='Find parallel patterns in the given trace.')
 parser.add_argument('TRACE_FILE')
-parser.add_argument('-l,', '--level', dest='level', action='store', type=str, choices=[u.arg_heuristic, u.arg_eager, u.arg_lazy, u.arg_complete], default=u.arg_heuristic)
+parser.add_argument('-l,', '--level', dest='level', action='store', type=str, choices=[u.arg_complete, u.arg_eager, u.arg_lazy], default=u.arg_lazy)
 parser.add_argument('-v', '--verbose', action='store_true')
 parser.add_argument('-j', '--jobs', metavar='N', type=int)
 parser.add_argument('--clean', dest='clean', action='store_true')
@@ -390,7 +390,7 @@ try:
     else:
         simple_options = ["--simple"]
 
-    if args.level in [u.arg_heuristic, u.arg_eager, u.arg_lazy]:
+    if args.level in [u.arg_eager, u.arg_lazy]:
 
         # Traces to be subtracted and composed in the current iteration.
         iteration_traces = set()
@@ -405,7 +405,7 @@ try:
             os.mkdir(ctx.iterdir())
             os.mkdir(ctx.canddir())
 
-            if ctx.itr == 1 or args.level == u.arg_heuristic:
+            if ctx.itr == 1:
                 decompose_options = ["--output-dir", ctx.canddir()]
                 if ctx.itr > 1:
                     decompose_options += ["--no-associative-components"]
@@ -425,62 +425,60 @@ try:
 
             # Generate candidate subtraces (resulting from applying 'subtract'
             # and 'compose' operations to pairs of sub-traces).
-            if args.level == u.arg_eager or args.level == u.arg_lazy:
 
-                print_debug("iteration " + str(ctx.itr), level = 0)
-                print_debug(str(len(iteration_traces)) + \
-                            " iteration traces: " + \
-                            str(iteration_traces), level = 0)
+            print_debug("iteration " + str(ctx.itr), level = 0)
+            print_debug(str(len(iteration_traces)) + \
+                        " iteration traces: " + \
+                        str(iteration_traces), level = 0)
 
-                # In eager mode, consider all pairs of candidate traces. In lazy
-                # mode, consider (candidate trace, iteration trace) pairs.
-                if   args.level == u.arg_eager:
-                    def active_traces(ctx):
-                        return candidate_traces(ctx)
-                elif args.level == u.arg_lazy:
-                    def active_traces(ctx):
-                        return iteration_traces
-                else:
-                    assert(False)
+            # In eager mode, consider all pairs of candidate traces. In lazy
+            # mode, consider (candidate trace, iteration trace) pairs.
+            if   args.level == u.arg_eager:
+                def active_traces(ctx):
+                    return candidate_traces(ctx)
+            elif args.level == u.arg_lazy:
+                def active_traces(ctx):
+                    return iteration_traces
+            else:
+                assert(False)
 
+            update(ex, ctx, nodes, loops, succ)
+
+            # The list conversion is just to force evaluation.
+            start_measurement("expansion-time")
+            subtraces_before = set()
+            subtraces_after  = candidate_traces(ctx)
+            while subtraces_after != subtraces_before:
+                subtraces_before = subtraces_after
+                start_measurement("subtraction-time")
+                list(ex.map(make_subtraction,
+                            [(ctx,
+                              (st1, nodes[st1], pattern_matched.get(st1)),
+                              [(st2, nodes[st2])
+                               for st2 in active_traces(ctx) if
+                               is_subtrahend(st1, st2, nodes, pattern_matched)])
+                             for st1 in candidate_traces(ctx)]))
+                end_measurement("subtraction-time")
                 update(ex, ctx, nodes, loops, succ)
-
-                # The list conversion is just to force evaluation.
-                start_measurement("expansion-time")
-                subtraces_before = set()
-                subtraces_after  = candidate_traces(ctx)
-                while subtraces_after != subtraces_before:
-                    subtraces_before = subtraces_after
-                    start_measurement("subtraction-time")
-                    list(ex.map(make_subtraction,
-                                [(ctx,
-                                  (st1, nodes[st1], pattern_matched.get(st1)),
-                                  [(st2, nodes[st2])
-                                   for st2 in active_traces(ctx)
-                                   if is_subtrahend(
-                                           st1, st2, nodes, pattern_matched)])
-                                 for st1 in candidate_traces(ctx)]))
-                    end_measurement("subtraction-time")
-                    update(ex, ctx, nodes, loops, succ)
-                    new = candidate_traces(ctx) - subtraces_before
-                    remove_new_duplicates(nodes, loops, new)
-                    subtraces_between = candidate_traces(ctx)
-                    start_measurement("composition-time")
-                    list(ex.map(make_composition,
-                                [(ctx,
-                                  (st1, nodes[st1], loops[st1], succ[st1],
-                                   pattern_matched.get(st1)),
-                                  (st2, nodes[st2], loops[st2], succ[st2],
-                                   pattern_matched.get(st2)))
-                                 for st1 in candidate_traces(ctx)
-                                 for st2 in active_traces(ctx)
-                                 if st1 < st2]))
-                    end_measurement("composition-time")
-                    update(ex, ctx, nodes, loops, succ)
-                    subtraces_after = candidate_traces(ctx)
-                    if not args.deep:
-                        break
-                end_measurement("expansion-time")
+                new = candidate_traces(ctx) - subtraces_before
+                remove_new_duplicates(nodes, loops, new)
+                subtraces_between = candidate_traces(ctx)
+                start_measurement("composition-time")
+                list(ex.map(make_composition,
+                            [(ctx,
+                              (st1, nodes[st1], loops[st1], succ[st1],
+                               pattern_matched.get(st1)),
+                              (st2, nodes[st2], loops[st2], succ[st2],
+                               pattern_matched.get(st2)))
+                             for st1 in candidate_traces(ctx)
+                             for st2 in active_traces(ctx)
+                             if st1 < st2]))
+                end_measurement("composition-time")
+                update(ex, ctx, nodes, loops, succ)
+                subtraces_after = candidate_traces(ctx)
+                if not args.deep:
+                    break
+            end_measurement("expansion-time")
 
             # The list conversion is just to force evaluation.
             start_measurement("compaction-time")
@@ -498,121 +496,74 @@ try:
                          for mt in applicable_match_trivial(p)]))
             end_measurement("matching-time")
 
-            if args.level == u.arg_eager or args.level == u.arg_lazy:
+            # Compute traces where a pattern was found in the iteration.
+            # TODO: refine by including only traces where a *new* pattern
+            # has been found.
+            iter_szn_files = [temp(ctx, [subtrace_id(ctx, st), "collapsed",
+                                         p + "s", "szn"], Level.iteration)
+                             for st in candidate_traces_iter(ctx)
+                             for p  in applicable_patterns(ctx, st,
+                                                           loops.get(st, {}))]
+            patterns_iter_csv = temp(ctx, ["patterns", "csv"], Level.iteration)
+            run_process_matches(iter_szn_files + \
+                                ["-o", patterns_iter_csv, "--show-doall"])
+            iteration_traces = set()
+            with open(patterns_iter_csv) as csv_file:
+                r = csv.reader(csv_file, delimiter=",")
+                legend = r.next()
+                trace_index = legend.index("trace")
+                location_index = legend.index("location")
+                loops_index = legend.index("loops")
+                new_traces = set()
+                for line in r:
+                    key = (line[location_index], line[loops_index])
+                    for cst in line[trace_index].split(";"):
+                        st = temp(ctx, [subtrace_id(ctx, cst), "trace"],
+                                  Level.candidate)
+                        pattern = None
+                        for p in u.pat_all:
+                            if line[legend.index(p)] == u.match_full:
+                                pattern = p
+                                break
+                        if not pattern:
+                            # Can happen if there are only partial matches.
+                            continue
+                        if st in pattern_matched:
+                            pattern_matched[st] = \
+                                max([pattern_matched[st], pattern],
+                                    key=lambda p : rank[p])
+                        else:
+                            pattern_matched[st] = pattern
+                        new_traces.add(st)
 
-                # Compute traces where a pattern was found in the iteration.
-                # TODO: refine by including only traces where a *new* pattern
-                # has been found.
-                iter_szn_files = [temp(ctx, [subtrace_id(ctx, st), "collapsed",
-                                             p + "s", "szn"], Level.iteration)
-                                 for st in candidate_traces_iter(ctx)
-                                 for p  in applicable_patterns(ctx, st,
-                                                               loops.get(st, {}))]
-                patterns_iter_csv = temp(ctx, ["patterns", "csv"], Level.iteration)
-                run_process_matches(iter_szn_files + \
-                                    ["-o", patterns_iter_csv, "--show-doall"])
-                iteration_traces = set()
-                with open(patterns_iter_csv) as csv_file:
-                    r = csv.reader(csv_file, delimiter=",")
-                    legend = r.next()
-                    trace_index = legend.index("trace")
-                    location_index = legend.index("location")
-                    loops_index = legend.index("loops")
-                    new_traces = set()
-                    for line in r:
-                        key = (line[location_index], line[loops_index])
-                        for cst in line[trace_index].split(";"):
-                            st = temp(ctx, [subtrace_id(ctx, cst), "trace"],
-                                      Level.candidate)
-                            pattern = None
-                            for p in u.pat_all:
-                                if line[legend.index(p)] == u.match_full:
-                                    pattern = p
-                                    break
-                            if not pattern:
-                                # Can happen if there are only partial matches.
-                                continue
-                            if st in pattern_matched:
-                                pattern_matched[st] = \
-                                    max([pattern_matched[st], pattern],
-                                        key=lambda p : rank[p])
-                            else:
-                                pattern_matched[st] = pattern
-                            new_traces.add(st)
-                    # Select all new traces where a useful pattern has been
-                    # found for the new iteration.
-                    for st in new_traces:
-                        p = pattern_matched[st]
-                        if p in [u.pat_map, u.pat_conditional_map] + \
-                           u.pat_all_associative:
-                            iteration_traces.add(st)
+            # Select all new traces where a useful pattern has been
+            # found for the new iteration.
+            for st in new_traces:
+                p = pattern_matched[st]
+                if p in [u.pat_map, u.pat_conditional_map] + \
+                   u.pat_all_associative:
+                    iteration_traces.add(st)
 
-                # If we are in eager mode or in lazy mode but not more patterns
-                # are found, terminate.
-                if args.level == u.arg_eager or not iteration_traces or \
-                   (args.max_iterations and ctx.itr == args.max_iterations):
-                    def candidate_to_szn(ctx, st, p):
-                        # FIXME: do this properly.
-                        return st.replace("/candidates", "")\
-                                 .replace(".trace", ".collapsed." + p + "s.szn")
-                    szn_files = [candidate_to_szn(ctx, st, p)
-                                 for st in candidate_traces(ctx)
-                                 for p  in applicable_patterns(
-                                         ctx, st, loops.get(st, {}))]
-                    run_process_matches(szn_files + ["-o", patterns_csv] + \
-                                        simple_options)
-                    break
-
-                ctx.itr += 1
-                continue
-
-            def subtrace_szn_files(st_type):
-                return [temp(ctx, [subtrace_id(ctx, st), "collapsed", p + "s",
-                                   "szn"], Level.iteration)
-                        for st in candidate_traces(ctx)
-                        for p in  applicable_patterns(ctx, st,
-                                                      loops.get(st, {}))
-                        if subtrace_type(ctx, st) == st_type]
-
-            def update_patterns_csv(new):
-                tmp_csv = temp(ctx, ["tmp", "csv"], Level.iteration)
-                run_merge_matches([patterns_csv, new, "-o", tmp_csv] + \
-                                  simple_options)
-                run_command(["mv", tmp_csv, patterns_csv])
-
-            loop_szn_files = subtrace_szn_files(u.loop_subtrace)
-            loop_csv = temp(ctx, ["loops", "csv"], Level.iteration)
-            run_process_matches(loop_szn_files + \
-                                ["-o", loop_csv] + \
-                                simple_options)
-            update_patterns_csv(loop_csv)
-            associative_component_szn_files = \
-                subtrace_szn_files(u.associative_component_subtrace)
-            associative_component_csv = \
-                temp(ctx, ["associative_components", "csv"], Level.iteration)
-            instructions = temp(ctx, ["instructions"], Level.iteration)
-            run_process_matches(associative_component_szn_files +
-                                ["-o", associative_component_csv,
-                                 "--matched-instructions-prefix",
-                                 ctx.iterdir()] + simple_options)
-            update_patterns_csv(associative_component_csv)
-            if not os.path.isfile(instructions):
+            # If we are in eager mode or in lazy mode but not more patterns
+            # are found, terminate.
+            if args.level == u.arg_eager or not iteration_traces or \
+               (args.max_iterations and ctx.itr == args.max_iterations):
+                def candidate_to_szn(ctx, st, p):
+                    # FIXME: do this properly.
+                    return st.replace("/candidates", "")\
+                             .replace(".trace", ".collapsed." + p + "s.szn")
+                szn_files = [candidate_to_szn(ctx, st, p)
+                             for st in candidate_traces(ctx)
+                             for p  in applicable_patterns(
+                                     ctx, st, loops.get(st, {}))]
+                run_process_matches(szn_files + ["-o", patterns_csv] + \
+                                    simple_options)
                 break
 
-            subtracted_trace = \
-                temp(ctx, ["original", "subtracted", "trace"], Level.iteration)
-            start_measurement("subtraction-time")
-            run_process_trace(["-o", subtracted_trace, "transform",
-                               "--filter-out-instructions", instructions,
-                               original_trace(ctx)])
-            end_measurement("subtraction-time")
-
-            if filecmp.cmp(original_trace(ctx), subtracted_trace):
-                break
-            # TODO: move directly to next iteration's directory.
-            run_command(["mv", subtracted_trace, original_trace(ctx)])
+            # Otherwise, re-iterate.
             ctx.itr += 1
 
+        # Done with eager or lazy pattern finding, print final results.
         for line in open(patterns_csv, "r"):
             print line,
 

@@ -57,10 +57,9 @@ pat_tiled_map_reduction = "tiled_map_reduction"
 
 arg_nodes = "nodes"
 arg_location = "location"
-arg_heuristic = "heuristic"
+arg_complete = "complete"
 arg_eager = "eager"
 arg_lazy = "lazy"
-arg_complete = "complete"
 
 match_unknown = "?"
 match_partial = "~"
