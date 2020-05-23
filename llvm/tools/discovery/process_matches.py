@@ -7,6 +7,9 @@ import csv
 import sys
 from sets import Set
 import copy
+import StringIO as sio
+import subprocess
+import shutil
 
 import trace_utils as u
 
@@ -267,6 +270,7 @@ def main(args):
     parser.add_argument('--extract-matched-instructions', dest='extract_matched_instructions', action='store_true', default=True)
     parser.add_argument('--matched-instructions-prefix')
     parser.add_argument('--show-doall', dest='show_doall', action='store_true', default=False)
+    parser.add_argument('--html', help='HTML output directory')
     args = parser.parse_args(args)
 
     # Gather results.
@@ -323,6 +327,72 @@ def main(args):
 
     if args.output_file:
         out.close()
+
+    # Generate a HTML report.
+    if args.html:
+        # Gives the instruction's column.
+        def col((_, location)):
+            [_, _, loc_col] = location.split(u.tk_loc_sep)
+            return int(loc_col)
+        pretty = {
+            u.pat_doall : "do-all",
+            u.pat_map : "map",
+            u.pat_conditional_map : "cond. map",
+            u.pat_linear_reduction : "reduction",
+            u.pat_linear_scan : "scan",
+            u.pat_pipeline : "pipeline",
+            u.pat_tiled_reduction : "reduction",
+            u.pat_linear_map_reduction : "map-reduction",
+            u.pat_tiled_map_reduction : "map-reduction"
+        }
+        count = dict()
+        out = sio.StringIO()
+        for r in results:
+            insts = r["instructions"]
+            pattern = None
+            for p in patterns_to_show:
+                if r[p] == u.match_full:
+                    pattern = p
+                    break
+            if not pattern:
+                # Can happen if there are only partial matches.
+                continue
+            if pattern in count:
+                count[pattern] += 1
+            else:
+                count[pattern] = 1
+            for (name, location) in \
+            sorted(insts, cmp=lambda i1, i2: cmp(col(i1), col(i2))):
+                p = pretty[pattern]
+                print >>out, "--- !Analysis"
+                print >>out, "Pass: " + p + " " + str(count[pattern])
+                print >>out, "Name: " + p
+                [loc_file, loc_line, loc_col] = location.split(u.tk_loc_sep)
+                print >>out, "DebugLoc: { File: " + loc_file + ", Line: " + \
+                    loc_line + ", Column: " + loc_col + "}"
+                # TODO: trace the mangled function name of each instruction.
+                print >>out, "Function: N/A"
+                print >>out, "Args:"
+                if len(insts) == 1:
+                    match_type = "a " + p
+                else:
+                    match_type = "part of a " + p
+                print >>out, "  - String:      '<b>" + name + \
+                      "</b> is " + match_type + "'"
+                print >>out, "..."
+        yaml = out.getvalue()
+        out.close()
+        yaml_outfilename = args.html + ".yaml"
+        with open(yaml_outfilename, 'w+') as yaml_outfile:
+            yaml_outfile.write(yaml)
+        opt_viewer = os.path.join(sys.path[0], "..", "opt-viewer",
+                                  "opt-viewer.py")
+        subprocess.check_output([opt_viewer, yaml_outfilename])
+        if os.path.isfile(args.html):
+            os.remove(args.html)
+        elif os.path.isdir(args.html):
+            shutil.rmtree(args.html)
+        os.rename(os.path.join(sys.path[0], "html"), args.html)
 
     # Generate a file for each benchmark and mode with all instructions matched.
     if args.extract_matched_instructions:

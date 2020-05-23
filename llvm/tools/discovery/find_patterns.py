@@ -18,7 +18,6 @@ import copy
 import trace_utils as u
 import process_trace as pt
 import process_matches as pm
-import merge_matches as mm
 
 eol = "\n"
 
@@ -65,6 +64,7 @@ parser.add_argument('--detailed', dest='detailed', action='store_true')
 parser.add_argument('--deep', dest='deep', action='store_true')
 parser.add_argument('--max-iterations', type=int)
 parser.add_argument('--stats')
+parser.add_argument('--html')
 parser.set_defaults(jobs=multiprocessing.cpu_count())
 parser.set_defaults(clean=True)
 parser.set_defaults(detailed=False)
@@ -105,10 +105,6 @@ def run_process_trace(arguments):
 def run_process_matches(arguments):
     print_debug(indir("process_matches.py") + " " + " ".join(arguments))
     pm.main(arguments)
-
-def run_merge_matches(arguments):
-    print_debug(indir("merge_matches.py") + " " + " ".join(arguments))
-    mm.main(arguments)
 
 def run_minizinc(outfile, arguments):
     print_debug("minizinc " + " ".join(arguments) + " > " + outfile)
@@ -386,9 +382,12 @@ try:
     ex = futures.ProcessPoolExecutor(max_workers=int(args.jobs))
 
     if args.detailed:
-        simple_options = []
+        process_matches_options = []
     else:
-        simple_options = ["--simple"]
+        process_matches_options = ["--simple"]
+
+    if args.html:
+        process_matches_options += ["--html", args.html]
 
     if args.level in [u.arg_eager, u.arg_lazy]:
 
@@ -398,7 +397,6 @@ try:
         pattern_matched = dict()
         ctx.itr = 1
         patterns_csv = temp(ctx, ["patterns", "csv"], Level.top)
-        run_process_matches(["-o", patterns_csv] + simple_options)
 
         while True:
 
@@ -557,7 +555,7 @@ try:
                              for p  in applicable_patterns(
                                      ctx, st, loops.get(st, {}))]
                 run_process_matches(szn_files + ["-o", patterns_csv] + \
-                                    simple_options)
+                                    process_matches_options)
                 break
 
             # Otherwise, re-iterate.
@@ -581,7 +579,7 @@ try:
         szn_files = \
             [temp(ctx, ["original", p + "s", "szn"], Level.top)
              for p in u.pat_all]
-        run_process_matches(szn_files + simple_options)
+        run_process_matches(szn_files + process_matches_options)
 
 finally:
     if args.clean:
