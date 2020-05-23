@@ -271,6 +271,7 @@ def main(args):
     parser.add_argument('--matched-instructions-prefix')
     parser.add_argument('--show-doall', dest='show_doall', action='store_true', default=False)
     parser.add_argument('--html', help='HTML output directory')
+    parser.add_argument('--html-source-dir', help='HTML source code directory')
     args = parser.parse_args(args)
 
     # Gather results.
@@ -387,12 +388,10 @@ def main(args):
             yaml_outfile.write(yaml)
         opt_viewer = os.path.join(sys.path[0], "..", "opt-viewer",
                                   "opt-viewer.py")
-        subprocess.check_output([opt_viewer, yaml_outfilename])
-        if os.path.isfile(args.html):
-            os.remove(args.html)
-        elif os.path.isdir(args.html):
-            shutil.rmtree(args.html)
-        os.rename(os.path.join(sys.path[0], "html"), args.html)
+        opt_viewer_args = [yaml_outfilename, "-o", args.html]
+        if args.html_source_dir:
+            opt_viewer_args += ["--source-dir", args.html_source_dir]
+        subprocess.check_output([opt_viewer] + opt_viewer_args)
 
     # Generate a file for each benchmark and mode with all instructions matched.
     if args.extract_matched_instructions:

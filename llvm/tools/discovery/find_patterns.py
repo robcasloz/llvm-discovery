@@ -65,6 +65,7 @@ parser.add_argument('--deep', dest='deep', action='store_true')
 parser.add_argument('--max-iterations', type=int)
 parser.add_argument('--stats')
 parser.add_argument('--html')
+parser.add_argument('--html-source-dir')
 parser.set_defaults(jobs=multiprocessing.cpu_count())
 parser.set_defaults(clean=True)
 parser.set_defaults(detailed=False)
@@ -385,9 +386,10 @@ try:
         process_matches_options = []
     else:
         process_matches_options = ["--simple"]
-
     if args.html:
         process_matches_options += ["--html", args.html]
+    if args.html_source_dir:
+        process_matches_options += ["--html-source-dir", args.html_source_dir]
 
     if args.level in [u.arg_eager, u.arg_lazy]:
 
