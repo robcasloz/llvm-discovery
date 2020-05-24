@@ -111,8 +111,14 @@ def discard_subsumed_linear_reductions(pattern_data):
         del reductions[u.match]
     return
 
-def process_matches(szn_files, simple, generalize_maps, discard_subsumed,
-                    discard_no_matches):
+generalizes = {
+    (u.pat_linear_map_reduction, u.pat_map) : True,
+    (u.pat_linear_map_reduction, u.pat_linear_reduction) : True,
+    (u.pat_tiled_map_reduction, u.pat_map) : True,
+    (u.pat_tiled_map_reduction, u.pat_tiled_reduction) : True,
+}
+
+def process_matches(szn_files, simple):
 
     # Multi-level map: benchmark -> mode -> (instruction set, loop set) ->
     # pattern -> match result -> (trace, number of matched nodes) tuples.
@@ -220,13 +226,11 @@ def process_matches(szn_files, simple, generalize_maps, discard_subsumed,
                 generalize_partial_maps(pattern_data)
                 # If there are both linear and tiled reductions, discard the
                 # former.
-                if discard_subsumed:
-                    discard_subsumed_linear_reductions(pattern_data)
+                discard_subsumed_linear_reductions(pattern_data)
                 match_columns = {p : match_consensus(p, pattern_data)
                                  for p in u.pat_all}
                 # If there is no match in this instruction set, discard.
-                if discard_no_matches and \
-                   all([m == u.match_none for m in match_columns.values()]):
+                if all([m == u.match_none for m in match_columns.values()]):
                     continue
                 # Compute traces corresponding to this instruction set.
                 traces = set()
@@ -263,24 +267,54 @@ def main(args):
     parser.add_argument('FILES', nargs="*")
     parser.add_argument('-o', "--output-file", help='output file')
     parser.add_argument('--simple', dest='simple', action='store_true', default=False)
-    parser.add_argument('--generalize-maps', dest='generalize_maps', action='store_true', default=True)
-    parser.add_argument('--discard-subsumed-patterns', dest='discard_subsumed', action='store_true', default=True)
-    parser.add_argument('--discard-no-matches', dest='discard_no_matches', action='store_true', default=True)
     parser.add_argument('-s,', '--sort', dest='sort', action='store', type=str, choices=[u.arg_nodes, u.arg_location], default=u.arg_nodes)
     parser.add_argument('--extract-matched-instructions', dest='extract_matched_instructions', action='store_true', default=True)
     parser.add_argument('--matched-instructions-prefix')
     parser.add_argument('--show-doall', dest='show_doall', action='store_true', default=False)
     parser.add_argument('--show-linear-scan', dest='show_linear_scan', action='store_true', default=False)
+    parser.add_argument('--show-subsumed', dest='show_subsumed', action='store_true', default=False)
     parser.add_argument('--html', help='HTML output directory')
     parser.add_argument('--html-source-dir', help='HTML source code directory')
     args = parser.parse_args(args)
 
     # Gather results.
-    results = process_matches(args.FILES,
-                              args.simple,
-                              args.generalize_maps,
-                              args.discard_subsumed,
-                              args.discard_no_matches)
+    results = process_matches(args.FILES, args.simple)
+
+    patterns_to_show = copy.deepcopy(u.pat_all)
+    if not args.show_doall:
+        patterns_to_show.remove(u.pat_doall)
+    if not args.show_linear_scan:
+        patterns_to_show.remove(u.pat_linear_scan)
+
+    def result_summary(r):
+        insts = set(r["instructions"])
+        pattern = None
+        for p in patterns_to_show:
+            if r[p] == u.match_full:
+                pattern = p
+                break
+        return (insts, pattern)
+
+    final_results = []
+
+    # Remove subsumed patterns.
+    if not args.show_subsumed:
+        for r in results:
+            (insts, pattern) = result_summary(r)
+            if not pattern:
+                continue
+            subsumed = False
+            for r2 in results:
+                (insts2, pattern2) = result_summary(r2)
+                if not pattern2:
+                    continue
+                if insts.issubset(insts2) and \
+                   generalizes.get((pattern2, pattern), False):
+                    subsumed = True
+                    break
+            if not subsumed:
+                final_results.append(r)
+        results = final_results
 
     # Print results.
     if args.output_file:
@@ -288,12 +322,6 @@ def main(args):
     else:
         out = sys.stdout
     csvwriter = csv.writer(out, delimiter=",", quoting=csv.QUOTE_MINIMAL)
-
-    patterns_to_show = copy.deepcopy(u.pat_all)
-    if not args.show_doall:
-        patterns_to_show.remove(u.pat_doall)
-    if not args.show_linear_scan:
-        patterns_to_show.remove(u.pat_linear_scan)
 
     if args.simple:
         legend = ["location", "loops"] + patterns_to_show
@@ -323,8 +351,7 @@ def main(args):
                    r["nodes"],
                    r["trace"]]
         matches = [r[p] for p in patterns_to_show]
-        if args.discard_no_matches and \
-           all([m == u.match_none for m in matches]):
+        if all([m == u.match_none for m in matches]):
             continue
         row += matches
         csvwriter.writerow(row)
@@ -356,12 +383,7 @@ def main(args):
         count = dict()
         out = sio.StringIO()
         for r in results:
-            insts = r["instructions"]
-            pattern = None
-            for p in patterns_to_show:
-                if r[p] == u.match_full:
-                    pattern = p
-                    break
+            (insts, pattern) = result_summary(r)
             if not pattern:
                 # Can happen if there are only partial matches.
                 continue
