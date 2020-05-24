@@ -29,7 +29,6 @@ arg_transform = "transform"
 arg_fold = "fold"
 arg_print = "print"
 arg_visualize = "visualize"
-arg_report = "report"
 
 # List of colors for visualization.
 colors = [(141, 211, 199), (255, 255, 179), (190, 186, 218), (251, 128, 114),
@@ -62,11 +61,6 @@ def instruction_name_compare(n1, n2):
         return 1
     else:
         return cmp(n1, n2)
-
-# Gives the instruction's column.
-def col(PI, inst):
-    [_, _, loc_col] = PI[inst].get(u.tk_location, "").split(u.tk_loc_sep)
-    return int(loc_col)
 
 # Removes instruction properties without any corresponding blocks.
 def clean_instruction_properties(PI, PB):
@@ -1136,9 +1130,6 @@ def main(args):
     parser_visualize.set_defaults(clean_intermediate=True)
     parser_visualize.set_defaults(discard_subsumed=True)
 
-    parser_report = subparsers.add_parser(arg_report, help='generate a YAML file with LLVM optimization remarks')
-    parser_report.add_argument('SZN_FILE', help='matches given by the MiniZinc finder')
-
     parser_fold = subparsers.add_parser(arg_fold, help='fold the trace')
 
     args = parser.parse_args(args)
@@ -1304,31 +1295,6 @@ def main(args):
         if args.clean_intermediate:
             for f in pdffilenames + gvfilenames:
                 os.remove(f)
-
-    if args.subparser == arg_report:
-        (_, PB, PI, PT) = G
-        (pattern, S, _) = u.read_matches(args.SZN_FILE)
-        m = 0
-        for insts in u.insts_to_steps(G, pattern, S).keys():
-            for inst in sorted(list(insts),
-                               cmp=lambda i1, i2: cmp(col(PI, i1), col(PI, i2))):
-                print "--- !Analysis"
-                print "Pass: " + pattern + " " + str(m)
-                print "Name: " + pattern
-                [loc_file, loc_line, loc_col] = PI[inst].get(u.tk_location).split(u.tk_loc_sep)
-                print "DebugLoc: { File: " + loc_file + ", Line: " + loc_line + \
-                      ", Column: " + loc_col + "}"
-                # TODO: trace the mangled function name of each instruction
-                print "Function: main"
-                print "Args:"
-                if len(insts) == 1:
-                    match_type = "a potential " + pattern
-                else:
-                    match_type = "part of a potential " + pattern
-                print "  - String:      '<b>" + PI[inst].get(u.tk_name) + \
-                      "</b> is " + match_type + "'"
-                print "..."
-            m += 1
 
 if __name__ == '__main__':
     main(sys.argv[1:])
