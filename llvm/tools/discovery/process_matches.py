@@ -334,10 +334,6 @@ def main(args):
 
     # Generate a HTML report.
     if args.html:
-        # Gives the instruction's column.
-        def col((_, location)):
-            [_, _, loc_col] = location.split(u.tk_loc_sep)
-            return int(loc_col)
         pretty = {
             u.pat_doall : "do-all",
             u.pat_map : "map",
@@ -349,6 +345,14 @@ def main(args):
             u.pat_linear_map_reduction : "map-reduction",
             u.pat_tiled_map_reduction : "map-reduction"
         }
+        pretty_inst = {
+            "llvm.round.f64" : "round",
+            "fmul" : "*",
+            "fadd" : "+",
+            "fsub" : "-",
+            "mul"  : "*",
+            "add"  : "+",
+            }
         count = dict()
         out = sio.StringIO()
         for r in results:
@@ -365,24 +369,33 @@ def main(args):
                 count[pattern] += 1
             else:
                 count[pattern] = 1
-            for (name, location) in \
-            sorted(insts, cmp=lambda i1, i2: cmp(col(i1), col(i2))):
+            line_insts = {}
+            for (name, location) in insts:
+                [loc_file, loc_line, loc_col] = location.split(u.tk_loc_sep)
+                key = (loc_file, int(loc_line))
+                if not key in line_insts:
+                    line_insts[key] = set()
+                line_insts[key].add((name, int(loc_col)))
+            for ((loc_file, loc_line), line_insts) in line_insts.iteritems():
+                sorted_insts = sorted(list(line_insts),
+                                      cmp=lambda (_, c1), (__, c2): cmp(c1, c2))
+                assert(sorted_insts)
+                loc_col = sorted_insts[0][1]
+                names = ["<b>" + pretty_inst.get(n, n) + "</b>"
+                         for (n, _) in sorted_insts]
+                name = ",".join(names)
+                if len(sorted_insts) > 1:
+                    name = "{" + name + "}"
                 p = pretty[pattern]
                 print >>out, "--- !Analysis"
                 print >>out, "Pass: " + p + " " + str(count[pattern])
                 print >>out, "Name: " + p
-                [loc_file, loc_line, loc_col] = location.split(u.tk_loc_sep)
                 print >>out, "DebugLoc: { File: " + loc_file + ", Line: " + \
-                    loc_line + ", Column: " + loc_col + "}"
+                    str(loc_line) + ", Column: " + str(loc_col) + "}"
                 # TODO: trace the mangled function name of each instruction.
                 print >>out, "Function: N/A"
                 print >>out, "Args:"
-                if len(insts) == 1:
-                    match_type = "a " + p
-                else:
-                    match_type = "part of a " + p
-                print >>out, "  - String:      '<b>" + name + \
-                      "</b> is " + match_type + "'"
+                print >>out, "  - String:      '" + name + "'"
                 print >>out, "..."
         yaml = out.getvalue()
         out.close()
