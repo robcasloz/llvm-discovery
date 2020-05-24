@@ -149,10 +149,6 @@ TOP_COMPONENTS ?= 50
 %.doalls.pdf: %.doalls.szn %.trace
 	$(PROCESS_TRACE) -o $@ visualize $^ $(GRAPHVIZ_FLAGS)
 
-# DOALL pattern matches in YAML LLVM remarks format.
-%.doalls.yaml: %.doalls.szn %.trace
-	$(PROCESS_TRACE) report $^ > $@
-
 # Map pattern matches in MiniZinc solution format.
 %.maps.szn: %.dzn $(DISCOVERY_DIR)/map.mzn $(DISCOVERY_DIR)/common.mzn
 	-minizinc $(MINIZINC_FLAGS) $(DISCOVERY_DIR)/map.mzn $< > $@
@@ -160,10 +156,6 @@ TOP_COMPONENTS ?= 50
 # Map pattern matches in PDF format.
 %.maps.pdf: %.maps.szn %.trace
 	$(PROCESS_TRACE) -o $@ visualize $^ $(GRAPHVIZ_FLAGS)
-
-# Map pattern matches in YAML LLVM remarks format.
-%.maps.yaml: %.maps.szn %.trace
-	$(PROCESS_TRACE) report $^ > $@
 
 # Conditional map pattern matches in MiniZinc solution format.
 %.conditional_maps.szn: %.dzn $(DISCOVERY_DIR)/conditional_map.mzn $(DISCOVERY_DIR)/common.mzn
@@ -173,10 +165,6 @@ TOP_COMPONENTS ?= 50
 %.conditional_maps.pdf: %.conditional_maps.szn %.trace
 	$(PROCESS_TRACE) -o $@ visualize $^ $(GRAPHVIZ_FLAGS)
 
-# Conditional map pattern matches in YAML LLVM remarks format.
-%.conditional_maps.yaml: %.conditional_maps.szn %.trace
-	$(PROCESS_TRACE) report $^ > $@
-
 # Linear reduction pattern matches in MiniZinc solution format.
 %.linear_reductions.szn: %.dzn $(DISCOVERY_DIR)/linear_reduction.mzn $(DISCOVERY_DIR)/common.mzn
 	-minizinc $(MINIZINC_FLAGS) $(DISCOVERY_DIR)/linear_reduction.mzn $< > $@
@@ -185,10 +173,6 @@ TOP_COMPONENTS ?= 50
 %.linear_reductions.pdf: %.linear_reductions.szn %.trace
 	$(PROCESS_TRACE) -o $@ visualize $^ $(GRAPHVIZ_FLAGS)
 
-# Linear reduction pattern matches in YAML LLVM remarks format.
-%.linear_reductions.yaml: %.linear_reductions.szn %.trace
-	$(PROCESS_TRACE) report $^ > $@
-
 # Tiled reduction pattern matches in MiniZinc solution format.
 %.tiled_reductions.szn: %.dzn $(DISCOVERY_DIR)/tiled_reduction.mzn $(DISCOVERY_DIR)/common.mzn
 	-minizinc $(MINIZINC_FLAGS) $(DISCOVERY_DIR)/tiled_reduction.mzn $< > $@
@@ -196,10 +180,6 @@ TOP_COMPONENTS ?= 50
 # Tiled reduction pattern matches in PDF format.
 %.tiled_reductions.pdf: %.tiled_reductions.szn %.trace
 	$(PROCESS_TRACE) -o $@ visualize $^ $(GRAPHVIZ_FLAGS)
-
-# Tiled reduction pattern matches in YAML LLVM remarks format.
-%.tiled_reductions.yaml: %.tiled_reductions.szn %.trace
-	$(PROCESS_TRACE) report $^ > $@
 
 # Linear map-reduction pattern matches in MiniZinc solution format.
 %.linear_map_reductions.szn: %.dzn $(DISCOVERY_DIR)/linear_map_reduction.mzn $(DISCOVERY_DIR)/common.mzn
@@ -225,10 +205,6 @@ TOP_COMPONENTS ?= 50
 %.linear_scans.pdf: %.linear_scans.szn %.trace
 	$(PROCESS_TRACE) -o $@ visualize $^ $(GRAPHVIZ_FLAGS)
 
-# Linear scan pattern matches in YAML LLVM remarks format.
-%.linear_scans.yaml: %.linear_scans.szn %.trace
-	$(PROCESS_TRACE) report $^ > $@
-
 # Pipeline pattern matches in MiniZinc solution format.
 %.pipelines.szn: %.dzn $(DISCOVERY_DIR)/pipeline.mzn $(DISCOVERY_DIR)/common.mzn
 	minizinc $(MINIZINC_FLAGS) $(DISCOVERY_DIR)/pipeline.mzn $< > $@
@@ -236,14 +212,6 @@ TOP_COMPONENTS ?= 50
 # Pipeline pattern matches in PDF format.
 %.pipelines.pdf: %.pipelines.szn %.trace
 	$(PROCESS_TRACE) -o $@ visualize $^ $(GRAPHVIZ_FLAGS)
-
-# Pipeline pattern matches in YAML LLVM remarks format.
-%.pipelines.yaml: %.pipelines.szn %.trace
-	$(PROCESS_TRACE) report $^ > $@
-
-# Combined pattern matches in YAML LLVM remarks format.
-%.patterns.yaml: %.doalls.yaml %.maps.yaml %.conditional_maps.yaml %.linear_reductions.yaml %.linear_scans.yaml %.pipelines.yaml
-	cat $^ > $@
 
 # Instrumented LLVM IR for single C++ source file.
 %.ll: %.cpp
@@ -254,10 +222,8 @@ TOP_COMPONENTS ?= 50
 	$(CC) $< -o $@ $(CFLAGS) -emit-llvm -S
 
 # Pattern matches in HTML LLVM remarks format.
-%.html: %.yaml
-	rm -rf $@
-	$(OPT_VIEWER) $<
-	mv html $@
+%.html: %.szn
+	$(PROCESS_MATCHES) $< -o /dev/null --html $@
 
 # Trace in GraphViz format where tag instances get different colors.
 %.instances.trace.gv: %.trace
