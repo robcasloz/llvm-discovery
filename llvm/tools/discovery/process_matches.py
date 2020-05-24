@@ -270,6 +270,7 @@ def main(args):
     parser.add_argument('--extract-matched-instructions', dest='extract_matched_instructions', action='store_true', default=True)
     parser.add_argument('--matched-instructions-prefix')
     parser.add_argument('--show-doall', dest='show_doall', action='store_true', default=False)
+    parser.add_argument('--show-linear-scan', dest='show_linear_scan', action='store_true', default=False)
     parser.add_argument('--html', help='HTML output directory')
     parser.add_argument('--html-source-dir', help='HTML source code directory')
     args = parser.parse_args(args)
@@ -291,6 +292,8 @@ def main(args):
     patterns_to_show = copy.deepcopy(u.pat_all)
     if not args.show_doall:
         patterns_to_show.remove(u.pat_doall)
+    if not args.show_linear_scan:
+        patterns_to_show.remove(u.pat_linear_scan)
 
     if args.simple:
         legend = ["location", "loops"] + patterns_to_show
