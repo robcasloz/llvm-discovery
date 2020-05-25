@@ -8,10 +8,10 @@ import sys
 from sets import Set
 import copy
 import StringIO as sio
-import subprocess
 import shutil
 
 import trace_utils as u
+import view_patterns as vp
 
 def file_info(szn_filename):
     file_components = szn_filename.split(".")
@@ -372,14 +372,6 @@ def main(args):
             u.pat_linear_map_reduction : "map-reduction",
             u.pat_tiled_map_reduction : "map-reduction"
         }
-        pretty_inst = {
-            "llvm.round.f64" : "round",
-            "fmul" : "*",
-            "fadd" : "+",
-            "fsub" : "-",
-            "mul"  : "*",
-            "add"  : "+",
-            }
         count = dict()
         out = sio.StringIO()
         for r in results:
@@ -403,11 +395,12 @@ def main(args):
                                       cmp=lambda (_, c1), (__, c2): cmp(c1, c2))
                 assert(sorted_insts)
                 loc_col = sorted_insts[0][1]
-                names = ["<b>" + pretty_inst.get(n, n) + "</b>"
-                         for (n, _) in sorted_insts]
+                names = ["<b>" + n + "</b>" for (n, _) in sorted_insts]
                 name = ",".join(names)
                 if len(sorted_insts) > 1:
-                    name = "{" + name + "}"
+                    name = "IR instructions: {" + name + "}"
+                else:
+                    name = "IR instruction: " + name
                 p = pretty[pattern]
                 print >>out, "--- !Analysis"
                 print >>out, "Pass: " + p + " " + str(count[pattern])
@@ -424,12 +417,10 @@ def main(args):
         yaml_outfilename = args.html + ".yaml"
         with open(yaml_outfilename, 'w+') as yaml_outfile:
             yaml_outfile.write(yaml)
-        opt_viewer = os.path.join(sys.path[0], "..", "opt-viewer",
-                                  "opt-viewer.py")
-        opt_viewer_args = [yaml_outfilename, "-o", args.html]
+        vp_args = [yaml_outfilename, "-o", args.html]
         if args.html_source_dir:
-            opt_viewer_args += ["--source-dir", args.html_source_dir]
-        subprocess.check_output([opt_viewer] + opt_viewer_args)
+            vp_args += ["--source-dir", args.html_source_dir]
+        vp.main(vp_args)
         os.remove(yaml_outfilename)
 
     # Generate a file for each benchmark and mode with all instructions matched.
