@@ -31,8 +31,7 @@ location_index = legend.index("location")
 loops_index = legend.index("loops")
 map_index = legend.index(u.pat_map)
 conditional_map_index = legend.index(u.pat_conditional_map)
-reduction_index = legend.index(u.pat_linear_reduction)
-linear_scan_index = legend.index(u.pat_linear_scan)
+linear_reduction_index = legend.index(u.pat_linear_reduction)
 tiled_reduction_index = legend.index(u.pat_tiled_reduction)
 linear_map_reduction_index = legend.index(u.pat_linear_map_reduction)
 tiled_map_reduction_index = legend.index(u.pat_tiled_map_reduction)
@@ -52,8 +51,7 @@ for line in r:
        matches_location(line):
         actual_results = [(u.pat_map, line[map_index]),
                           (u.pat_conditional_map, line[conditional_map_index]),
-                          (u.pat_linear_reduction, line[reduction_index]),
-                          (u.pat_linear_scan, line[linear_scan_index]),
+                          (u.pat_linear_reduction, line[linear_reduction_index]),
                           (u.pat_tiled_reduction, line[tiled_reduction_index]),
                           (u.pat_linear_map_reduction, line[linear_map_reduction_index]),
                           (u.pat_tiled_map_reduction, line[tiled_map_reduction_index])]
