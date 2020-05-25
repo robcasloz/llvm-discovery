@@ -430,6 +430,7 @@ def main(args):
         if args.html_source_dir:
             opt_viewer_args += ["--source-dir", args.html_source_dir]
         subprocess.check_output([opt_viewer] + opt_viewer_args)
+        os.remove(yaml_outfilename)
 
     # Generate a file for each benchmark and mode with all instructions matched.
     if args.extract_matched_instructions:
