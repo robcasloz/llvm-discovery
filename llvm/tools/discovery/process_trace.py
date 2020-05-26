@@ -946,8 +946,14 @@ def print_minizinc((DDG, PB, PI, PT), match_regions_only):
             PIp[inst] = PI[inst]
     n = len(DDG.nodes());
     c = len(PIp.keys());
+    opr2blocks = {}
+    for opr in sorted(list(set([v.get(u.tk_name) for v in PIp.values()]))):
+        opr2blocks[opr] = [b for b in sorted(DDG.nodes())
+                           if u.properties(b, PB, PIp).get(u.tk_name) == opr]
+    o = len(opr2blocks)
     print >>out, "n", "=", str(n) + ";";
     print >>out, "c", "=", str(c) + ";";
+    print >>out, "o", "=", str(o) + ";";
     # Candidate nodes are either pure or impure but commutative w.r.t. itself
     # (user-defined property).
     candidates = [b for b in DDG.nodes() if \
@@ -971,6 +977,10 @@ def print_minizinc((DDG, PB, PI, PT), match_regions_only):
                         if PB[b].get(u.tk_instruction) == instr]
         instr2blocks[instr] = instr_blocks
         print >>out, "{" + ", ".join(map(str, instr_blocks)) + "},"
+    print >>out, "]);"
+    print >>out, "operation_classes = array1d(0.." + str(o - 1) + ", [";
+    for opr in sorted(opr2blocks):
+        print >>out, "{" + ", ".join(map(str, opr2blocks[opr])) + "},"
     print >>out, "]);"
     print >>out, "reachable = array1d(0.." + str(n - 1) + ", [";
     for b in sorted(DDG.nodes()):

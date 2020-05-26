@@ -9,6 +9,9 @@ int: n;
 % Number of instructions.
 int: c;
 
+% Number of operations.
+int: o;
+
 % Set of matchable nodes.
 set of 0..n-1: matchable;
 
@@ -17,6 +20,9 @@ array[int,int] of 0..n-1: arcs;
 
 % Sets of nodes that correspond to the same instruction.
 array[0..c-1] of set of 0..n-1: static_classes;
+
+% Sets of nodes that correspond to the same operation.
+array[0..o-1] of set of 0..n-1: operation_classes;
 
 % Nodes reachable from each node.
 array[0..n-1] of set of 0..n-1: reachable;
@@ -420,6 +426,14 @@ let {set of int: partial_steps = index_set_2of2(PS);
  (
   (FCount[k] > 0 -> PCount[k] == 0) /\
   (PCount[k] > 0 -> FCount[k] == 0)
+ )
+)
+/\
+(
+ % Ensure that partial and final reduction steps use the same operation.
+ forall (i in 0..o-1, j, k in R)
+ (
+  j in operation_classes[i] <-> k in operation_classes[i]
  )
 );
 
