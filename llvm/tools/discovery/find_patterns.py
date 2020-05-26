@@ -512,13 +512,13 @@ try:
             with open(patterns_iter_csv) as csv_file:
                 r = csv.reader(csv_file, delimiter=",")
                 legend = r.next()
-                trace_index = legend.index("trace")
+                traces_index = legend.index("traces")
                 location_index = legend.index("location")
                 loops_index = legend.index("loops")
                 new_traces = set()
                 for line in r:
                     key = (line[location_index], line[loops_index])
-                    for cst in line[trace_index].split(";"):
+                    for cst in line[traces_index].split(";"):
                         st = temp(ctx, [subtrace_id(ctx, cst), "trace"],
                                   Level.candidate)
                         pattern = None

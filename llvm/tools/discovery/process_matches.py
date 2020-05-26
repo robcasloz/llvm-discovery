@@ -26,6 +26,12 @@ def file_info(szn_filename):
     trace_filename = ".".join(file_components[0:-2]) + ".trace"
     return (benchmark, mode, pattern, trace_filename)
 
+def maybe_iteration(trace):
+    for component in os.path.normpath(trace).split(os.sep):
+        if component.isdigit():
+            return int(component)
+    return -1
+
 def print_location(iset):
     # Map from file names to sets of lines
     lines = dict()
@@ -249,13 +255,15 @@ def process_matches(szn_files, simple):
                 repetitions = len(traces)
                 trace = ";".join(traces)
                 instructions = list(iset)
+                iteration = min(map(maybe_iteration, traces) or [-1])
                 row = {"benchmark" : benchmark,
                        "mode" : mode,
                        "location" : location,
                        "loops" : loops,
                        "repetitions" : repetitions,
                        "nodes" : nodes,
-                       "trace" : trace,
+                       "iteration" : iteration,
+                       "traces" : trace,
                        "instructions" : instructions}
                 row.update(match_columns)
                 results.append(row)
@@ -327,7 +335,7 @@ def main(args):
         legend = ["location", "loops"] + patterns_to_show
     else:
         legend = ["benchmark", "mode", "location", "loops", "repetitions",
-                  "nodes", "trace"] + patterns_to_show
+                  "nodes", "iteration", "traces"] + patterns_to_show
     csvwriter.writerow(legend)
 
     # Sort results according to given criterion.
@@ -349,7 +357,8 @@ def main(args):
                    r["loops"],
                    r["repetitions"],
                    r["nodes"],
-                   r["trace"]]
+                   r["iteration"],
+                   r["traces"]]
         matches = [r[p] for p in patterns_to_show]
         if all([m == u.match_none for m in matches]):
             continue

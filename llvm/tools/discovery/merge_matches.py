@@ -28,7 +28,8 @@ def merge_data(legend, data1, data2, sort, simple):
         benchmark_index = legend.index("benchmark")
         mode_index = legend.index("mode")
         nodes_index = legend.index("nodes")
-        trace_index = legend.index("trace")
+        iteration_index = legend.index("iteration")
+        traces_index = legend.index("traces")
 
     # Remove duplicates: two lines are duplicated if they are all equal except
     # possibly for the 'nodes' and 'trace' columns.
@@ -39,7 +40,8 @@ def merge_data(legend, data1, data2, sort, simple):
     for line in data1 + data2:
         key = list(line)
         if not simple:
-            key.pop(trace_index)
+            key.pop(iteration_index)
+            key.pop(traces_index)
             key.pop(nodes_index)
         if tuple(key) not in duplicates:
             merged.append(line)
