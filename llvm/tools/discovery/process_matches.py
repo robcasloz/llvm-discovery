@@ -238,14 +238,14 @@ def process_matches(szn_files, simple):
                 # If there is no match in this instruction set, discard.
                 if all([m == u.match_none for m in match_columns.values()]):
                     continue
-                # Compute traces corresponding to this instruction set.
+                # Compute positive traces corresponding to this instruction set.
                 traces = set()
                 # Compute total nodes.
                 nodes = 0
                 for (pattern, match_data) in pattern_data.iteritems():
                     for (match_result, result_data) in match_data.iteritems():
-                        traces.update([trace for (trace, _) in result_data])
                         if match_result == u.match:
+                            traces.update([trace for (trace, _) in result_data])
                             nodes += sum([match_nodes for (_, match_nodes)
                                           in result_data])
                 loops = print_loops(lset, True)
