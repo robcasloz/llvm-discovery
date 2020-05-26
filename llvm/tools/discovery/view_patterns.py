@@ -139,9 +139,9 @@ class SourceFileRenderer:
 <table class="source">
 <thead>
 <tr>
-<th style="width: 5%">Line</td>
-<th style="width: 15%">Pattern</td>
-<th style="width: 80%">Source</td>
+<th style="width: 5%">line</td>
+<th style="width: 15%">pattern</td>
+<th style="width: 80%">source</td>
 </tr>
 </thead>
 <tbody>'''.format(os.path.basename(self.filename)), file=self.stream)
@@ -153,19 +153,23 @@ class SourceFileRenderer:
 </body>
 </html>''', file=self.stream)
 
-
 class IndexRenderer:
     def __init__(self, output_dir, should_display_hotness, max_hottest_remarks_on_index):
         self.stream = codecs.open(os.path.join(output_dir, 'index.html'), 'w', encoding='utf-8')
         self.should_display_hotness = should_display_hotness
         self.max_hottest_remarks_on_index = max_hottest_remarks_on_index
 
-    def render_entry(self, r, odd):
-        escaped_name = cgi.escape(r.DemangledFunctionName)
+    def render_entry(self, r, first):
+        if first:
+            pattern = r.PassWithDiffPrefix
+        else:
+            pattern = ""
+        [loc_file, loc_line, _] = r.DebugLocString.split(":")
+        loc = os.path.basename(loc_file) + ":" + loc_line
         print(u'''
 <tr>
-<td class=\"column-entry-{odd}\"><a href={r.Link}>{r.DebugLocString}</a></td>
-<td class=\"column-entry-{r.color}\">{r.PassWithDiffPrefix}</td>
+<td>{pattern}</td>
+<td><a href={r.Link}>{loc}</a></td>
 </tr>'''.format(**locals()), file=self.stream)
 
     def render(self, all_remarks):
@@ -177,19 +181,32 @@ class IndexRenderer:
 </head>
 <body>
 <div class="centered">
+<table class="source">
 <table>
+<thead>
 <tr>
-<td>Source Location</td>
-<td>Pattern</td>
-</tr>''', file=self.stream)
+<th>pattern</td>
+<th>location</td>
+</tr>
+</thead>''', file=self.stream)
 
         max_entries = None
         if self.should_display_hotness:
             max_entries = self.max_hottest_remarks_on_index
 
-        for i, remark in enumerate(all_remarks[:max_entries]):
-            if not suppress(remark):
-                self.render_entry(remark, i % 2)
+        p2r = {}
+        for remark in all_remarks[:max_entries]:
+            key = remark.PassWithDiffPrefix
+            if not key in p2r:
+                p2r[key] = []
+            p2r[key].append(remark)
+        first = True
+        for pattern in sorted(p2r.keys()):
+            first = True
+            for remark in p2r[pattern]:
+                if not suppress(remark):
+                    self.render_entry(remark, first)
+                first = False
         print('''
 </table>
 </body>
