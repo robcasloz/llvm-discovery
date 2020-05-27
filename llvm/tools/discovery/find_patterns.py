@@ -462,7 +462,6 @@ try:
                 update(ex, ctx, nodes, loops, succ)
                 new = candidate_traces(ctx) - subtraces_before
                 remove_new_duplicates(nodes, loops, new)
-                subtraces_between = candidate_traces(ctx)
                 start_measurement("composition-time")
                 list(ex.map(make_composition,
                             [(ctx,
