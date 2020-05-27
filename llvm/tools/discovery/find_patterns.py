@@ -29,6 +29,10 @@ class Level(enum.Enum):
     iteration = 2
     candidate = 3
 
+class Phase(enum.Enum):
+    subtraction = 1
+    composition = 2
+
 class Context:
     itr     = None
     base    = None
@@ -239,17 +243,24 @@ def maybe_paren(string):
 def operation_id(op, left, right):
     return maybe_paren(left) + op + maybe_paren(right)
 
-def is_subtrahend(st1, st2, nodes, pattern_matched):
+def is_subtrahend(st1, st2, nodes, match):
     if st1 == st2:
         return False
-    p2 = pattern_matched[st2]
-    if not (p2 in u.pat_all_associative):
+    if not (match[st2] in u.pat_all_associative):
         return False
     n1 = nodes[st1]
     n2 = nodes[st2]
     if (n1 - n2 == set()) or (n1 & n2 == set()):
         return False
     return True
+
+def make_subtraction_or_composition((phase, phase_args)):
+    if phase == Phase.subtraction:
+        make_subtraction(phase_args)
+    elif phase == Phase.composition:
+        make_composition(phase_args)
+    else:
+        assert(False)
 
 def make_subtraction((ctx, (st1, n1, p1), st2s)):
     # Check that there is something to subtract.
@@ -396,7 +407,7 @@ try:
         # Traces to be subtracted and composed in the current iteration.
         iteration_traces = set()
         # Map from candidate sub-DDG to maximum-rank pattern found.
-        pattern_matched = dict()
+        match = dict()
         ctx.itr = 1
         patterns_csv = temp(ctx, ["patterns", "csv"], Level.top)
 
@@ -450,30 +461,28 @@ try:
             subtraces_after  = candidate_traces(ctx)
             while subtraces_after != subtraces_before:
                 subtraces_before = subtraces_after
-                start_measurement("subtraction-time")
-                list(ex.map(make_subtraction,
-                            [(ctx,
-                              (st1, nodes[st1], pattern_matched.get(st1)),
-                              [(st2, nodes[st2])
-                               for st2 in active_traces(ctx) if
-                               is_subtrahend(st1, st2, nodes, pattern_matched)])
-                             for st1 in candidate_traces(ctx)]))
-                end_measurement("subtraction-time")
+                start_measurement("subtraction-composition-time")
+                pool = candidate_traces(ctx)
+                active = active_traces(ctx)
+                subtraction_args = \
+                    [(Phase.subtraction,
+                      (ctx,
+                       (st1, nodes[st1], match.get(st1)),
+                       [(st2, nodes[st2]) for st2 in active
+                        if is_subtrahend(st1, st2, nodes, match)]))
+                     for st1 in pool]
+                composition_args = \
+                    [(Phase.composition,
+                      (ctx,
+                       (st1, nodes[st1], loops[st1], succ[st1], match.get(st1)),
+                       (st2, nodes[st2], loops[st2], succ[st2], match.get(st2))
+                      )) for st1 in pool for st2 in active if st1 < st2]
+                list(ex.map(make_subtraction_or_composition,
+                            subtraction_args + composition_args))
+                end_measurement("subtraction-composition-time")
                 update(ex, ctx, nodes, loops, succ)
                 new = candidate_traces(ctx) - subtraces_before
                 remove_new_duplicates(nodes, loops, new)
-                start_measurement("composition-time")
-                list(ex.map(make_composition,
-                            [(ctx,
-                              (st1, nodes[st1], loops[st1], succ[st1],
-                               pattern_matched.get(st1)),
-                              (st2, nodes[st2], loops[st2], succ[st2],
-                               pattern_matched.get(st2)))
-                             for st1 in candidate_traces(ctx)
-                             for st2 in active_traces(ctx)
-                             if st1 < st2]))
-                end_measurement("composition-time")
-                update(ex, ctx, nodes, loops, succ)
                 subtraces_after = candidate_traces(ctx)
                 if not args.deep:
                     break
@@ -528,19 +537,17 @@ try:
                         if not pattern:
                             # Can happen if there are only partial matches.
                             continue
-                        if st in pattern_matched:
-                            pattern_matched[st] = \
-                                max([pattern_matched[st], pattern],
-                                    key=lambda p : rank[p])
+                        if st in match:
+                            match[st] = max([match[st], pattern],
+                                            key=lambda p : rank[p])
                         else:
-                            pattern_matched[st] = pattern
+                            match[st] = pattern
                         new_traces.add(st)
 
             # Select all new traces where a useful pattern has been
             # found for the new iteration.
             for st in new_traces:
-                p = pattern_matched[st]
-                if p in [u.pat_map, u.pat_conditional_map] + \
+                if match[st] in [u.pat_map, u.pat_conditional_map] + \
                    u.pat_all_associative:
                     iteration_traces.add(st)
 
