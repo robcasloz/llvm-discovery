@@ -332,10 +332,11 @@ def main(args):
     csvwriter = csv.writer(out, delimiter=",", quoting=csv.QUOTE_MINIMAL)
 
     if args.simple:
-        legend = ["location", "loops"] + patterns_to_show
+        legend = ["location", "loops", "patterns"]
     else:
         legend = ["benchmark", "mode", "location", "loops", "repetitions",
-                  "nodes", "iteration", "traces"] + patterns_to_show
+                  "nodes", "iteration", "traces"] + patterns_to_show + \
+                  ["patterns"]
     csvwriter.writerow(legend)
 
     # Sort results according to given criterion.
@@ -347,6 +348,17 @@ def main(args):
     results.sort(key = k)
 
     for r in results:
+        matches = []
+        patterns = []
+        some_match = False
+        for p in patterns_to_show:
+            matches.append(r[p])
+            if r[p] == u.match_full:
+                patterns.append(p)
+            if r[p] != u.match_none:
+                some_match = True
+        if not some_match:
+            continue
         if args.simple:
             row = [r["location"],
                    r["loops"]]
@@ -359,10 +371,8 @@ def main(args):
                    r["nodes"],
                    r["iteration"],
                    r["traces"]]
-        matches = [r[p] for p in patterns_to_show]
-        if all([m == u.match_none for m in matches]):
-            continue
-        row += matches
+            row += matches
+        row += [";".join(patterns)]
         csvwriter.writerow(row)
 
     if args.output_file:
@@ -370,17 +380,6 @@ def main(args):
 
     # Generate a HTML report.
     if args.html:
-        pretty = {
-            u.pat_doall : "do-all",
-            u.pat_map : "map",
-            u.pat_conditional_map : "cond. map",
-            u.pat_linear_reduction : "reduction",
-            u.pat_linear_scan : "scan",
-            u.pat_pipeline : "pipeline",
-            u.pat_tiled_reduction : "reduction",
-            u.pat_linear_map_reduction : "map-reduction",
-            u.pat_tiled_map_reduction : "map-reduction"
-        }
         count = dict()
         out = sio.StringIO()
         for r in results:
@@ -410,10 +409,9 @@ def main(args):
                     name = "IR instructions: {" + name + "}"
                 else:
                     name = "IR instruction: " + name
-                p = pretty[pattern]
                 print >>out, "--- !Analysis"
-                print >>out, "Pass: " + p + " " + str(count[pattern])
-                print >>out, "Name: " + p
+                print >>out, "Pass: " + pattern + " " + str(count[pattern])
+                print >>out, "Name: " + pattern
                 print >>out, "DebugLoc: { File: " + loc_file + ", Line: " + \
                     str(loc_line) + ", Column: " + str(loc_col) + "}"
                 # TODO: trace the mangled function name of each instruction.

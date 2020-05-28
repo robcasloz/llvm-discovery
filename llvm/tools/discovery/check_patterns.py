@@ -1,0 +1,91 @@
+#!/usr/bin/python
+
+import argparse
+import csv
+import sys
+
+parser = argparse.ArgumentParser(description='Checks that the expected entries match a results file.')
+parser.add_argument('RESULTS_FILE')
+parser.add_argument('EXPECTATIONS_FILE')
+parser.add_argument('--benchmarks', nargs="*", help='benchmarks that should be checked in the results file')
+args = parser.parse_args()
+
+def match_fields(r0, e0):
+    if e0 == "*":
+        return True
+    return r0 == e0
+
+def match_entries(r, e):
+    for (r0, e0) in zip(r, e):
+        if not match_fields(r0, e0):
+            return False
+    return True
+
+def match(results, e):
+    matches = False
+    for r in results:
+        if match_entries(r, e):
+            matches = True
+            break
+    return matches
+
+def load(f, benchmarks, expected):
+    r = csv.reader(open(f), delimiter=",")
+    legend = r.next()
+    benchmark_index = legend.index("benchmark")
+    mode_index = legend.index("mode")
+    location_index = legend.index("location")
+    loops_index = legend.index("loops")
+    iteration_index = legend.index("iteration")
+    patterns_index = legend.index("patterns")
+    if expected:
+        action_index = legend.index("action")
+    out = []
+    for line in r:
+        benchmark_mode = line[benchmark_index] + "-" + line[mode_index]
+        if not benchmark_mode in benchmarks:
+            continue
+        entry = (line[benchmark_index],
+                 line[mode_index],
+                 line[location_index],
+                 line[loops_index],
+                 line[iteration_index],
+                 line[patterns_index])
+        if expected:
+            out.append((entry, line[action_index]))
+        else:
+            out.append(entry)
+    return (out, legend)
+
+results, _  = load(args.RESULTS_FILE,      args.benchmarks, False)
+expected, legend = load(args.EXPECTATIONS_FILE, args.benchmarks, True)
+
+total = len(expected)
+mismatches = []
+ignored    = 0
+
+for (e, a) in expected:
+    if a == "ignore":
+        ignored += 1
+        continue
+    match_result = match(results, e)
+    if not match_result:
+        mismatches.append(e)
+
+missed  = len(mismatches)
+matches = total - (missed + ignored)
+
+print (str(total)   + " total: " + \
+       str(matches) + " matches, " + \
+       str(missed) + " missed, " + \
+       str(ignored) + " ignored")
+
+if mismatches:
+    print "missed:"
+    csvw = csv.writer(sys.stdout, delimiter=",", quoting=csv.QUOTE_MINIMAL)
+    csvw.writerow(legend)
+    for e in mismatches:
+        csvw.writerow(e)
+    exit(1)
+
+exit(0)

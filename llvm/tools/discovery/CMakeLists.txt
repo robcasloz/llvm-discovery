@@ -1,6 +1,6 @@
 set (files
   "Makefile"
-  "assert_matches.py"
+  "check_patterns.py"
   "merge_matches.py"
   "process_runtimes.py"
   "process_trace.py"
