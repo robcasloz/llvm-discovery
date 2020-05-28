@@ -515,7 +515,8 @@ try:
             patterns_iter_csv = temp(ctx, ["patterns", "csv"], Level.iteration)
             run_process_matches(iter_szn_files + \
                                 ["-o", patterns_iter_csv, "--show-doall",
-                                 "--show-linear-scan", "--show-subsumed"])
+                                 "--show-linear-scan", "--show-subsumed",
+                                 "--show-constant-reductions"])
             iteration_traces = set()
             with open(patterns_iter_csv) as csv_file:
                 r = csv.reader(csv_file, delimiter=",")

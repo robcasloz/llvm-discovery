@@ -47,7 +47,8 @@ property_input_order = {u.tk_iterator : 0,
                         u.tk_name : 4,
                         u.tk_location : 5,
                         u.tk_children : 6,
-                        u.tk_region : 7}
+                        u.tk_region : 7,
+                        u.tk_immediate : 8}
 
 # Orders instruction properties according to input order.
 def instruction_property_compare((k1, _1), (k2, _2)):

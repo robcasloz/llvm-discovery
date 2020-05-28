@@ -124,7 +124,7 @@ generalizes = {
     (u.pat_tiled_map_reduction, u.pat_tiled_reduction) : True,
 }
 
-def process_matches(szn_files, simple):
+def process_matches(szn_files, simple, show_constant_reductions):
 
     # Multi-level map: benchmark -> mode -> (instruction set, loop set) ->
     # pattern -> match result -> (trace, number of matched nodes) tuples.
@@ -193,6 +193,7 @@ def process_matches(szn_files, simple):
                 loops = set()
                 # Collect precise instruction information.
                 instructions = []
+                has_constant = False
                 for node in nodes:
                     tags = PB[node].get(u.tk_tags)
                     if tags != None:
@@ -201,7 +202,13 @@ def process_matches(szn_files, simple):
                     for inst in u.node_instructions(G, node):
                         instructions.append((PI[inst].get(u.tk_name),
                                              PI[inst].get(u.tk_location)))
+                        if (PI[inst].get(u.tk_immediate) == u.tk_true):
+                            has_constant = True
                         total_nodes += 1
+                if not show_constant_reductions \
+                   and pattern in u.pat_all_associative \
+                   and has_constant:
+                    continue
                 register_match(benchmark, mode, instructions, loops, pattern,
                                u.match, trace_filename, total_nodes)
             # If there are no matches, register that as well (for identifying
@@ -281,12 +288,14 @@ def main(args):
     parser.add_argument('--show-doall', dest='show_doall', action='store_true', default=False)
     parser.add_argument('--show-linear-scan', dest='show_linear_scan', action='store_true', default=False)
     parser.add_argument('--show-subsumed', dest='show_subsumed', action='store_true', default=False)
+    parser.add_argument('--show-constant-reductions', dest='show_constant_reductions', action='store_true', default=False)
     parser.add_argument('--html', help='HTML output directory')
     parser.add_argument('--html-source-dir', help='HTML source code directory')
     args = parser.parse_args(args)
 
     # Gather results.
-    results = process_matches(args.FILES, args.simple)
+    results = process_matches(args.FILES, args.simple,
+                              args.show_constant_reductions)
 
     patterns_to_show = copy.deepcopy(u.pat_all)
     if not args.show_doall:
@@ -303,10 +312,9 @@ def main(args):
                 break
         return (insts, pattern)
 
-    final_results = []
-
     # Remove subsumed patterns.
     if not args.show_subsumed:
+        final_results = []
         for r in results:
             (insts, pattern) = result_summary(r)
             if not pattern:

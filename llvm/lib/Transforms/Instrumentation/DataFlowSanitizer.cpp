@@ -1562,6 +1562,22 @@ Value *DFSanFunction::combineOperandShadows(Instruction *Inst) {
                            IRB.CreateGlobalStringPtr("TRUE")});
       }
     }
+    // Print whether the instruction has constant ("immediate") operands. This
+    // is useful, for example, to identify count and increment patterns that
+    // look like reductions but are not.
+    bool HasConst = false;
+    for (unsigned i = 0, n = Inst->getNumOperands(); i != n; ++i) {
+      if (isa<Constant>(Inst->getOperand(i))) {
+        HasConst = true;
+        break;
+      }
+    }
+    if (HasConst) {
+      IRB.CreateCall(DFS.DFSanPrintInstructionPropertyFn,
+                     {StaticInstIDPtr,
+                         IRB.CreateGlobalStringPtr("IMMEDIATE"),
+                         IRB.CreateGlobalStringPtr("TRUE")});
+    }
     // Print whether the instruction is impure. A system call in this context is
     // a call to any external function that is opaque to DataFlowSanitizer (that
     // is, non-functional system calls in the DataFlowSanitizer's ABI
