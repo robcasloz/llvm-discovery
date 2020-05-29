@@ -337,7 +337,40 @@ def main(args):
                 final_results.append(r)
         results = final_results
 
-    # Print results.
+    # Assign a (hopefully) unique ID to each entry.
+    for r in results:
+        r["id"] = entry_id(r)
+
+    # Remove possible duplicates. This can happen when the exact operations
+    # between two entries differ, but their "location" and "loops" values are
+    # the same. Note that, due to hash collision, there is a tiny risk that we
+    # remove different entries.
+    final_results = []
+    visited = set()
+    for ri in range(len(results)):
+        ri_id = results[ri]["id"]
+        if ri_id in visited:
+            continue
+        ri_max = results[ri]
+        for rj in range(ri + 1, len(results)):
+            rj_id = results[rj]["id"]
+            if ri_id == rj_id:
+                ri_max = max(ri_max, results[rj], key = lambda r: r["nodes"])
+        final_results.append(ri_max)
+        visited.add(ri_id)
+    results = final_results
+
+    # Sort results according to given criterion.
+    if args.sort == u.arg_id:
+        k = (lambda r: (r["benchmark"], r["mode"], r["id"]))
+    elif args.sort == u.arg_nodes:
+        k = (lambda r: (r["benchmark"], r["mode"], -r["nodes"]))
+    elif args.sort == u.arg_location:
+        k = (lambda r: (r["benchmark"], r["mode"],
+                        u.natural_sort_key(r["location"])))
+    results.sort(key = k)
+
+    # Finally, print results.
     if args.output_file:
         out = open(args.output_file ,"w+")
     else:
@@ -351,21 +384,6 @@ def main(args):
                   "nodes", "iteration", "traces"] + patterns_to_show + \
                   ["patterns"]
     csvwriter.writerow(legend)
-
-    # Assign a (hopefully) unique ID to each entry.
-    for r in results:
-        r["id"] = entry_id(r)
-
-    # Sort results according to given criterion.
-    if args.sort == u.arg_id:
-        k = (lambda r: (r["benchmark"], r["mode"], r["id"]))
-    elif args.sort == u.arg_nodes:
-        k = (lambda r: (r["benchmark"], r["mode"], -r["nodes"]))
-    elif args.sort == u.arg_location:
-        k = (lambda r: (r["benchmark"], r["mode"],
-                        u.natural_sort_key(r["location"])))
-    results.sort(key = k)
-
     for r in results:
         matches = []
         patterns = []
@@ -420,12 +438,8 @@ def main(args):
                                       cmp=lambda (_, c1), (__, c2): cmp(c1, c2))
                 assert(sorted_insts)
                 loc_col = sorted_insts[0][1]
-                names = ["<b>" + n + "</b>" for (n, _) in sorted_insts]
+                names = [n for (n, _) in sorted_insts]
                 name = ",".join(names)
-                if len(sorted_insts) > 1:
-                    name = "IR instructions: {" + name + "}"
-                else:
-                    name = "IR instruction: " + name
                 print >>out, "--- !Analysis"
                 print >>out, "Id: " + eid
                 print >>out, "Pattern: " + pattern

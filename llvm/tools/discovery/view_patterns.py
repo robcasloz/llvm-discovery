@@ -120,9 +120,9 @@ class SourceFileRenderer:
         print(u'''
 <tr>
 <td></td>
-<td>{r.Id}</td>
-<td>{r.PatternWithDiffPrefix}</td>
-<td><pre style="display:inline">{indent}</pre><span class=\"column-entry-yellow\"> {r.message}&nbsp;</span></td>
+<td><span class=\"column-entry-green\"><b>{r.Id}</b></span></td>
+<td><span class=\"column-entry-green\"><b>{r.PatternWithDiffPrefix}</b></span></td>
+<td><pre style="display:inline">{indent}</pre><span class=\"column-entry-green\"><b> {r.message}&nbsp;</span></b></td>
 </tr>'''.format(**locals()), file=self.stream)
 
     def render(self, line_remarks):
