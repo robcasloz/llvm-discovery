@@ -348,4 +348,4 @@ def main(args):
                     print_progress)
 
 if __name__ == '__main__':
-    main()
+    main(sys.argv[1:])

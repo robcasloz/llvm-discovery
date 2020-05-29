@@ -9,9 +9,14 @@ from sets import Set
 import copy
 import StringIO as sio
 import shutil
+import hashlib
 
 import trace_utils as u
 import view_patterns as vp
+
+def entry_id(r):
+    key = r["benchmark"] + r["mode"] + r["location"] + r["loops"]
+    return hashlib.md5(key).hexdigest()[:4]
 
 def file_info(szn_filename):
     file_components = szn_filename.split(".")
@@ -340,9 +345,9 @@ def main(args):
     csvwriter = csv.writer(out, delimiter=",", quoting=csv.QUOTE_MINIMAL)
 
     if args.simple:
-        legend = ["location", "loops", "patterns"]
+        legend = ["id", "location", "loops", "patterns"]
     else:
-        legend = ["benchmark", "mode", "location", "loops", "repetitions",
+        legend = ["benchmark", "mode", "id", "location", "loops", "repetitions",
                   "nodes", "iteration", "traces"] + patterns_to_show + \
                   ["patterns"]
     csvwriter.writerow(legend)
@@ -354,6 +359,10 @@ def main(args):
         k = (lambda r: (r["benchmark"], r["mode"],
                         u.natural_sort_key(r["location"])))
     results.sort(key = k)
+
+    # Assign a (hopefully) unique ID to each entry.
+    for r in results:
+        r["id"] = entry_id(r)
 
     for r in results:
         matches = []
@@ -368,11 +377,13 @@ def main(args):
         if not some_match:
             continue
         if args.simple:
-            row = [r["location"],
+            row = [r["id"],
+                   r["location"],
                    r["loops"]]
         else:
             row = [r["benchmark"],
                    r["mode"],
+                   r["id"],
                    r["location"],
                    r["loops"],
                    r["repetitions"],
@@ -388,17 +399,13 @@ def main(args):
 
     # Generate a HTML report.
     if args.html:
-        count = dict()
         out = sio.StringIO()
         for r in results:
             (insts, pattern) = result_summary(r)
             if not pattern:
                 # Can happen if there are only partial matches.
                 continue
-            if pattern in count:
-                count[pattern] += 1
-            else:
-                count[pattern] = 1
+            eid = r["id"]
             line_insts = {}
             for (name, location) in insts:
                 [loc_file, loc_line, loc_col] = location.split(u.tk_loc_sep)
@@ -418,7 +425,7 @@ def main(args):
                 else:
                     name = "IR instruction: " + name
                 print >>out, "--- !Analysis"
-                print >>out, "Pass: " + pattern + " " + str(count[pattern])
+                print >>out, "Pass: " + pattern + " " + eid
                 print >>out, "Name: " + pattern
                 print >>out, "DebugLoc: { File: " + loc_file + ", Line: " + \
                     str(loc_line) + ", Column: " + str(loc_col) + "}"
