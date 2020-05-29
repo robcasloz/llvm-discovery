@@ -56,6 +56,7 @@ pat_tiled_reduction = "tiled_reduction"
 pat_linear_map_reduction = "linear_map_reduction"
 pat_tiled_map_reduction = "tiled_map_reduction"
 
+arg_id = "id"
 arg_nodes = "nodes"
 arg_location = "location"
 arg_complete = "complete"

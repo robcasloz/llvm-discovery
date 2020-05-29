@@ -77,7 +77,7 @@ class Remark(yaml.YAMLObject):
     # small dict.  Two, using tuple instead of list allows Args to be directly
     # used as part of the key (in Python only immutable types are hashable).
     def _reduce_memory(self):
-        self.Pass = intern(self.Pass)
+        self.Pattern = intern(self.Pattern)
         self.Name = intern(self.Name)
         try:
             # Can't intern unicode strings.
@@ -200,8 +200,8 @@ class Remark(yaml.YAMLObject):
         return ''
 
     @property
-    def PassWithDiffPrefix(self):
-        return self.getDiffPrefix() + self.Pass
+    def PatternWithDiffPrefix(self):
+        return self.getDiffPrefix() + self.Pattern
 
     @property
     def message(self):
@@ -218,7 +218,7 @@ class Remark(yaml.YAMLObject):
 
     @property
     def key(self):
-        return (self.__class__, self.PassWithDiffPrefix, self.Name, self.File,
+        return (self.__class__, self.Id, self.PatternWithDiffPrefix, self.Name, self.File,
                 self.Line, self.Column, self.Function, self.Args)
 
     def __hash__(self):

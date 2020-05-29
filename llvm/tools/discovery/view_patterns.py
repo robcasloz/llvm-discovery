@@ -96,6 +96,7 @@ class SourceFileRenderer:
 <tr>
 <td><a name=\"L{linenum}\">{linenum}</a></td>
 <td></td>
+<td></td>
 <td><div class="highlight"><pre>{html_line}</pre></div></td>
 </tr>'''.format(**locals()), file=self.stream)
 
@@ -119,7 +120,8 @@ class SourceFileRenderer:
         print(u'''
 <tr>
 <td></td>
-<td class=\"column-entry-{r.color}\">{r.PassWithDiffPrefix}</td>
+<td>{r.Id}</td>
+<td>{r.PatternWithDiffPrefix}</td>
 <td><pre style="display:inline">{indent}</pre><span class=\"column-entry-yellow\"> {r.message}&nbsp;</span></td>
 </tr>'''.format(**locals()), file=self.stream)
 
@@ -137,10 +139,11 @@ class SourceFileRenderer:
 <body>
 <div class="centered">
 <table class="source">
-<thead>
+<thead style="text-align:left">
 <tr>
 <th style="width: 5%">line</td>
-<th style="width: 15%">pattern</td>
+<th style="width: 5%">id</td>
+<th style="width: 10%">pattern</td>
 <th style="width: 80%">source</td>
 </tr>
 </thead>
@@ -161,13 +164,14 @@ class IndexRenderer:
 
     def render_entry(self, r, first):
         if first:
-            pattern = r.PassWithDiffPrefix
+            (eid, pattern) = (r.Id, r.PatternWithDiffPrefix)
         else:
-            pattern = ""
+            (eid, pattern) = ("", "")
         [loc_file, loc_line, _] = r.DebugLocString.split(":")
         loc = os.path.basename(loc_file) + ":" + loc_line
         print(u'''
 <tr>
+<td>{eid}</td>
 <td>{pattern}</td>
 <td><a href={r.Link}>{loc}</a></td>
 </tr>'''.format(**locals()), file=self.stream)
@@ -182,9 +186,9 @@ class IndexRenderer:
 <body>
 <div class="centered">
 <table class="source">
-<table>
-<thead>
+<thead style="text-align:left">
 <tr>
+<th>id</td>
 <th>pattern</td>
 <th>location</td>
 </tr>
@@ -194,16 +198,16 @@ class IndexRenderer:
         if self.should_display_hotness:
             max_entries = self.max_hottest_remarks_on_index
 
-        p2r = {}
+        id2r = {}
         for remark in all_remarks[:max_entries]:
-            key = remark.PassWithDiffPrefix
-            if not key in p2r:
-                p2r[key] = []
-            p2r[key].append(remark)
+            key = remark.Id
+            if not key in id2r:
+                id2r[key] = []
+            id2r[key].append(remark)
         first = True
-        for pattern in sorted(p2r.keys()):
+        for eid in sorted(id2r.keys()):
             first = True
-            for remark in p2r[pattern]:
+            for remark in id2r[eid]:
                 if not suppress(remark):
                     self.render_entry(remark, first)
                 first = False
@@ -224,7 +228,7 @@ def map_remarks(all_remarks):
     # Set up a map between function names and their source location for
     # function where inlining happened
     for remark in optrecord.itervalues(all_remarks):
-        if isinstance(remark, optrecord.Passed) and remark.Pass == "inline" and remark.Name == "Inlined":
+        if isinstance(remark, optrecord.Passed) and remark.Pattern == "inline" and remark.Name == "Inlined":
             for arg in remark.Args:
                 arg_dict = dict(list(arg))
                 caller = arg_dict.get('Caller')
@@ -255,9 +259,9 @@ def generate_report(all_remarks,
     if should_print_progress:
         print('Rendering index page...')
     if should_display_hotness:
-        sorted_remarks = sorted(optrecord.itervalues(all_remarks), key=lambda r: (r.Hotness, r.File, r.Line, r.Column, r.PassWithDiffPrefix, r.yaml_tag, r.Function), reverse=True)
+        sorted_remarks = sorted(optrecord.itervalues(all_remarks), key=lambda r: (r.Id, r.Hotness, r.File, r.Line, r.Column, r.PatternWithDiffPrefix, r.yaml_tag, r.Function), reverse=True)
     else:
-        sorted_remarks = sorted(optrecord.itervalues(all_remarks), key=lambda r: (r.File, r.Line, r.Column, r.PassWithDiffPrefix, r.yaml_tag, r.Function))
+        sorted_remarks = sorted(optrecord.itervalues(all_remarks), key=lambda r: (r.Id, r.File, r.Line, r.Column, r.PatternWithDiffPrefix, r.yaml_tag, r.Function))
     IndexRenderer(output_dir, should_display_hotness, max_hottest_remarks_on_index).render(sorted_remarks)
 
     shutil.copy(os.path.join(os.path.dirname(os.path.realpath(__file__)),

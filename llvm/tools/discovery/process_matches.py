@@ -287,7 +287,7 @@ def main(args):
     parser.add_argument('FILES', nargs="*")
     parser.add_argument('-o', "--output-file", help='output file')
     parser.add_argument('--simple', dest='simple', action='store_true', default=False)
-    parser.add_argument('-s,', '--sort', dest='sort', action='store', type=str, choices=[u.arg_nodes, u.arg_location], default=u.arg_nodes)
+    parser.add_argument('-s,', '--sort', dest='sort', action='store', type=str, choices=[u.arg_id, u.arg_nodes, u.arg_location], default=u.arg_id)
     parser.add_argument('--extract-matched-instructions', dest='extract_matched_instructions', action='store_true', default=True)
     parser.add_argument('--matched-instructions-prefix')
     parser.add_argument('--show-doall', dest='show_doall', action='store_true', default=False)
@@ -352,17 +352,19 @@ def main(args):
                   ["patterns"]
     csvwriter.writerow(legend)
 
+    # Assign a (hopefully) unique ID to each entry.
+    for r in results:
+        r["id"] = entry_id(r)
+
     # Sort results according to given criterion.
-    if args.sort == u.arg_nodes:
+    if args.sort == u.arg_id:
+        k = (lambda r: (r["benchmark"], r["mode"], r["id"]))
+    elif args.sort == u.arg_nodes:
         k = (lambda r: (r["benchmark"], r["mode"], -r["nodes"]))
     elif args.sort == u.arg_location:
         k = (lambda r: (r["benchmark"], r["mode"],
                         u.natural_sort_key(r["location"])))
     results.sort(key = k)
-
-    # Assign a (hopefully) unique ID to each entry.
-    for r in results:
-        r["id"] = entry_id(r)
 
     for r in results:
         matches = []
@@ -425,7 +427,8 @@ def main(args):
                 else:
                     name = "IR instruction: " + name
                 print >>out, "--- !Analysis"
-                print >>out, "Pass: " + pattern + " " + eid
+                print >>out, "Id: " + eid
+                print >>out, "Pattern: " + pattern
                 print >>out, "Name: " + pattern
                 print >>out, "DebugLoc: { File: " + loc_file + ", Line: " + \
                     str(loc_line) + ", Column: " + str(loc_col) + "}"
