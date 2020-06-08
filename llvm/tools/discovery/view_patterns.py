@@ -200,7 +200,7 @@ class IndexRenderer:
 
         id2r = {}
         for remark in all_remarks[:max_entries]:
-            key = remark.Id
+            key = str(remark.Id)
             if not key in id2r:
                 id2r[key] = []
             id2r[key].append(remark)

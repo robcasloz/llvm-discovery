@@ -23,6 +23,7 @@ def load_data(file):
     return data
 
 def merge_data(legend, data1, data2, sort, simple):
+    id_index = legend.index("id")
     location_index = legend.index("location")
     if not simple:
         benchmark_index = legend.index("benchmark")
@@ -47,15 +48,17 @@ def merge_data(legend, data1, data2, sort, simple):
             merged.append(line)
             duplicates.add(tuple(key))
 
-    if simple: # Ignore sorting criteria, sort solely by location.
-        k = (lambda r: u.natural_sort_key(r[location_index]))
-    else:
-        if sort == u.arg_nodes:
-            k = (lambda r: (r[benchmark_index], r[mode_index],
-                            -int(r[nodes_index])))
-        elif sort == u.arg_location:
-            k = (lambda r: (r[benchmark_index], r[mode_index],
-                            u.natural_sort_key(r[location_index])))
+    # Sort results according to given criterion.
+    if simple:
+        k = (lambda r: r[id_index])
+    elif sort == u.arg_id:
+        k = (lambda r: (r[benchmark_index], r[mode_index], r[id_index]))
+    elif sort == u.arg_nodes:
+        k = (lambda r: (r[benchmark_index], r[mode_index],
+                        -int(r[nodes_index])))
+    elif sort == u.arg_location:
+        k = (lambda r: (r[benchmark_index], r[mode_index],
+                        u.natural_sort_key(r[location_index])))
     merged.sort(key = k)
     return merged
 
@@ -65,7 +68,7 @@ def main(args):
     parser.add_argument('RESULTS_FILES', nargs="*")
     parser.add_argument('-o', "--output-file", help='output file')
     parser.add_argument('--simple', dest='simple', action='store_true', default=False)
-    parser.add_argument('-s,', '--sort', dest='sort', action='store', type=str, choices=[u.arg_nodes, u.arg_location], default=u.arg_nodes)
+    parser.add_argument('-s,', '--sort', dest='sort', action='store', type=str, choices=[u.arg_id, u.arg_nodes, u.arg_location], default=u.arg_id)
     args = parser.parse_args(args)
 
     assert(len(args.RESULTS_FILES) >= 2)
