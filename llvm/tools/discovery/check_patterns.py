@@ -39,11 +39,14 @@ def load(f, benchmarks, expected):
     iteration_index = legend.index("iteration")
     patterns_index = legend.index("patterns")
     if expected:
-        action_index = legend.index("action")
+        expected_index = legend.index("expected")
+        action_index   = legend.index("action")
     out = []
     for line in r:
         benchmark_mode = line[benchmark_index] + "-" + line[mode_index]
         if not benchmark_mode in benchmarks:
+            continue
+        if expected and (not line[expected_index] or not line[action_index]):
             continue
         entry = (line[benchmark_index],
                  line[mode_index],
