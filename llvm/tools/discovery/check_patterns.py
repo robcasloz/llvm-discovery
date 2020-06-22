@@ -8,6 +8,7 @@ parser = argparse.ArgumentParser(description='Checks that the expected entries m
 parser.add_argument('RESULTS_FILE')
 parser.add_argument('EXPECTATIONS_FILE')
 parser.add_argument('--benchmarks', nargs="*", help='benchmarks that should be checked in the results file')
+parser.add_argument('--source', help='source of the expectations to be checked')
 args = parser.parse_args()
 
 def match_fields(r0, e0):
@@ -29,7 +30,7 @@ def match(results, e):
             break
     return matches
 
-def load(f, benchmarks, expected):
+def load(f, benchmarks, source, expected):
     r = csv.reader(open(f), delimiter=",")
     legend = r.next()
     benchmark_index = legend.index("benchmark")
@@ -41,10 +42,13 @@ def load(f, benchmarks, expected):
     if expected:
         expected_index = legend.index("expected")
         action_index   = legend.index("action")
+        source_index   = legend.index("source")
     out = []
     for line in r:
         benchmark_mode = line[benchmark_index] + "-" + line[mode_index]
         if not benchmark_mode in benchmarks:
+            continue
+        if expected and source and (not line[source_index] == source):
             continue
         if expected and (not line[expected_index] or not line[action_index]):
             continue
@@ -60,8 +64,8 @@ def load(f, benchmarks, expected):
             out.append(entry)
     return (out, legend)
 
-results, _  = load(args.RESULTS_FILE,      args.benchmarks, False)
-expected, legend = load(args.EXPECTATIONS_FILE, args.benchmarks, True)
+results, _       = load(args.RESULTS_FILE,      args.benchmarks, args.source, False)
+expected, legend = load(args.EXPECTATIONS_FILE, args.benchmarks, args.source, True)
 
 total = len(expected)
 mismatches = []
