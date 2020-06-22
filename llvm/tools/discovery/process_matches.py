@@ -16,7 +16,9 @@ import view_patterns as vp
 
 def entry_id(r):
     key = r["benchmark"] + r["mode"] + r["location"] + r["loops"]
-    return hashlib.md5(key).hexdigest()[:4]
+    # Add 'p' prefix to prevent clever spreadsheet tools from interpreting and
+    # reformatting the ID as an integer.
+    return "p" + hashlib.md5(key).hexdigest()[:4]
 
 def file_info(szn_filename):
     file_components = szn_filename.split(".")
@@ -96,7 +98,7 @@ def generalize_partial_maps(pattern_data):
     for pattern in maplike_patterns:
         if pattern in pattern_data:
             for (match_result, result_data) in pattern_data[pattern].iteritems():
-                traces = [trace for (trace, _) in result_data]
+                traces = [trace for (trace, _, __) in result_data]
                 all_traces.update(traces)
                 if match_result == u.match:
                     yes_traces.update(traces)
@@ -129,14 +131,19 @@ generalizes = {
     (u.pat_tiled_map_reduction, u.pat_tiled_reduction) : True,
 }
 
-def process_matches(szn_files, simple, show_constant_reductions):
+def process_matches(szn_files, simple, show_constant_reductions,
+                    show_trivial_conditional_maps):
 
     # Multi-level map: benchmark -> mode -> (instruction set, loop set) ->
     # pattern -> match result -> (trace, number of matched nodes) tuples.
     data = {}
 
+    # Set of sets of loops where at least one map is found. This is used to
+    # discriminate valid conditional maps in a later step.
+    map_loops = set([])
+
     def register_match(benchmark, mode, instructions, loops, pattern,
-                       match_result, trace, nodes):
+                       match_result, trace, nodes, length):
         iset = frozenset(instructions)
         lset = frozenset(loops)
         identifier = (iset, lset)
@@ -153,7 +160,9 @@ def process_matches(szn_files, simple, show_constant_reductions):
             data[benchmark][mode][identifier][pattern][match_result] = set()
         # Finally populate.
         data[benchmark][mode][identifier][pattern][match_result].add(
-            (trace, nodes))
+            (trace, nodes, length))
+        if pattern == u.pat_map and match_result == u.match:
+            map_loops.add(lset)
 
     # Populate the map loading each solution file. A solution file is expected
     # to be called [BENCHMARK]-[MODE] ... [PATTERN].szn, where:
@@ -194,6 +203,7 @@ def process_matches(szn_files, simple, show_constant_reductions):
             # subsets of DDG):
             for match in matches:
                 nodes = u.match_nodes(match)
+                length = len(match)
                 total_nodes = 0
                 loops = set()
                 # Collect precise instruction information.
@@ -215,7 +225,7 @@ def process_matches(szn_files, simple, show_constant_reductions):
                    and has_constant:
                     continue
                 register_match(benchmark, mode, instructions, loops, pattern,
-                               u.match, trace_filename, total_nodes)
+                               u.match, trace_filename, total_nodes, length)
             # If there are no matches, register that as well (for identifying
             # partial patterns):
             if not matches and status == u.tk_sol_status_normal:
@@ -234,7 +244,7 @@ def process_matches(szn_files, simple, show_constant_reductions):
                     instructions.append((PI[inst].get(u.tk_name),
                                          PI[inst].get(u.tk_location)))
                 register_match(benchmark, mode, instructions, loops, pattern,
-                               u.no_match, trace_filename, -1)
+                               u.no_match, trace_filename, -1, -1)
     results = []
     for (benchmark, benchmark_data) in sorted(data.iteritems()):
         for (mode, mode_data) in sorted(benchmark_data.iteritems()):
@@ -252,14 +262,27 @@ def process_matches(szn_files, simple, show_constant_reductions):
                     continue
                 # Compute positive traces corresponding to this instruction set.
                 traces = set()
-                # Compute total nodes.
+                # Compute total nodes and maximum pattern length (corresponding
+                # to the maximum number of components in map-like patterns).
                 nodes = 0
+                max_length = -1
                 for (pattern, match_data) in pattern_data.iteritems():
                     for (match_result, result_data) in match_data.iteritems():
                         if match_result == u.match:
-                            traces.update([trace for (trace, _) in result_data])
-                            nodes += sum([match_nodes for (_, match_nodes)
+                            traces.update([trace for (trace, _, __)
+                                           in result_data])
+                            nodes += sum([match_nodes for (_, match_nodes, __)
                                           in result_data])
+                            max_length = max(max_length,
+                                             max([length for (_, __, length)
+                                                  in result_data]))
+                # If the match is a trivial conditional map (with at most two
+                # components and no map match on the same loop set), discard.
+                if not show_trivial_conditional_maps \
+                   and match_columns[u.pat_conditional_map] == u.match_full \
+                   and max_length <= 2 \
+                   and not (lset in map_loops):
+                    continue
                 loops = print_loops(lset, True)
                 # Pretty-print location.
                 location = print_location(iset)
@@ -294,13 +317,15 @@ def main(args):
     parser.add_argument('--show-linear-scan', dest='show_linear_scan', action='store_true', default=False)
     parser.add_argument('--show-subsumed', dest='show_subsumed', action='store_true', default=False)
     parser.add_argument('--show-constant-reductions', dest='show_constant_reductions', action='store_true', default=False)
+    parser.add_argument('--show-trivial-conditional-maps', dest='show_trivial_conditional_maps', action='store_true', default=False)
     parser.add_argument('--html', help='HTML output directory')
     parser.add_argument('--html-source-dir', help='HTML source code directory')
     args = parser.parse_args(args)
 
     # Gather results.
     results = process_matches(args.FILES, args.simple,
-                              args.show_constant_reductions)
+                              args.show_constant_reductions,
+                              args.show_trivial_conditional_maps)
 
     patterns_to_show = copy.deepcopy(u.pat_all)
     if not args.show_doall:
