@@ -57,6 +57,7 @@ fun:ispunct=functional
 fun:isspace=functional
 fun:tolower=functional
 fun:toupper=functional
+fun:rand=functional
 
 # Functions that return a value that is data-dependent on the input.
 fun:btowc=functional
@@ -131,7 +132,6 @@ fun:pthread_sigmask=discard
 fun:putc=discard
 fun:putchar=discard
 fun:puts=discard
-fun:rand=discard
 fun:random=discard
 fun:remove=discard
 fun:sched_getcpu=discard

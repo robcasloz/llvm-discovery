@@ -878,7 +878,9 @@ Constant *DataFlowSanitizer::getOrBuildTrampolineFunction(FunctionType *FT,
 bool DataFlowSanitizer::isCommutative(CallInst *CI) {
   if (isa<InlineAsm>(CI->getCalledValue())) return false;
   Function * F = CI->getCalledFunction();
-  return (getWrapperKind(F) == WK_Functional ||
+  // FIXME: create new annotation to specify functions that are functional but
+  // not necessarily commutative, such as "rand".
+  return ((getWrapperKind(F) == WK_Functional && F->getName() != "rand") ||
           CommutativityList.isIn(F->getName()));
 }
 
