@@ -22,13 +22,18 @@ def match_entries(r, e):
             return False
     return True
 
-def match(results, e):
-    matches = False
+def match(results, e, ex):
+    found = False
     for r in results:
         if match_entries(r, e):
-            matches = True
+            found = True
             break
-    return matches
+    if ex == "match":
+        return found
+    elif ex == "no-match":
+        return not found
+    else:
+        assert(False)
 
 def load(f, benchmarks, source, expected):
     r = csv.reader(open(f), delimiter=",")
@@ -59,7 +64,7 @@ def load(f, benchmarks, source, expected):
                  line[iteration_index],
                  line[patterns_index])
         if expected:
-            out.append((entry, line[action_index]))
+            out.append((entry, line[expected_index], line[source_index], line[action_index]))
         else:
             out.append(entry)
     return (out, legend)
@@ -71,24 +76,24 @@ total = len(expected)
 mismatches = []
 ignored    = 0
 
-for (e, a) in expected:
+for (e, ex, s, a) in expected:
     if a == "ignore":
         ignored += 1
         continue
-    match_result = match(results, e)
+    match_result = match(results, e, ex)
     if not match_result:
-        mismatches.append(e)
+        mismatches.append(e + (ex, s, a, ""))
 
-missed  = len(mismatches)
-matches = total - (missed + ignored)
+mism    = len(mismatches)
+matches = total - (mism + ignored)
 
 print (str(total)   + " total: " + \
        str(matches) + " matches, " + \
-       str(missed) + " missed, " + \
+       str(mism) + " mismatches, " + \
        str(ignored) + " ignored")
 
 if mismatches:
-    print "missed:"
+    print "mismatches:"
     csvw = csv.writer(sys.stdout, delimiter=",", quoting=csv.QUOTE_MINIMAL)
     csvw.writerow(legend)
     for e in mismatches:
