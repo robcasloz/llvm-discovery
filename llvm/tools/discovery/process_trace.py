@@ -640,11 +640,15 @@ def collapse_tags((DDG, PB, PI, PT), tag):
     collapsed_nodes = Set()
     for nodes in instance_nodes.values():
         collapsed_nodes |= nodes
-    # If any of the collapsed instructions is impure, tag as impure.
+    # If any of the collapsed instructions is impure and/or non-commutative, tag
+    # as such.
     for block in collapsed_nodes:
         impure = u.properties(block, PB, PI).get(u.tk_impure)
         if impure:
             PIc[group_instruction][u.tk_impure] = impure
+        non_commutative = u.properties(block, PB, PI).get(u.tk_noncommutative)
+        if non_commutative:
+            PIc[group_instruction][u.tk_noncommutative] = non_commutative
     # Add all children instructions of the collapsed instruction.
     children = Set()
     for block in collapsed_nodes:
