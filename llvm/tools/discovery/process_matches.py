@@ -124,6 +124,19 @@ def discard_subsumed_linear_reductions(pattern_data):
         del reductions[u.match]
     return
 
+def discard_subsumed_linear_map_reductions(pattern_data):
+    if not u.pat_tiled_reduction in pattern_data:
+        return
+    tiled_reductions = pattern_data[u.pat_tiled_reduction]
+    if not u.pat_linear_map_reduction in pattern_data:
+        return
+    linear_map_reductions = pattern_data[u.pat_linear_map_reduction]
+    if tiled_reductions.keys() == [u.match] and \
+       linear_map_reductions.keys() == [u.match]:
+        linear_map_reductions[u.no_match] = linear_map_reductions[u.match]
+        del linear_map_reductions[u.match]
+    return
+
 generalizes = {
     (u.pat_linear_map_reduction, u.pat_map) : True,
     (u.pat_linear_map_reduction, u.pat_linear_reduction) : True,
@@ -255,6 +268,9 @@ def process_matches(szn_files, simple, show_constant_reductions,
                 # If there are both linear and tiled reductions, discard the
                 # former.
                 discard_subsumed_linear_reductions(pattern_data)
+                # If there are both tiled reductions and linear map-reductions,
+                # discard the latter.
+                discard_subsumed_linear_map_reductions(pattern_data)
                 match_columns = {p : match_consensus(p, pattern_data)
                                  for p in u.pat_all}
                 # If there is no match in this instruction set, discard.
