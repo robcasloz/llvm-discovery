@@ -476,6 +476,7 @@ class DataFlowSanitizer : public ModulePass {
                                  GlobalValue::LinkageTypes NewFLink,
                                  FunctionType *NewFT);
   Constant *getOrBuildTrampolineFunction(FunctionType *FT, StringRef FName);
+  bool isImpureFunctional(StringRef FunctionName) const;
   bool isCommutative(CallInst *CI);
 
 public:
@@ -875,12 +876,18 @@ Constant *DataFlowSanitizer::getOrBuildTrampolineFunction(FunctionType *FT,
   return C;
 }
 
+// FIXME: create new annotation for functions that we want to model as if they
+// were functional but are not necessarily commutative, such as the ones below.
+bool DataFlowSanitizer::isImpureFunctional(StringRef FunctionName) const {
+  return (FunctionName == "rand" ||
+          FunctionName == "lrand48");
+}
+
 bool DataFlowSanitizer::isCommutative(CallInst *CI) {
   if (isa<InlineAsm>(CI->getCalledValue())) return false;
   Function * F = CI->getCalledFunction();
-  // FIXME: create new annotation to specify functions that are functional but
-  // not necessarily commutative, such as "rand".
-  return ((getWrapperKind(F) == WK_Functional && F->getName() != "rand") ||
+  return ((getWrapperKind(F) == WK_Functional &&
+           !isImpureFunctional(F->getName())) ||
           CommutativityList.isIn(F->getName()));
 }
 
