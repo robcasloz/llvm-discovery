@@ -1,6 +1,6 @@
 # Discovery of Structured Parallelism In Sequential and Parallel Code
 
-¡[Tiled map-reduction pattern found on example Pthreads code](https://github.com/robcasloz/llvm-discovery/tree/release/7.x/llvm/tools/discovery/report.png "Tiled map-reduction pattern found on example Pthreads code")
+![Tiled map-reduction pattern found on example Pthreads code](https://raw.githubusercontent.com/robcasloz/llvm-discovery/release/7.x/llvm/tools/discovery/report.png "Tiled map-reduction pattern found on example Pthreads code")
 
 This repository contains a tool for finding parallel patterns in the execution of sequential and multi-threaded C and C++ code. The tool instruments the code and generates execution traces using an extended version of LLVM, and finds parallel patterns on the traces using a combination of high-level exploration and constraint-based graph matching techniques.
 
