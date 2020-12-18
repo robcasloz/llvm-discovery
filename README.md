@@ -84,10 +84,20 @@ cd llvm/tools/discovery
 
 The file `llvm/tools/discovery/Makefile` provides further support for processing, transforming, and visualizing traces; invoking the constraint-based pattern finder, and visualizing and exporting the found patterns as [LLVM remark diagnostics](https://llvm.org/docs/Remarks.html). See the file documentation for more information.
 
+### Publications
+
+- [*Modernizing Parallel Code with Pattern Analysis*](https://robcasloz.github.io/publications/CastanedaColeEa_PPoPP_2021.pdf). [[Supplement]](https://robcasloz.github.io/publications/CastanedaColeEa_PPoPP_2021_supplement.pdf)<br />
+  Roberto Castañeda Lozano, Murray Cole, Björn Franke.<br />
+  26th ACM SIGPLAN Symposium on Principles and Practice of Parallel Programming, 2021, accepted for publication.
+
+- [*Parallelizing Parallel Programs: A Dynamic Pattern Analysis for Modernization of Legacy Parallel Code*](https://robcasloz.github.io/publications/CastanedaColeEa_PACT_2020.pdf).<br />
+  Roberto Castañeda Lozano, Murray Cole, Björn Franke.<br />
+  ACM International Conference on Parallel Architectures and Compilation Techniques, 2020.
+
 ## Contact
 
 If you have questions or suggestions, please do not hesitate to contact us:
 
-- [Roberto Castañeda Lozano](https://robcasloz.github.io/) [<roberto.castaneda@ed.ac.uk>]
+- [Roberto Castañeda Lozano](https://robcasloz.github.io/) [<rcas@acm.org>]
 - [Murray Cole](https://homepages.inf.ed.ac.uk/mic/) [<mic@inf.ed.ac.uk>]
 - [Björn Franke](https://blog.inf.ed.ac.uk/bfranke/) [<bfranke@inf.ed.ac.uk>]
