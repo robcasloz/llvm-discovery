@@ -1,8 +1,9 @@
-#!/usr/bin/env python2.7
+#!/usr/bin/env python3
 
-from __future__ import print_function
+
 
 import yaml
+import sys
 # Try to use the C parser.
 try:
     from yaml import CLoader as Loader
@@ -31,15 +32,15 @@ try:
 except AttributeError:
     # Python 3
     def itervalues(d):
-        return iter(d.values())
+        return iter(list(d.values()))
     def iteritems(d):
-        return iter(d.items())
+        return iter(list(d.items()))
 else:
     # Python 2
     def itervalues(d):
-        return d.itervalues()
+        return iter(d.values())
     def iteritems(d):
-        return d.iteritems()
+        return iter(d.items())
 
 
 def html_file_name(filename):
@@ -77,11 +78,11 @@ class Remark(yaml.YAMLObject):
     # small dict.  Two, using tuple instead of list allows Args to be directly
     # used as part of the key (in Python only immutable types are hashable).
     def _reduce_memory(self):
-        self.Pattern = intern(self.Pattern)
-        self.Name = intern(self.Name)
+        self.Pattern = sys.intern(self.Pattern)
+        self.Name = sys.intern(self.Name)
         try:
             # Can't intern unicode strings.
-            self.Function = intern(self.Function)
+            self.Function = sys.intern(self.Function)
         except:
             pass
 
@@ -89,10 +90,10 @@ class Remark(yaml.YAMLObject):
             new_dict = dict()
             for (k, v) in iteritems(old_dict):
                 if type(k) is str:
-                    k = intern(k)
+                    k = sys.intern(k)
 
                 if type(v) is str:
-                    v = intern(v)
+                    v = sys.intern(v)
                 elif type(v) is dict:
                     # This handles [{'Caller': ..., 'DebugLoc': { 'File': ... }}]
                     v = _reduce_memory_dict(v)
@@ -160,7 +161,7 @@ class Remark(yaml.YAMLObject):
 
         if dl and key != 'Caller':
             dl_dict = dict(list(dl))
-            return u"<a href={}>{}</a>".format(
+            return "<a href={}>{}</a>".format(
                 make_link(dl_dict['File'], dl_dict['Line']), value)
         else:
             return value

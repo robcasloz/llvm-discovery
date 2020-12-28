@@ -12,7 +12,13 @@ The code instrumentation and trace generation component is implemented on top of
 
 - Clang 7 or later (to compile the project)
 
-- Boost 1.68
+- Boost 1.68 or later
+
+On Ubuntu 20.04, just run:
+
+```
+sudo apt-get install clang libboost-dev cmake ninja-build
+```
 
 ### Compiling
 
@@ -49,9 +55,18 @@ The parallel pattern discovery finding component is implemented as a collection 
 
 ### Dependencies
 
-- Python 2.7 or later
+- Python 3.8 or later
 
 - MiniZinc 2.3.2 or later
+
+On Ubuntu 20.04, just run:
+
+```
+sudo apt-get install python3 python3-networkx
+mkdir -p $MINIZINC_INSTALL_DIR
+wget -qO- https://github.com/MiniZinc/MiniZincIDE/releases/download/2.5.3/MiniZincIDE-2.5.3-bundle-linux-x86_64.tgz | tar -xvzf - --directory $MINIZINC_INSTALL_DIR
+export PATH=$PATH:$MINIZINC_INSTALL_DIR/MiniZincIDE-2.5.3-bundle-linux-x86_64/bin
+```
 
 ### Finding parallel patterns in a trace
 

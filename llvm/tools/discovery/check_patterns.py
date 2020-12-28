@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 
 import argparse
 import csv
@@ -37,7 +37,7 @@ def match(results, e, ex):
 
 def load(f, benchmarks, source, expected):
     r = csv.reader(open(f), delimiter=",")
-    legend = r.next()
+    legend = next(r)
     benchmark_index = legend.index("benchmark")
     mode_index = legend.index("mode")
     location_index = legend.index("location")
@@ -87,13 +87,13 @@ for (e, ex, s, a) in expected:
 mism    = len(mismatches)
 matches = total - (mism + ignored)
 
-print (str(total)   + " total: " + \
+print((str(total)   + " total: " + \
        str(matches) + " matches, " + \
        str(mism) + " mismatches, " + \
-       str(ignored) + " ignored")
+       str(ignored) + " ignored"))
 
 if mismatches:
-    print "mismatches:"
+    print("mismatches:")
     csvw = csv.writer(sys.stdout, delimiter=",", quoting=csv.QUOTE_MINIMAL)
     csvw.writerow(legend)
     for e in mismatches:

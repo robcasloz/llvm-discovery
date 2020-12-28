@@ -1,15 +1,15 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 
 import argparse
 import os
 import glob
 import csv
 import sys
-from sets import Set
 import copy
-import StringIO as sio
+import io as sio
 import shutil
 import hashlib
+from functools import cmp_to_key
 
 import trace_utils as u
 import view_patterns as vp
@@ -18,7 +18,7 @@ def entry_id(r):
     key = r["benchmark"] + r["mode"] + r["location"] + r["loops"]
     # Add 'p' prefix to prevent clever spreadsheet tools from interpreting and
     # reformatting the ID as an integer.
-    return "p" + hashlib.md5(key).hexdigest()[:4]
+    return "p" + hashlib.md5(str(key).encode('utf-8')).hexdigest()[:4]
 
 def file_info(szn_filename):
     file_components = szn_filename.split(".")
@@ -51,7 +51,7 @@ def print_location(iset):
     return ";".join([loc_basefile + ":" +
                      ",".join(map(str, sorted(loc_lines)))
                      for (loc_basefile, loc_lines)
-                     in lines.iteritems()])
+                     in lines.items()])
 
 def print_loops(loops, simple):
     # Set of loops
@@ -97,7 +97,7 @@ def generalize_partial_maps(pattern_data):
     common_result_data = set()
     for pattern in maplike_patterns:
         if pattern in pattern_data:
-            for (match_result, result_data) in pattern_data[pattern].iteritems():
+            for (match_result, result_data) in pattern_data[pattern].items():
                 traces = [trace for (trace, _, __) in result_data]
                 all_traces.update(traces)
                 if match_result == u.match:
@@ -118,8 +118,8 @@ def discard_subsumed_linear_reductions(pattern_data):
     if not u.pat_tiled_reduction in pattern_data:
         return
     tiled_reductions = pattern_data[u.pat_tiled_reduction]
-    if tiled_reductions.keys() == [u.match] and \
-       reductions.keys() == [u.match]:
+    if list(tiled_reductions.keys()) == [u.match] and \
+       list(reductions.keys()) == [u.match]:
         reductions[u.no_match] = reductions[u.match]
         del reductions[u.match]
     return
@@ -131,8 +131,8 @@ def discard_subsumed_linear_map_reductions(pattern_data):
     if not u.pat_linear_map_reduction in pattern_data:
         return
     linear_map_reductions = pattern_data[u.pat_linear_map_reduction]
-    if tiled_reductions.keys() == [u.match] and \
-       linear_map_reductions.keys() == [u.match]:
+    if list(tiled_reductions.keys()) == [u.match] and \
+       list(linear_map_reductions.keys()) == [u.match]:
         linear_map_reductions[u.no_match] = linear_map_reductions[u.match]
         del linear_map_reductions[u.match]
     return
@@ -199,8 +199,8 @@ def process_matches(szn_files, simple, show_constant_reductions,
             # Skip traces with only one node (besides possibly a source and a
             # sink). Pattern-finding on those is fundamentally inconclusive.
             # TODO: skip also inconclusive traces due to timeouts and errors.
-            inner_nodes = len(filter(lambda b: (not u.is_source(b, PB, PI)) and \
-                                     (not u.is_sink(b, PB, PI)), DDG.nodes()))
+            inner_nodes = len([b for b in DDG.nodes() if (not u.is_source(b, PB, PI)) and \
+                                     (not u.is_sink(b, PB, PI))])
             if inner_nodes <= 1:
                 continue
             # If there are no matches but the trivial version does contain
@@ -242,7 +242,7 @@ def process_matches(szn_files, simple, show_constant_reductions,
             # If there are no matches, register that as well (for identifying
             # partial patterns):
             if not matches and status == u.tk_sol_status_normal:
-                all_insts = Set()
+                all_insts = set()
                 loops = set()
                 for node in DDG.nodes():
                     if u.is_source(node, PB, PI) or u.is_sink(node, PB, PI):
@@ -259,9 +259,9 @@ def process_matches(szn_files, simple, show_constant_reductions,
                 register_match(benchmark, mode, instructions, loops, pattern,
                                u.no_match, trace_filename, -1, -1)
     results = []
-    for (benchmark, benchmark_data) in sorted(data.iteritems()):
-        for (mode, mode_data) in sorted(benchmark_data.iteritems()):
-            for ((iset, lset), pattern_data) in sorted(mode_data.iteritems()):
+    for (benchmark, benchmark_data) in sorted(data.items()):
+        for (mode, mode_data) in sorted(benchmark_data.items()):
+            for ((iset, lset), pattern_data) in sorted(mode_data.items()):
                 # Possibly generalize partial matches of map-like patterns into
                 # full conditional map matches.
                 generalize_partial_maps(pattern_data)
@@ -274,7 +274,7 @@ def process_matches(szn_files, simple, show_constant_reductions,
                 match_columns = {p : match_consensus(p, pattern_data)
                                  for p in u.pat_all}
                 # If there is no match in this instruction set, discard.
-                if all([m == u.match_none for m in match_columns.values()]):
+                if all([m == u.match_none for m in list(match_columns.values())]):
                     continue
                 # Compute positive traces corresponding to this instruction set.
                 traces = set()
@@ -282,8 +282,8 @@ def process_matches(szn_files, simple, show_constant_reductions,
                 # to the maximum number of components in map-like patterns).
                 nodes = 0
                 max_length = -1
-                for (pattern, match_data) in pattern_data.iteritems():
-                    for (match_result, result_data) in match_data.iteritems():
+                for (pattern, match_data) in pattern_data.items():
+                    for (match_result, result_data) in match_data.items():
                         if match_result == u.match:
                             traces.update([trace for (trace, _, __)
                                            in result_data])
@@ -306,7 +306,7 @@ def process_matches(szn_files, simple, show_constant_reductions,
                 repetitions = len(traces)
                 trace = ";".join(traces)
                 instructions = list(iset)
-                iteration = min(map(maybe_iteration, traces) or [-1])
+                iteration = min(list(map(maybe_iteration, traces)) or [-1])
                 row = {"benchmark" : benchmark,
                        "mode" : mode,
                        "location" : location,
@@ -474,24 +474,25 @@ def main(args):
                 if not key in line_insts:
                     line_insts[key] = set()
                 line_insts[key].add((name, int(loc_col)))
-            for ((loc_file, loc_line), line_insts) in line_insts.iteritems():
+            for ((loc_file, loc_line), line_insts) in line_insts.items():
                 sorted_insts = sorted(list(line_insts),
-                                      cmp=lambda (_, c1), (__, c2): cmp(c1, c2))
+                                      key=cmp_to_key(lambda c1, c2:
+                                                     u.cmp(c1[0], c2[0])))
                 assert(sorted_insts)
                 loc_col = sorted_insts[0][1]
                 names = [n for (n, _) in sorted_insts]
                 name = ",".join(names)
-                print >>out, "--- !Analysis"
-                print >>out, "Id: " + eid
-                print >>out, "Pattern: " + pattern
-                print >>out, "Name: " + pattern
-                print >>out, "DebugLoc: { File: " + loc_file + ", Line: " + \
-                    str(loc_line) + ", Column: " + str(loc_col) + "}"
+                print("--- !Analysis", file=out)
+                print("Id: " + eid, file=out)
+                print("Pattern: " + pattern, file=out)
+                print("Name: " + pattern, file=out)
+                print("DebugLoc: { File: " + loc_file + ", Line: " + \
+                    str(loc_line) + ", Column: " + str(loc_col) + "}", file=out)
                 # TODO: trace the mangled function name of each instruction.
-                print >>out, "Function: N/A"
-                print >>out, "Args:"
-                print >>out, "  - String:      '" + name + "'"
-                print >>out, "..."
+                print("Function: N/A", file=out)
+                print("Args:", file=out)
+                print("  - String:      '" + name + "'", file=out)
+                print("...", file=out)
         yaml = out.getvalue()
         out.close()
         yaml_outfilename = args.html + ".yaml"
@@ -511,7 +512,7 @@ def main(args):
             if not benchmark_mode in matched:
                 matched[benchmark_mode] = set([])
             matched[benchmark_mode] |= set(r["instructions"])
-        for ((benchmark, mode), matched_instructions) in matched.iteritems():
+        for ((benchmark, mode), matched_instructions) in matched.items():
             if mode == "unknown":
                 filename = benchmark + ".instructions"
             else:
@@ -521,7 +522,7 @@ def main(args):
                     os.path.join(args.matched_instructions_prefix, filename)
             matched_instructions_list = list(matched_instructions)
             matched_instructions_list.sort(
-                key = (lambda (name, loc): (u.natural_sort_key(loc), name)))
+                key = (lambda name_loc: (u.natural_sort_key(name_loc[1]), name_loc[0])))
             with open(filename, 'w+') as outfile:
                 for (name, location) in matched_instructions_list:
                     line = location + ":" + name + "\n"

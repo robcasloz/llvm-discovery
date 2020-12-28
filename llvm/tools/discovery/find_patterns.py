@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 
 import argparse
 import tempfile
@@ -115,7 +115,7 @@ def run_minizinc(outfile, arguments):
     print_debug("minizinc " + " ".join(arguments) + " > " + outfile)
     try:
         p = subprocess.Popen(["minizinc"] + arguments, stdout=subprocess.PIPE,
-                             stderr=subprocess.PIPE)
+                             stderr=subprocess.PIPE, text=True)
         out, _ = p.communicate()
         with open(outfile, 'w') as of:
             of.writelines(out)
@@ -221,7 +221,7 @@ def remove_new_duplicates(nodes, loops, new):
     def get_key(st):
         return (frozenset(nodes[st]), frozenset(loops[st]))
     subtraces = {}
-    for st in nodes.keys():
+    for st in list(nodes.keys()):
         key = get_key(st)
         if not key in subtraces:
             subtraces[key] = set()
@@ -254,7 +254,8 @@ def is_subtrahend(st1, st2, nodes, match):
         return False
     return True
 
-def make_subtraction_or_composition((phase, phase_args)):
+def make_subtraction_or_composition(sub_comp_args):
+    (phase, phase_args) = sub_comp_args
     if phase == Phase.subtraction:
         make_subtraction(phase_args)
     elif phase == Phase.composition:
@@ -262,8 +263,9 @@ def make_subtraction_or_composition((phase, phase_args)):
     else:
         assert(False)
 
-def make_subtraction((ctx, (st1, n1, p1), st2s)):
+def make_subtraction(sub_args):
     # Check that there is something to subtract.
+    (ctx, (st1, n1, p1), st2s) = sub_args
     if not st2s:
         return
     # Check that we are in first re-iteration. Subtraction only leads to more
@@ -298,8 +300,9 @@ def make_subtraction((ctx, (st1, n1, p1), st2s)):
     run_process_trace(["-o", subtract_st, "subtract", st1, subtrahend_st,
                        original_trace(ctx)])
 
-def make_composition((ctx, (st1, n1, l1, s1, p1), (st2, n2, l2, s2, p2))):
+def make_composition(comp_args):
     # Check that the result is matchable.
+    (ctx, (st1, n1, l1, s1, p1), (st2, n2, l2, s2, p2)) = comp_args
     if None in [p1, p2]:
         return
     # Check that the node sets do not overlap.
@@ -334,7 +337,8 @@ def make_composition((ctx, (st1, n1, l1, s1, p1), (st2, n2, l2, s2, p2))):
     run_process_trace(["-o", compose_st, "compose", st1, st2,
                        original_trace(ctx)])
 
-def make_dzn((ctx, st)):
+def make_dzn(dzn_args):
+    (ctx, st) = dzn_args
     compact_st = temp(ctx, [subtrace_id(ctx, st), "collapsed", "trace"],
                       Level.iteration)
     run_process_trace(["-o", compact_st, "transform", "--collapse-tags", "all",
@@ -344,7 +348,8 @@ def make_dzn((ctx, st)):
     run_process_trace(["-o", compact_st_dzn, "--output-format=minizinc",
                        "print", compact_st])
 
-def make_szn((ctx, st, pattern, match_trivial)):
+def make_szn(szn_args):
+    (ctx, st, pattern, match_trivial) = szn_args
     compact_subtrace_dzn = temp(ctx, [subtrace_id(ctx, st), "collapsed", "dzn"],
                                 Level.iteration)
     trivial_extension = []
@@ -359,7 +364,8 @@ def make_szn((ctx, st, pattern, match_trivial)):
                   "--time-limit", "60000", "-a", "--solver", "chuffed",
                   mzn(pattern), compact_subtrace_dzn])
 
-def make_complete_szn((ctx, pattern)):
+def make_complete_szn(complete_szn_args):
+    (ctx, pattern) = complete_szn_args
     simple_pattern_szn = temp(ctx, ["original", pattern + "s", "szn"],
                               Level.top)
     run_minizinc(simple_pattern_szn, ["-D", "match_trivial=false", "-a",
@@ -520,7 +526,7 @@ try:
             iteration_traces = set()
             with open(patterns_iter_csv) as csv_file:
                 r = csv.reader(csv_file, delimiter=",")
-                legend = r.next()
+                legend = next(r)
                 traces_index = legend.index("traces")
                 location_index = legend.index("location")
                 loops_index = legend.index("loops")
@@ -573,7 +579,7 @@ try:
 
         # Done with eager or lazy pattern finding, print final results.
         for line in open(patterns_csv, "r"):
-            print line,
+            print(line, end="")
 
     elif args.level == u.arg_complete:
 
@@ -601,5 +607,5 @@ finally:
             st_writer = csv.writer(stats_out, delimiter=",",
                                    quoting=csv.QUOTE_MINIMAL)
             st_writer.writerow(["measurement", "value"])
-            for (measurement, value) in stats.iteritems():
+            for (measurement, value) in stats.items():
                 st_writer.writerow([measurement, value])

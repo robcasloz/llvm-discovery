@@ -1,6 +1,4 @@
-#!/usr/bin/env python2.7
-
-from __future__ import print_function
+#!/usr/bin/env python3
 
 import argparse
 import cgi
@@ -92,7 +90,7 @@ class SourceFileRenderer:
             html_highlighted = html_highlighted.replace('</pre></div>', '')
 
         for (linenum, html_line) in enumerate(html_highlighted.split('\n'), start=1):
-            print(u'''
+            print('''
 <tr>
 <td><a name=\"L{linenum}\">{linenum}</a></td>
 <td></td>
@@ -117,7 +115,7 @@ class SourceFileRenderer:
         indent = line[:max(r.Column, 1) - 1]
         indent = re.sub('\S', ' ', indent)
 
-        print(u'''
+        print('''
 <tr>
 <td></td>
 <td><span class=\"column-entry-green\"><b>{r.Id}</b></span></td>
@@ -169,7 +167,7 @@ class IndexRenderer:
             (eid, pattern) = ("", "")
         [loc_file, loc_line, _] = r.DebugLocString.split(":")
         loc = os.path.basename(loc_file) + ":" + loc_line
-        print(u'''
+        print('''
 <tr>
 <td>{eid}</td>
 <td>{pattern}</td>
@@ -271,7 +269,7 @@ def generate_report(all_remarks,
     if should_print_progress:
         print('Rendering HTML files...')
     optpmap.pmap(_render_file_bound,
-                 file_remarks.items(),
+                 list(file_remarks.items()),
                  num_jobs,
                  should_print_progress)
 

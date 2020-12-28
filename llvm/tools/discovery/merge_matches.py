@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 
 import argparse
 import os
@@ -6,17 +6,16 @@ import glob
 import csv
 import sys
 import re
-from sets import Set
 import trace_utils as u
 
 def load_legend(file):
     r = csv.reader(open(file), delimiter=",")
-    return tuple(r.next())
+    return tuple(next(r))
 
 def load_data(file):
     r = csv.reader(open(file), delimiter=",")
     # Skip legend.
-    r.next()
+    next(r)
     data = []
     for line in r:
         data.append(tuple(line))

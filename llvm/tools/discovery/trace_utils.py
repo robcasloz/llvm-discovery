@@ -5,7 +5,16 @@ import itertools
 import subprocess
 import collections
 import re
-from sets import Set
+
+def cmp(x, y):
+    """
+    Replacement for built-in function cmp that was removed in Python 3
+
+    Compare the two objects x and y and return an integer according to
+    the outcome. The return value is negative if x < y, zero if x == y
+    and strictly positive if x > y.
+    """
+    return (x > y) - (x < y)
 
 tk_df = "DF"
 tk_bp = "BP"
@@ -140,9 +149,9 @@ def read_trace(trace_file):
                 tags.append(tag)
             PB[block][tk_tags] = tags
         elif key == tk_tags:
-            PB[block][key] = map(tag_str_to_tuple, value.split(tk_list_sep))
+            PB[block][key] = list(map(tag_str_to_tuple, value.split(tk_list_sep)))
         elif key == tk_original:
-            PB[block][key] = map(int, value.split(tk_list_sep))
+            PB[block][key] = list(map(int, value.split(tk_list_sep)))
         elif key == tk_instruction:
             try:
                 instruction = int(value)
@@ -163,7 +172,7 @@ def read_trace(trace_file):
         key = tokens[1]
         value = tokens[2]
         if key == tk_children:
-            PI[instruction][key] = map(int, value.split(tk_list_sep))
+            PI[instruction][key] = list(map(int, value.split(tk_list_sep)))
         else:
             PI[instruction][key] = value
     PT = {}
@@ -180,7 +189,7 @@ def read_trace(trace_file):
 def index_map(array):
     return dict(itertools.chain.from_iterable(
         [[(n, idx) for n in step] for (idx, step) in
-         zip(range(len(array)), array)]))
+         zip(list(range(len(array))), array)]))
 
 # Takes a DDG, a pattern name and a set of matches and gives a map from sets of
 # instructions to sets of number of pattern steps.
@@ -196,7 +205,7 @@ def insts_to_steps(G, pattern, matches):
         elif pattern == pat_tiled_reduction:
             partial_steps = [len(p) for (f, p) in match]
             steps = sum(partial_steps) + len(partial_steps)
-        sol_insts = Set()
+        sol_insts = set()
         for n in match_nodes(match):
                 sol_insts.update(node_instructions(G, n))
         si = frozenset(sol_insts)
@@ -211,7 +220,8 @@ def match_nodes(match):
     return sorted(list(set(flatten(match))))
 
 # Gives the instruction(s) corresponding to a node.
-def node_instructions((_, PB, PI, __), node):
+def node_instructions(G, node):
+    (_, PB, PI, __) = G
     inst = PB[node].get(tk_instruction)
     if tk_children in PI[inst]:
         return PI[inst].get(tk_children)
@@ -227,23 +237,28 @@ def tag_str_to_tuple(tag_data):
     return (tag, (int(g), int(i)))
 
 # Gives the tag in a tag-data pair.
-def tag_name((t, _)):
+def tag_name(tagdata):
+    (t, _) = tagdata
     return t
 
 # Gives the tag data a tag-data pair.
-def tag_data((_, d)):
+def tag_data(tagdata):
+    (_, d) = tagdata
     return d
 
 # Gives the group in a tag-data pair.
-def tag_group((_, (g, _i))):
+def tag_group(tagdata):
+    (_, (g, _i)) = tagdata
     return g
 
 # Gives the instance in a tag-data pair.
-def tag_instance((_, (_g, i))):
+def tag_instance(tagdata):
+    (_, (_g, i)) = tagdata
     return i
 
 # Returns a set with all different tags in the trace.
-def tag_set((_, PB, __, ___)):
+def tag_set(G):
+    (_, PB, __, ___) = G
     return set(itertools.chain.from_iterable(
         [[tag_name(tag_data) for tag_data in PB[block].get(tk_tags, [])]
          for block in PB]))
@@ -253,8 +268,8 @@ def int_set(e):
     if e[0] == "{":
         iset = sorted(map(int, e[1:-1].split(",")))
     else:
-        [first, last] = map(int, e.split(".."))
-        iset = range(first, last + 1)
+        [first, last] = list(map(int, e.split("..")))
+        iset = list(range(first, last + 1))
     return iset
 
 # Concats a list of lists.
@@ -362,7 +377,7 @@ def read_matches(match_file):
 # that this is a naive, quadratic-time implementation.
 def discard_subsumed_matches(matches):
     nodeset = lambda match : set(flatten(match))
-    nodesets = map(nodeset, matches)
+    nodesets = list(map(nodeset, matches))
     filtered_matches = []
     for match in matches:
         subsumed = False
@@ -380,7 +395,7 @@ def demangle(name, cache):
         try:
             process = subprocess.Popen(["c++filt", "--no-params",
                                         "--no-verbose", name],
-                                       stdout=subprocess.PIPE)
+                                       stdout=subprocess.PIPE, text=True)
         except OSError:
             cache[name] = name
             return name
@@ -394,7 +409,8 @@ def demangle(name, cache):
     return cache[name]
 
 # Gives the minimal set of tags that covers all blocks in the instructions.
-def min_tag_cover((DDG, PB, PI, PT), insts):
+def min_tag_cover(G, insts):
+    (DDG, PB, PI, PT) = G
     min_tags = set([])
     # Find, for each instruction, the most specific tag.
     for inst in insts:
@@ -403,9 +419,9 @@ def min_tag_cover((DDG, PB, PI, PT), insts):
             if PB[block].get(tk_instruction) == inst:
                 tags |= set([tag_name(t) for t in PB[block].get(tk_tags, [])])
         if tags:
-            min_tag = sorted(tags, cmp=lambda t1, t2:
+            min_tag = sorted(tags,key=cmp_to_key(lambda t1, t2:
                              cmp(int(PT[t1][tk_original_blocks]),
-                                 int(PT[t2][tk_original_blocks])))[0]
+                                 int(PT[t2][tk_original_blocks]))))[0]
             min_tags.add(min_tag)
     return min_tags
 
@@ -447,7 +463,8 @@ associative_names = \
     set(["add", "fadd", "mul", "fmul", "and", "or", "xor", "sub", "fsub"])
 
 # Gives the set of original blocks corresponding to the DDG.
-def original_blocks((DDG, PB, _, __)):
+def original_blocks(G):
+    (DDG, PB, _, __) = G
     if not DDG.nodes():
         return set()
     return set.union(*[set(PB[b].get(tk_original, [])) for b in DDG.nodes()])

@@ -12,7 +12,7 @@ include "common.mzn";
 % of map runs (setting m = nnc below).
 % TODO: a potentially stronger bound would be the maximum number of nodes that
 % are not weakly connected.
-int: nnc = card({n | i in 0..c-1, n in static_classes[i]
+int: nnc = card({j | i in 0..c-1, j in static_classes[i]
                  where not (i in branches)});
 
 % Upper bound on number of map runs.

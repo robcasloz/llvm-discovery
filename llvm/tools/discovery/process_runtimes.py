@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 
 import argparse
 import os
@@ -23,7 +23,7 @@ def process_runtimes(results_file):
     data = {}
 
     r = csv.reader(open(sys.argv[1]), delimiter=",")
-    legend = r.next()
+    legend = next(r)
     input_index = 0
     nproc_index = 1
     repetition_index = 2

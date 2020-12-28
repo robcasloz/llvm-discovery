@@ -1,17 +1,17 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 
 import sys
 import networkx as nx
-from sets import Set
 import argparse
 import copy
 import subprocess
 import re
-import StringIO as sio
+import io as sio
 import os
 import itertools
 import cgi
 import operator
+from functools import cmp_to_key
 
 import trace_utils as u
 
@@ -51,8 +51,10 @@ property_input_order = {u.tk_iterator : 0,
                         u.tk_immediate : 8}
 
 # Orders instruction properties according to input order.
-def instruction_property_compare((k1, _1), (k2, _2)):
-    return cmp(property_input_order[k1], property_input_order[k2])
+def instruction_property_compare(i1, i2):
+    (k1, _1) = i1
+    (k2, _2) = i2
+    return u.cmp(property_input_order[k1], property_input_order[k2])
 
 # Orders instructions by name except for 'source' which goes first, for sanity.
 def instruction_name_compare(n1, n2):
@@ -61,16 +63,16 @@ def instruction_name_compare(n1, n2):
     if n2 == "source":
         return 1
     else:
-        return cmp(n1, n2)
+        return u.cmp(n1, n2)
 
 # Removes instruction properties without any corresponding blocks.
 def clean_instruction_properties(PI, PB):
     PIc = {}
-    for inst in Set([value[u.tk_instruction]
-                     for key, value in PB.iteritems()
+    for inst in set([value[u.tk_instruction]
+                     for key, value in PB.items()
                      if u.tk_instruction in value]):
         PIc[inst] = PI[inst]
-    for inst, ips in PI.items():
+    for inst, ips in list(PI.items()):
         for child in PI[inst].get(u.tk_children, []):
             PIc[child] = PI[child]
     return PIc
@@ -111,19 +113,21 @@ def is_tagged_with(tag, tags):
     return find_tag_data(tag, tags) != None
 
 # Gives a tag-data string out of a tag tuple:
-def tag_tuple_to_str((t, (g, i))):
+def tag_tuple_to_str(tagdata):
     # t can be a string or an int (if the tag has been normalized).
+    (t, (g, i)) = tagdata
     return str(t) + u.tk_tag_sep + str(g) + u.tk_tag_sep + str(i)
 
 # Gives the numeric tag id of the given tag string (which can also be an alias).
-def get_tag_id(tag, (_, __, ___, PT)):
+def get_tag_id(tag, G):
+    (_, __, ___, PT) = G
     if tag in PT:
         # The tag is already an existent numeric tag id.
         return tag
     if tag.isdigit() and int(tag) in PT:
         return int(tag)
     else:
-        for key, value in PT.iteritems():
+        for key, value in PT.items():
             if tag == value.get(u.tk_alias):
                 return key
         sys.stderr.write("Error: could not find tag or tag alias '" + tag + "'\n")
@@ -140,28 +144,29 @@ def find_tag_data(tag, tags):
     return None
 
 # Returns a map from a property of the given tag to nodes.
-def tag_nodes_map((DDG, PB, _, __), tag, f):
+def tag_nodes_map(G, tag, f):
+    (DDG, PB, _, __) = G
     tag_nodes = {}
     for block in [b for b in DDG.nodes()]:
         if is_tagged_with(tag, PB[block].get(u.tk_tags)):
             # p is either a tag group or a tag instance
             p = f(find_tag_data(tag, PB[block].get(u.tk_tags)))
             if not p in tag_nodes:
-                tag_nodes[p] = Set()
+                tag_nodes[p] = set()
             tag_nodes[p].add(block)
     return tag_nodes
 
 # Returns a map from groups of the given tag to nodes.
 def group_nodes_map(G, tag):
-    return tag_nodes_map(G, tag, lambda (g, i) : g)
+    return tag_nodes_map(G, tag, lambda g_i : g_i[0])
 
 # Returns a map from instances of the given tag to nodes.
 def instance_nodes_map(G, tag):
-    return tag_nodes_map(G, tag, lambda (g, i) : i)
+    return tag_nodes_map(G, tag, lambda g_i1 : g_i1[1])
 
 # Makes a set of given nodes darker in a color map.
 def contrast_colors(color_map, darker_nodes):
-    for k in color_map.keys():
+    for k in list(color_map.keys()):
         if k in darker_nodes:
             factor = 0.2
         else:
@@ -177,7 +182,7 @@ def format_match(pattern, match):
             unit = "steps"
         legend = "(" + str(len(match)) + " " + unit + ")"
         color_map = {node: colors[(step % len(colors))]
-                     for node, step in u.index_map(match).items()}
+                     for node, step in list(u.index_map(match).items())}
     elif pattern == u.pat_pipeline:
         (stages, runs) = match
         node_stage = u.index_map(stages)
@@ -185,7 +190,7 @@ def format_match(pattern, match):
         legend = "(" + str(len(stages)) + " stages, " + str(len(runs)) + \
                  " runs)"
         color_map = dict()
-        for k in node_stage.keys():
+        for k in list(node_stage.keys()):
             run_completion = float(node_run[k]) / len(runs)
             factor = run_completion * 0.5
             original_color = colors[node_stage[k] % len(colors)]
@@ -195,7 +200,7 @@ def format_match(pattern, match):
         legend = "(" + str(len(steps)) + " steps)"
         color_map = {node: colors[(step % len(colors))]
                      for node, step
-                     in u.index_map(runs).items() + u.index_map(steps).items()}
+                     in list(u.index_map(runs).items()) + list(u.index_map(steps).items())}
         contrast_colors(color_map, set(u.concat(runs)))
     elif pattern in [u.pat_tiled_reduction, u.pat_tiled_map_reduction]:
         if pattern == u.pat_tiled_reduction:
@@ -213,7 +218,7 @@ def format_match(pattern, match):
         metasteps  = [u.concat(m) + f + u.concat(p)
                       for m, f, p in unified_match]
         color_map  = {node: colors[(metastep % len(colors))]
-                      for node, metastep in u.index_map(metasteps).items()}
+                      for node, metastep in list(u.index_map(metasteps).items())}
         darker = set(u.concat([f + u.concat(m) for m, f, __ in unified_match]))
         contrast_colors(color_map, darker)
     else:
@@ -226,17 +231,19 @@ def format_match(pattern, match):
 def format_tags(G, tag, f):
     tag_nodes = tag_nodes_map(G, tag, f)
     color_map = {}
-    for p, nodes in tag_nodes.items():
+    for p, nodes in list(tag_nodes.items()):
         color = colors[(p - 1) % len(colors)]
-        color_map.update(dict(zip(list(nodes), itertools.repeat(color))))
+        color_map.update(dict(list(zip(list(nodes), itertools.repeat(color)))))
     return color_map
 
 # Gives a string with the hexadecimal representation of a color triple.
-def hex_color((r, g, b)):
+def hex_color(rgb):
+    (r, g, b) = rgb
     return "#" + "{:02x}".format(r) + "{:02x}".format(g) + "{:02x}".format(b)
 
 # Adjusts a color according to a factor.
-def adjust_color((r, g, b), factor):
+def adjust_color(rgb, factor):
+    (r, g, b) = rgb
     return (adjust_color_component(r, factor),
             adjust_color_component(g, factor),
             adjust_color_component(b, factor))
@@ -247,28 +254,30 @@ def adjust_color_component(c, factor):
 
 # Returns a labeled DDG where instruction IDs are normalized (transformed into a
 # sequence of integer IDs) across the entire trace.
-def normalize_instructions((DDG, PB, PI, PT)):
-    rename = dict(zip(sorted(PI.keys(), cmp=instruction_name_compare),
-                      range(0, len(PI.keys()))))
+def normalize_instructions(G):
+    (DDG, PB, PI, PT) = G
+    rename = dict(list(zip(sorted(list(PI.keys()), key=cmp_to_key(instruction_name_compare)),
+                      list(range(0, len(list(PI.keys())))))))
     PBn = {}
-    for (block, _) in PB.iteritems():
+    for (block, _) in PB.items():
         PBn[block] = {}
-        for (key, value) in PB[block].iteritems():
+        for (key, value) in PB[block].items():
             new_value = value
             if key == u.tk_instruction:
                 new_value = rename[value]
             PBn[block][key] = new_value
     PIn = {}
-    for (key, value) in PI.iteritems():
+    for (key, value) in PI.items():
         PIn[rename[key]] = value
     return (DDG, PBn, PIn, PT)
 
 # Returns a labeled DDG where block properties that belong to their instructions
 # are lifted to these (for region instructions).
-def lift_instruction_properties((DDG, PB, PI, PT)):
+def lift_instruction_properties(G):
+    (DDG, PB, PI, PT) = G
     PBl = copy.deepcopy(PB)
     PIl = copy.deepcopy(PI)
-    for b in PBl.keys():
+    for b in list(PBl.keys()):
         for p in [u.tk_impure, u.tk_noncommutative]:
             if PBl[b].get(p) == u.tk_true:
                 del PBl[b][p]
@@ -278,20 +287,21 @@ def lift_instruction_properties((DDG, PB, PI, PT)):
 # Returns a labeled DDG where tag IDs are normalized (transformed into a
 # sequence of integer IDs) and all instances within each tag are normalized
 # (transformed into a sequence of consecutive integers).
-def normalize_tags((DDG, PB, PI, PT)):
+def normalize_tags(G):
+    (DDG, PB, PI, PT) = G
     tags = u.tag_set((DDG, PB, PI, PT))
     if all([isinstance(tag, int) or (isinstance(tag, str) and tag.isdigit())
             for tag in tags]):
         # Tags are already normalized, skip
         return (DDG, PB, PI, PT)
-    tag_rename = dict(zip(sorted(tags), range(len(tags))))
+    tag_rename = dict(list(zip(sorted(tags), list(range(len(tags))))))
     for tag in tags:
         new_tag_name = tag_rename[tag]
         PT[new_tag_name] = {u.tk_alias : tag}
         instances = sorted(instance_nodes_map((DDG, PB, PI, PT), tag).keys())
-        instance_rename = dict(zip(sorted(instances), range(len(instances))))
+        instance_rename = dict(list(zip(sorted(instances), list(range(len(instances))))))
         tag_blocks = 0
-        for block, value in PB.iteritems():
+        for block, value in PB.items():
             new_tags = []
             for (old_name, (old_group, old_instance)) in \
                 PB[block].get(u.tk_tags, []):
@@ -310,16 +320,17 @@ def normalize_tags((DDG, PB, PI, PT)):
 def print_tags(G):
     out = sio.StringIO()
     for tag in u.tag_set(G):
-        print >>out, tag
+        print(tag, file=out)
     tags = out.getvalue()
     out.close()
     return tags
 
 # Prints all different tag aliases, one per line.
-def print_tag_aliases((DDG, PB, PI, PT)):
+def print_tag_aliases(G):
+    (DDG, PB, PI, PT) = G
     out = sio.StringIO()
     for tag in u.tag_set((DDG, PB, PI, PT)):
-        print >>out, PT[tag].get(u.tk_alias)
+        print(PT[tag].get(u.tk_alias), file=out)
     aliases = out.getvalue()
     out.close()
     return aliases
@@ -327,8 +338,8 @@ def print_tag_aliases((DDG, PB, PI, PT)):
 # Prints all groups in the given tag, one per line.
 def print_tag_groups(G, tag):
     out = sio.StringIO()
-    for group in group_nodes_map(G, tag).keys():
-        print >>out, group
+    for group in list(group_nodes_map(G, tag).keys()):
+        print(group, file=out)
     groups = out.getvalue()
     out.close()
     return groups
@@ -339,22 +350,24 @@ def print_components(G, min_nodes, top_components):
     (DDGf, PBf, PIf, PTf) = filter_middle(G)
     for c in \
       range(len(weakly_connected_components(DDGf, min_nodes, top_components))):
-        print >>out, c
+        print(c, file=out)
     components = out.getvalue()
     out.close()
     return components
 
 # Prints the size of the trace in number of nodes.
-def print_size((DDG, PB, PI, PT)):
+def print_size(G):
+    (DDG, PB, PI, PT) = G
     out = sio.StringIO()
-    print >>out, len(DDG.nodes())
+    print(len(DDG.nodes()), file=out)
     size = out.getvalue()
     out.close()
     return size
 
 # Returns a labeled DDG where non-region, effectful blocks only connected to the
 # source are removed.
-def clean((DDG, PB, PI, PT)):
+def clean(G):
+    (DDG, PB, PI, PT) = G
     DDGr = DDG.copy()
     PBr = copy.deepcopy(PB)
     for effectful in [b for b in DDG.nodes() if is_effectful(b, PB, PI) and \
@@ -368,7 +381,8 @@ def clean((DDG, PB, PI, PT)):
 
 # Returns a labeled DDG where blocks whose name matches the given predicate are
 # removed.
-def remove_instructions((DDG, PB, PI, PT), p):
+def remove_instructions(G, p):
+    (DDG, PB, PI, PT) = G
     DDGr = DDG.copy()
     PBr = copy.deepcopy(PB)
     for block in [b for b in DDG.nodes() if \
@@ -384,14 +398,15 @@ def remove_instructions((DDG, PB, PI, PT), p):
 # Returns a labeled DDG where only data-flow leading to effectful and region
 # blocks are preserved. This gets rid of data-flow related to address
 # computations and data-structure traversals.
-def prune((DDG, PB, PI, PT)):
+def prune(G):
+    (DDG, PB, PI, PT) = G
     DDGr = DDG.reverse(copy=True)
-    reachable = Set()
+    reachable = set()
     for effectful in [b for b in DDGr.nodes() if \
                       (is_effectful(b, PB, PI) and not is_dispensable(b, PB, PI)) \
                       or u.properties(b, PB, PI).get(u.tk_region) == u.tk_true]:
         reachable.add(effectful)
-        reachable |= Set(nx.descendants(DDGr, effectful))
+        reachable |= set(nx.descendants(DDGr, effectful))
     DDGrp = DDGr.subgraph(reachable)
     DDGp = DDGrp.reverse(copy=True)
     PBp = {k:PB[k] for k in PB if k in reachable}
@@ -399,13 +414,15 @@ def prune((DDG, PB, PI, PT)):
     return (DDGp, PBp, PIp, PT)
 
 # Record original nodes for tracing back from future transformed traces.
-def record_original_nodes((DDG, PB, PI, PT)):
+def record_original_nodes(G):
+    (DDG, PB, PI, PT) = G
     for b in DDG.nodes():
         PB[b][u.tk_original] = [b]
     return
 
 # Filters nodes in the labeled DDG that satisfy p.
-def filter_by((DDG, PB, PI, PT), p, add_context = True):
+def filter_by(G, p, add_context = True):
+    (DDG, PB, PI, PT) = G
     DDGf = DDG.copy()
     PBf = copy.deepcopy(PB)
     remove_nodes = [b for b in DDG.nodes() if not p(b)]
@@ -440,20 +457,23 @@ def filter_by((DDG, PB, PI, PT), p, add_context = True):
     return (DDGf, PBf, PIf, PT)
 
 # Filters nodes in the labeled DDG by location according to a regexp.
-def filter_location((DDG, PB, PI, PT), pattern):
+def filter_location(G, pattern):
+    (DDG, PB, PI, PT) = G
     has_loc = lambda b: \
               re.match(pattern, u.properties(b, PB, PI).get(u.tk_location, ""))
-    return filter_by((DDG, PB, PI, PT), has_loc)
+    return filter_by(G, has_loc)
 
 # Filters nodes in the labeled DDG by name according to a regexp.
-def filter_name((DDG, PB, PI, PT), pattern):
+def filter_name(G, pattern):
+    (DDG, PB, PI, PT) = G
     has_name = lambda b: \
                re.match(pattern, u.properties(b, PB, PI).get(u.tk_name, ""))
-    return filter_by((DDG, PB, PI, PT), has_name)
+    return filter_by(G, has_name)
 
 # Filters out nodes in the labeled DDG with the exact location and name as one
 # of the instructions in a list.
-def filter_out_location_and_name((DDG, PB, PI, PT), instructions):
+def filter_out_location_and_name(G, instructions):
+    (DDG, PB, PI, PT) = G
     not_has_loc_name = \
         lambda b: \
         (not u.is_source(b, PB, PI)) and \
@@ -461,12 +481,13 @@ def filter_out_location_and_name((DDG, PB, PI, PT), instructions):
         all([(loc, name) != (u.properties(b, PB, PI).get(u.tk_location, ""),
                              u.properties(b, PB, PI).get(u.tk_name, ""))
              for (loc, name) in instructions])
-    return filter_by((DDG, PB, PI, PT), not_has_loc_name)
+    return filter_by(G, not_has_loc_name)
 
 # Filters tagged nodes in the labeled DDG.
-def filter_tag((DDG, PB, PI, PT), tag, group):
+def filter_tag(G, tag, group):
+    (DDG, PB, PI, PT) = G
     is_tag_group = lambda b: is_preserved(b, tag, group, PB)
-    return filter_by((DDG, PB, PI, PT), is_tag_group)
+    return filter_by(G, is_tag_group)
 
 # Whether the given block is to be preserved when filtering.
 def is_preserved(block, tag, group, PB):
@@ -474,19 +495,21 @@ def is_preserved(block, tag, group, PB):
     return (tag_data != None) and ((group == None) or tag_data[0] == int(group))
 
 # Filters out the source and sink nodes.
-def filter_middle((DDG, PB, PI, PT)):
+def filter_middle(G):
+    (DDG, PB, PI, PT) = G
     is_middle = lambda b: \
                 not (u.properties(b, PB, PI).get(u.tk_name, "") in
                      ["source", "sink"])
-    return filter_by((DDG, PB, PI, PT), is_middle, False)
+    return filter_by(G, is_middle, False)
 
 # Filters nodes with the given component ID.
-def filter_component((DDG, PB, PI, PT), component, min_nodes, top_components):
-    (DDGf, PBf, PIf, PTf) = filter_middle((DDG, PB, PI, PT))
+def filter_component(G, component, min_nodes, top_components):
+    (DDG, PB, PI, PT) = G
+    (DDGf, PBf, PIf, PTf) = filter_middle(G)
     c = weakly_connected_components(DDGf, min_nodes,
                                     top_components)[int(component)]
     is_component = lambda b: b in c
-    (DDGc, PBc, PIc, PTc) = filter_by((DDG, PB, PI, PT), is_component)
+    (DDGc, PBc, PIc, PTc) = filter_by(G, is_component)
     return (DDGc, PBc, PIc, PTc)
 
 # Filters nodes with the given ID.
@@ -513,7 +536,7 @@ def decompose_loops(G):
         Gt = filter_tag(G, tag, None)
         Gt = remove_tags(Gt, tags - set([tag]))
         # For each loop run (group within a tag), generate a DDG.
-        for group in group_nodes_map(Gt, tag).keys():
+        for group in list(group_nodes_map(Gt, tag).keys()):
             loop_id = "l" + str(tag) + "r" + str(group)
             Gtg = filter_tag(Gt, tag, group)
             Gtg = normalize(Gtg)
@@ -560,7 +583,8 @@ def apply_operation(op, SG1, SG2, G):
     # (loop decomposition leaves only the tag of each decomposed loop, and
     # associative component decomposition removes all traces).
     G = remove_tags(G, u.tag_set(G))
-    def add_tags((DDG, PB, _, PT), offset):
+    def add_tags(G1, offset):
+        (DDG, PB, _, PT) = G1
         tags = set()
         for b in DDG.nodes():
             original = PB[b].get(u.tk_original, [])
@@ -577,7 +601,7 @@ def apply_operation(op, SG1, SG2, G):
             G[3][u.tag_name(tag) + offset] = PT[u.tag_name(tag)]
         return tags
     sg1_tags = add_tags(SG1, 0)
-    offset = max(map(u.tag_name, sg1_tags) or [0]) + 1
+    offset = max(list(map(u.tag_name, sg1_tags)) or [0]) + 1
     add_tags(SG2, offset)
     return G
 
@@ -592,9 +616,10 @@ def add_region_instruction(name, PI):
     return instruction
 
 # Removes the given tags from the labeled DDG.
-def remove_tags((DDG, PB, PI, PT), tags):
+def remove_tags(G, tags):
+    (DDG, PB, PI, PT) = G
     PTc = {}
-    for block, value in PB.iteritems():
+    for block, value in PB.items():
         old_tags = PB[block].get(u.tk_tags, [])
         new_tags = [(t, i) for (t, i) in old_tags if t not in tags]
         if old_tags:
@@ -606,7 +631,8 @@ def remove_tags((DDG, PB, PI, PT), tags):
     return (DDG, PB, PI, PTc)
 
 # Collapse all nodes belonging to the same instance of the given tag into nodes.
-def collapse_tags((DDG, PB, PI, PT), tag):
+def collapse_tags(G, tag):
+    (DDG, PB, PI, PT) = G
     DDGc = DDG.copy()
     PBc = copy.deepcopy(PB)
     PIc = copy.deepcopy(PI)
@@ -616,7 +642,7 @@ def collapse_tags((DDG, PB, PI, PT), tag):
     # Map from instances of the given tag to nodes.
     instance_nodes = instance_nodes_map((DDG, PB, PI, PT), tag)
     # Create a new node for each instance.
-    for instance, nodes in instance_nodes.items():
+    for instance, nodes in list(instance_nodes.items()):
         group_block = max(DDGc.nodes()) + 1
         DDGc.add_node(group_block)
         # The list() conversion is needed since we may add new edges to DDGc.
@@ -637,8 +663,8 @@ def collapse_tags((DDG, PB, PI, PT), tag):
         list(set.union(*[set(PBc[b].get(u.tk_original, [])) for b in nodes]))
         if group_original:
             PBc[group_block][u.tk_original] = group_original
-    collapsed_nodes = Set()
-    for nodes in instance_nodes.values():
+    collapsed_nodes = set()
+    for nodes in list(instance_nodes.values()):
         collapsed_nodes |= nodes
     # If any of the collapsed instructions is impure and/or non-commutative, tag
     # as such.
@@ -650,14 +676,14 @@ def collapse_tags((DDG, PB, PI, PT), tag):
         if non_commutative:
             PIc[group_instruction][u.tk_noncommutative] = non_commutative
     # Add all children instructions of the collapsed instruction.
-    children = Set()
+    children = set()
     for block in collapsed_nodes:
         children.add(PB[block].get(u.tk_instruction))
     PIc[group_instruction][u.tk_children] = list(map(int, children))
     # Mark the collapsed instruction as a region.
     PIc[group_instruction][u.tk_region] = u.tk_true
     # Remove all collapsed nodes.
-    for nodes in instance_nodes.values():
+    for nodes in list(instance_nodes.values()):
         for block in nodes:
             DDGc.remove_node(block)
             PBc.pop(block, None)
@@ -665,8 +691,9 @@ def collapse_tags((DDG, PB, PI, PT), tag):
     return (DDGc, PBc, PIs, PT)
 
 # Collapses all nodes of each instruction into a single node.
-def fold((DDG, PB, PI, PT)):
-    for i in PI.keys():
+def fold(G):
+    (DDG, PB, PI, PT) = G
+    for i in list(PI.keys()):
         (DDG, PB, PI, PT) = \
           collapse_group_by((DDG, PB, PI, PT),
                             lambda b: PB[b].get(u.tk_instruction) == i,
@@ -674,7 +701,8 @@ def fold((DDG, PB, PI, PT)):
     return (DDG, PB, PI, PT)
 
 # Collapses all nodes that satisfy p into a single node.
-def collapse_group_by((DDG, PB, PI, PT), p, instruction_properties):
+def collapse_group_by(G, p, instruction_properties):
+    (DDG, PB, PI, PT) = G
     DDGc = DDG.copy()
     PBc = copy.deepcopy(PB)
     PIc = copy.deepcopy(PI)
@@ -703,7 +731,7 @@ def collapse_group_by((DDG, PB, PI, PT), p, instruction_properties):
         if impure:
             PIc[group_instruction][u.tk_impure] = impure
     # Add all children instructions of the collapsed instruction.
-    children = Set()
+    children = set()
     for block in nodes:
         children.add(PB[block].get(u.tk_instruction))
     PIc[group_instruction][u.tk_children] = list(map(int, children))
@@ -718,9 +746,10 @@ def collapse_group_by((DDG, PB, PI, PT), p, instruction_properties):
 
 # Remove instances of the given tag that only contain compare and branch nodes,
 # where the compare has the branch as its only successor.
-def untag_header_instances((DDG, PB, PI, PT), tag):
-    instance_nodes = instance_nodes_map((DDG, PB, PI, PT), tag)
-    for (instance, nodes) in instance_nodes.iteritems():
+def untag_header_instances(G, tag):
+    (DDG, PB, PI, PT) = G
+    instance_nodes = instance_nodes_map(G, tag)
+    for (instance, nodes) in instance_nodes.items():
         node_list = list(nodes)
         if len(node_list) != 2:
             continue
@@ -748,19 +777,20 @@ def untag_header_instances((DDG, PB, PI, PT), tag):
     return (DDG, PB, PI, PT)
 
 # Remove the given tag from nodes identified as induction dataflow.
-def untag_induction_nodes((DDG, PB, PI, PT), tag):
-    instance_nodes = instance_nodes_map((DDG, PB, PI, PT), tag)
-    tag_nodes = set().union(*map(set, instance_nodes.values()))
+def untag_induction_nodes(G, tag):
+    (DDG, PB, PI, PT) = G
+    instance_nodes = instance_nodes_map(G, tag)
+    tag_nodes = set().union(*list(map(set, list(instance_nodes.values()))))
     tag_inst_to_nodes = dict()
     for b in tag_nodes:
         inst = PB[b].get(u.tk_instruction)
         if not inst in tag_inst_to_nodes:
             tag_inst_to_nodes[inst] = []
         tag_inst_to_nodes[inst].append(b)
-    for (inst, blocks) in tag_inst_to_nodes.iteritems():
+    for (inst, blocks) in tag_inst_to_nodes.items():
         # Assert that all nodes (blocks) belong to the same tag.
         for b in blocks:
-            assert tag in map(u.tag_name, PB[b].get(u.tk_tags))
+            assert tag in list(map(u.tag_name, PB[b].get(u.tk_tags)))
         # Test if every node has a different tag instance.
         instances = set()
         node_instance = dict()
@@ -778,7 +808,7 @@ def untag_induction_nodes((DDG, PB, PI, PT), tag):
                 if p in blocks or not all_outside:
                     continue
                 if PB[p].get(u.tk_tags) and \
-                   tag in map(u.tag_name, PB[p].get(u.tk_tags)):
+                   tag in list(map(u.tag_name, PB[p].get(u.tk_tags))):
                     all_outside = False
                     continue
         if not all_outside:
@@ -809,15 +839,16 @@ def untag_induction_nodes((DDG, PB, PI, PT), tag):
     return (DDG, PB, PI, PT)
 
 # Normalizes ID numbers using consecutive integers starting from zero.
-def normalize((DDG, PB, PI, PT)):
+def normalize(G):
+    (DDG, PB, PI, PT) = G
     DDGn = nx.DiGraph()
     PBn = {}
     PIn = {}
     PTn = {}
-    block_rename = dict(zip(sorted(DDG.nodes()), range(DDG.number_of_nodes())))
-    inst_rename = dict(zip(sorted(PI.keys()), range(len(PI.keys()))))
-    tags = u.tag_set((DDG, PB, PI, PT))
-    tag_rename = dict(zip(sorted(tags), range(len(tags))))
+    block_rename = dict(list(zip(sorted(DDG.nodes()), list(range(DDG.number_of_nodes())))))
+    inst_rename = dict(list(zip(sorted(PI.keys()), list(range(len(list(PI.keys())))))))
+    tags = u.tag_set(G)
+    tag_rename = dict(list(zip(sorted(tags), list(range(len(tags))))))
     for node in DDG.nodes():
         DDGn.add_node(block_rename[node])
     for (source, target) in DDG.edges():
@@ -830,14 +861,14 @@ def normalize((DDG, PB, PI, PT)):
     for inst in PI:
         PIn[inst_rename[inst]] = PI[inst]
     for inst in PIn:
-        for (key, value) in PIn[inst].iteritems():
+        for (key, value) in PIn[inst].items():
             new_value = value
             if key == u.tk_children:
                 new_value = sorted([inst_rename[v] for v in value])
             PIn[inst][key] = new_value
     for tag in tags:
         PTn[tag_rename[tag]] = PT[tag]
-    for block, value in PBn.iteritems():
+    for block, value in PBn.items():
         old_tags = PBn[block].get(u.tk_tags, [])
         new_tags = [(tag_rename[t], i) for (t, i) in old_tags]
         if old_tags:
@@ -846,10 +877,11 @@ def normalize((DDG, PB, PI, PT)):
     return (DDGn, PBn, PIn, PTn)
 
 # Returns a string with the labeled DDG in GraphViz format.
-def print_graphviz((DDG, PB, PI, PT), print_ids, simplify_loc, print_basefile_loc,
-                   print_source, legend=None, color_map=None):
+def print_graphviz(G, print_ids, simplify_loc, print_basefile_loc, print_source,
+                   legend=None, color_map=None):
+    (DDG, PB, PI, PT) = G
     out = sio.StringIO()
-    print >>out, "digraph DataFlow {"
+    print("digraph DataFlow {", file=out)
     for block in sorted(DDG.nodes()):
         if u.is_source(block, PB, PI) and not print_source:
             continue
@@ -857,7 +889,7 @@ def print_graphviz((DDG, PB, PI, PT), print_ids, simplify_loc, print_basefile_lo
         attributes = []
         region = u.properties(block, PB, PI).get(u.tk_region) == u.tk_true
         styles = []
-        for key, value in u.properties(block, PB, PI).iteritems():
+        for key, value in u.properties(block, PB, PI).items():
             if key == u.tk_name:
                 label = u.demangle(value, demangled_cache)
                 loc_value = u.properties(block, PB, PI).get(u.tk_location, "")
@@ -891,7 +923,7 @@ def print_graphviz((DDG, PB, PI, PT), print_ids, simplify_loc, print_basefile_lo
             attributes += ["fillcolor=\"" + hex_color(color_map[block]) + "\""]
         attributes += ["style=\"" + ",".join(styles) + "\""]
         out.write(", ".join(attributes))
-        print >>out, "];"
+        print("];", file=out)
     for (source, target) in sorted(DDG.edges()):
         if u.is_source(source, PB, PI) and not print_source:
             continue
@@ -901,44 +933,46 @@ def print_graphviz((DDG, PB, PI, PT), print_ids, simplify_loc, print_basefile_lo
            PB[target].get(u.tk_iterator) == u.tk_true:
             attributes += ["color=gray"]
         out.write(", ".join(attributes))
-        print >>out, "];"
-    print >>out, "concentrate=true;"
+        print("];", file=out)
+    print("concentrate=true;", file=out)
     if legend:
-        print >>out, "fontsize=16;"
-        print >>out, "labelloc=\"b\";"
-        print >>out, "label=\"\n" + legend + "\";"
-    print >>out, "}"
+        print("fontsize=16;", file=out)
+        print("labelloc=\"b\";", file=out)
+        print("label=\"\n" + legend + "\";", file=out)
+    print("}", file=out)
     gv = out.getvalue()
     out.close()
     return gv
 
 # Prints the labeled DDG in the same plain format as the input.
-def print_plain((DDG, PB, PI, PT)):
+def print_plain(G):
+    (DDG, PB, PI, PT) = G
     out = sio.StringIO()
     for instr in sorted(PI):
-        for key, value in sorted(PI[instr].iteritems(),
-                                 cmp=instruction_property_compare):
+        for key, value in sorted(iter(PI[instr].items()),
+                                 key=cmp_to_key(instruction_property_compare)):
             if key == u.tk_children:
                value = u.tk_list_sep.join(map(str, value))
-            print >>out, u.tk_ip, instr, key, value
+            print(u.tk_ip, instr, key, value, file=out)
     for tag in sorted(PT):
-        for key, value in PT[tag].iteritems():
-            print >>out, u.tk_tp, tag, key, value
+        for key, value in PT[tag].items():
+            print(u.tk_tp, tag, key, value, file=out)
     for block in sorted(DDG.nodes()):
-       for key, value in PB[block].iteritems():
+       for key, value in PB[block].items():
            if key == u.tk_tags:
                value = u.tk_list_sep.join(map(tag_tuple_to_str, value))
            elif key == u.tk_original:
                value = u.tk_list_sep.join(map(str, value))
-           print >>out, u.tk_bp, block, key, value
+           print(u.tk_bp, block, key, value, file=out)
        for (source, _) in DDG.in_edges(block):
-           print >>out, u.tk_df, source, block
+           print(u.tk_df, source, block, file=out)
     pl = out.getvalue()
     out.close()
     return pl
 
 # Prints the labeled DDG as a MiniZinc data file.
-def print_minizinc((DDG, PB, PI, PT), match_regions_only):
+def print_minizinc(G, match_regions_only):
+    (DDG, PB, PI, PT) = G
     out = sio.StringIO()
     # Conserve only instructions that are referred directly by nodes (that is,
     # remove unreferenced instructions, typically children of regions).
@@ -950,15 +984,15 @@ def print_minizinc((DDG, PB, PI, PT), match_regions_only):
         if inst != None:
             PIp[inst] = PI[inst]
     n = len(DDG.nodes());
-    c = len(PIp.keys());
+    c = len(list(PIp.keys()));
     opr2blocks = {}
-    for opr in sorted(list(set([v.get(u.tk_name) for v in PIp.values()]))):
+    for opr in sorted(list(set([v.get(u.tk_name) for v in list(PIp.values())]))):
         opr2blocks[opr] = [b for b in sorted(DDG.nodes())
                            if u.properties(b, PB, PIp).get(u.tk_name) == opr]
     o = len(opr2blocks)
-    print >>out, "n", "=", str(n) + ";";
-    print >>out, "c", "=", str(c) + ";";
-    print >>out, "o", "=", str(o) + ";";
+    print("n", "=", str(n) + ";", file=out);
+    print("c", "=", str(c) + ";", file=out);
+    print("o", "=", str(o) + ";", file=out);
     # Candidate nodes are either pure or impure but commutative w.r.t. itself
     # (user-defined property).
     candidates = [b for b in DDG.nodes() if \
@@ -970,41 +1004,40 @@ def print_minizinc((DDG, PB, PI, PT), match_regions_only):
                      u.properties(b, PB, PIp).get(u.tk_region) == u.tk_true]
     else:
         matchable = candidates
-    print >>out, "matchable = {" + ", ".join(map(str, sorted(matchable))) + "};"
-    print >>out, "arcs = array2d(0.." + str(len(DDG.edges()) - 1) + ", 0..1, [";
+    print("matchable = {" + ", ".join(map(str, sorted(matchable))) + "};", file=out)
+    print("arcs = array2d(0.." + str(len(DDG.edges()) - 1) + ", 0..1, [", file=out);
     for (source, target) in DDG.edges():
-        print >>out, (str(source) + ","), (str(target) + ",")
-    print >>out, "]);"
-    print >>out, "static_classes = array1d(0.." + str(c - 1) + ", [";
+        print((str(source) + ","), (str(target) + ","), file=out)
+    print("]);", file=out)
+    print("static_classes = array1d(0.." + str(c - 1) + ", [", file=out);
     instr2blocks = {}
-    for instr in PIp.keys():
+    for instr in list(PIp.keys()):
         instr_blocks = [b for b in sorted(DDG.nodes())
                         if PB[b].get(u.tk_instruction) == instr]
         instr2blocks[instr] = instr_blocks
-        print >>out, "{" + ", ".join(map(str, instr_blocks)) + "},"
-    print >>out, "]);"
-    print >>out, "operation_classes = array1d(0.." + str(o - 1) + ", [";
+        print("{" + ", ".join(map(str, instr_blocks)) + "},", file=out)
+    print("]);", file=out)
+    print("operation_classes = array1d(0.." + str(o - 1) + ", [", file=out);
     for opr in sorted(opr2blocks):
-        print >>out, "{" + ", ".join(map(str, opr2blocks[opr])) + "},"
-    print >>out, "]);"
-    print >>out, "reachable = array1d(0.." + str(n - 1) + ", [";
+        print("{" + ", ".join(map(str, opr2blocks[opr])) + "},", file=out)
+    print("]);", file=out)
+    print("reachable = array1d(0.." + str(n - 1) + ", [", file=out);
     for b in sorted(DDG.nodes()):
-        print >>out, "{" + ", ".join(map(str, nx.descendants(DDG, b))) + "},"
-    print >>out, "]);"
-    branches = [instr for instr in PIp.keys()
+        print("{" + ", ".join(map(str, nx.descendants(DDG, b))) + "},", file=out)
+    print("]);", file=out)
+    branches = [instr for instr in list(PIp.keys())
                 if PIp[instr].get(u.tk_name, "") == "br"]
-    print >>out, "branches = {" + ", ".join(map(str, branches)) + "};"
+    print("branches = {" + ", ".join(map(str, branches)) + "};", file=out)
     i = 0
     associative = set()
-    for instr in PIp.keys():
+    for instr in list(PIp.keys()):
         if u.is_associative(instr, PI):
             associative.add(i)
         i += 1
-    print >>out, \
-        "associative = {" + ", ".join(map(str, sorted(associative))) + "};"
+    print("associative = {" + ", ".join(map(str, sorted(associative))) + "};", file=out)
     max_count = []
-    for instr in PIp.keys():
-        mc = len(instr2blocks[instr]) / 2
+    for instr in list(PIp.keys()):
+        mc = len(instr2blocks[instr]) // 2
         # We only allow a single execution of each region per component.
         # FIXME: generalize: allow as many executions per component as the size
         # of the smallest connected component of the instr-induced subgraph.
@@ -1012,8 +1045,8 @@ def print_minizinc((DDG, PB, PI, PT), match_regions_only):
         if PIp[instr].get(u.tk_region) == u.tk_true:
             mc = min(mc, 1)
         max_count.append(mc)
-    print >>out, "max_count = array1d(0.." + str(c - 1) + ", [" \
-        + ", ".join(map(str, max_count)) + "]);"
+    print("max_count = array1d(0.." + str(c - 1) + ", [" \
+        + ", ".join(map(str, max_count)) + "]);", file=out)
     dzn = out.getvalue()
     out.close()
     return dzn
@@ -1024,10 +1057,10 @@ def output(G, args):
         select_tag = lambda t : list(u.tag_set(G))[0] if t == "all" else t
         if args.color_tag_groups:
             tag = select_tag(args.color_tag_groups)
-            color_map = format_tags(G, get_tag_id(tag, G), lambda (g, _) : g)
+            color_map = format_tags(G, get_tag_id(tag, G), lambda g__ : g__[0])
         elif args.color_tag_instances:
             tag = select_tag(args.color_tag_instances)
-            color_map = format_tags(G, get_tag_id(tag, G), lambda (_, i) : i)
+            color_map = format_tags(G, get_tag_id(tag, G), lambda __i : __i[1])
         else:
             color_map = None
         out = print_graphviz(G, args.print_ids, args.simplify_loc,
@@ -1042,7 +1075,7 @@ def output(G, args):
         outfile.write(out)
         outfile.close()
     else:
-        print out,
+        print(out, end=' ')
 
 # Loads and pre-processes a trace file.
 def load_trace(trace_file):
@@ -1167,7 +1200,7 @@ def main(args):
             outfile.write(out)
             outfile.close()
         else:
-            print out,
+            print(out, end=' ')
     elif args.subparser == arg_simplify:
         if args.clean:
             G = clean(G)
@@ -1285,7 +1318,8 @@ def main(args):
             gvfilenames.append(gvfilename)
             try:
                 process = subprocess.Popen(["dot", "-Tpdf", gvfilename, "-o",
-                                            pdffilename], stdout=subprocess.PIPE)
+                                            pdffilename], stdout=subprocess.PIPE,
+                                           text=True)
                 process.wait()
             except OSError:
                 sys.stderr.write("Error: could not find 'dot' executable\n")
@@ -1302,7 +1336,7 @@ def main(args):
             process = subprocess.Popen(["pdfjam"] + pdffilenames +
                                        ["--nup", dim, "--landscape",
                                         "--outfile", args.output_file],
-                                       stdout=subprocess.PIPE)
+                                       stdout=subprocess.PIPE, text=True)
             process.wait()
         except OSError:
             sys.stderr.write("Error: could not find 'pdfjam' executable\n")

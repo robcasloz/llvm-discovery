@@ -1,11 +1,10 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 
 import argparse
 import os
 import glob
 import csv
 import sys
-from sets import Set
 from numpy import median, percentile
 
 def file_info(stats_filename):
@@ -36,7 +35,7 @@ def process_stats(stats_files):
                 data[benchmark][mode][repetition] = dict()
             with open(filename, "r") as statsfile:
                 r = csv.reader(statsfile, delimiter=",")
-                legend = r.next()
+                legend = next(r)
                 measurement_index = legend.index("measurement")
                 value_index = legend.index("value")
                 for [measurement, value] in r:
@@ -51,19 +50,19 @@ def process_stats(stats_files):
     # Aggregate data across repetitions.
     # Multi-level map: benchmark -> mode -> aggregated stats entries.
     ag_data = {}
-    for (benchmark, benchmark_data) in data.iteritems():
+    for (benchmark, benchmark_data) in data.items():
         ag_data[benchmark] = dict()
-        for (mode, mode_data) in benchmark_data.iteritems():
+        for (mode, mode_data) in benchmark_data.items():
             ag_data[benchmark][mode] = dict()
-            for (repetition, repetition_data) in sorted(mode_data.iteritems()):
-                for (suffix, point) in repetition_data.iteritems():
+            for (repetition, repetition_data) in sorted(mode_data.items()):
+                for (suffix, point) in repetition_data.items():
                     if not suffix in ag_data[benchmark][mode]:
                         ag_data[benchmark][mode][suffix] = []
                     ag_data[benchmark][mode][suffix].append(point)
 
     results = []
-    for (benchmark, benchmark_data) in sorted(ag_data.iteritems()):
-        for (mode, mode_data) in sorted(benchmark_data.iteritems()):
+    for (benchmark, benchmark_data) in sorted(ag_data.items()):
+        for (mode, mode_data) in sorted(benchmark_data.items()):
             ddg_size = median(mode_data["trace-size"])
             simple_ddg_size = median(mode_data["simplified-trace-size"])
             total_time = [sum(x) for x in zip(mode_data["tracing-time"],

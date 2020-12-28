@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 
 import sys
 import os
@@ -68,14 +68,15 @@ args = parser.parse_args(sys.argv[1:])
 
 def run_and_print(cmd, check = True):
     if args.verbose:
-        print " ".join(cmd)
+        print(" ".join(cmd))
     if check:
         out = subprocess.check_output(cmd)
     else:
-        p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                             text=True)
         out, _ = p.communicate()
     if args.verbose:
-        print out
+        print(out)
     return out
 
 def read_normalize_write(source, pattern, destination):
@@ -87,7 +88,8 @@ def read_normalize_write(source, pattern, destination):
     with open(destination, 'w') as d:
         d.writelines(sorted(lines))
 
-def run_test((p, t)):
+def run_test(instance):
+    (p, t) = instance
     szn = os.path.join(test_input_dir, t + ".simple." + p + "s.szn")
     run_and_print(["make", szn])
     short_szn = t + "." + p + "s.szn"
@@ -134,17 +136,17 @@ try:
     total_pass = 0
     for p in patterns:
         for t in test_cases[p]:
-            print (t + ":").ljust(max_len + 1),
+            print((t + ":").ljust(max_len + 1), end=' ')
             if passed[(p, t)]:
-                print "pass"
+                print("pass")
                 total_pass += 1
             else:
-                print "fail"
+                print("fail")
             total_tests += 1
-    print "---"
-    print (str(total_tests) + " tests: " + \
+    print("---")
+    print((str(total_tests) + " tests: " + \
            str(total_pass) + " pass, " + \
-           str(total_tests - total_pass) + " fail")
+           str(total_tests - total_pass) + " fail"))
 
 finally:
     if args.clean:
