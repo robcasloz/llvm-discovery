@@ -51,6 +51,10 @@ set of int: insts = 0..c-1;
 function set of nodes: reaching(nodes: j) =
 {i | i in nodes where j in reachable[i]};
 
+% Whether there is an arc from node s to node p.
+function var bool: arc(var nodes: s, var nodes: p) =
+exists (a in index_set_1of2(arcs)) (s == arcs[a, 0] /\ p == arcs[a, 1]);
+
 % Set of nodes reachable from p and reaching s.
 function set of nodes: between(nodes: p, nodes: s) =
 (reachable[p] intersect reaching(s)) diff {p, s};

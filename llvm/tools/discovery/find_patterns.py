@@ -52,6 +52,7 @@ rank = {
     u.pat_conditional_map : 1,
     u.pat_linear_reduction : 1,
     u.pat_linear_scan : 1,
+    u.pat_conditional_linear_scan : 1,
     u.pat_tiled_reduction : 2,
     u.pat_linear_map_reduction : 2,
     u.pat_tiled_map_reduction : 3

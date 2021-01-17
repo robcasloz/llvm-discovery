@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 import argparse
-import cgi
 import codecs
 import errno
 import functools

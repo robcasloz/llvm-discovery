@@ -9,7 +9,7 @@ import re
 import io as sio
 import os
 import itertools
-import cgi
+import html
 import operator
 from functools import cmp_to_key
 
@@ -178,7 +178,8 @@ def format_match(pattern, match):
     if pattern in u.pat_all_uni:
         if pattern in u.pat_all_map_like:
             unit = "runs"
-        elif pattern in [u.pat_linear_reduction, u.pat_linear_scan]:
+        elif pattern in [u.pat_linear_reduction, u.pat_linear_scan,
+                         u.pat_conditional_linear_scan]:
             unit = "steps"
         legend = "(" + str(len(match)) + " " + unit + ")"
         color_map = {node: colors[(step % len(colors))]
@@ -903,7 +904,7 @@ def print_graphviz(G, print_ids, simplify_loc, print_basefile_loc, print_source,
                     label += "-" + str(block)
                 if loc_value:
                     label += " (" + loc_value + ")"
-                label = cgi.escape(label)
+                label = html.escape(label)
                 if region:
                     label = "<B>" + label + "</B>"
                 attributes += ["label=<" + label + ">"]

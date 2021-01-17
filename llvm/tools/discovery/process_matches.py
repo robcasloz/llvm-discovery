@@ -348,6 +348,7 @@ def main(args):
         patterns_to_show.remove(u.pat_doall)
     if not args.show_linear_scan:
         patterns_to_show.remove(u.pat_linear_scan)
+        patterns_to_show.remove(u.pat_conditional_linear_scan)
 
     def result_summary(r):
         insts = set(r["instructions"])

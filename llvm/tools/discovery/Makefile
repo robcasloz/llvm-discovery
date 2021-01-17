@@ -201,8 +201,16 @@ TOP_COMPONENTS ?= 50
 %.linear_scans.szn: %.dzn $(DISCOVERY_DIR)/linear_scan.mzn $(DISCOVERY_DIR)/common.mzn
 	-minizinc $(MINIZINC_FLAGS) $(DISCOVERY_DIR)/linear_scan.mzn $< > $@
 
-# Linear scan pattern matches in PDF format.
+# Conditional linear scan pattern matches in PDF format.
 %.linear_scans.pdf: %.linear_scans.szn %.trace
+	$(PROCESS_TRACE) -o $@ visualize $^ $(GRAPHVIZ_FLAGS)
+
+# Conditional linear scan pattern matches in MiniZinc solution format.
+%.conditional_linear_scans.szn: %.dzn $(DISCOVERY_DIR)/conditional_linear_scan.mzn $(DISCOVERY_DIR)/common.mzn
+	-minizinc $(MINIZINC_FLAGS) $(DISCOVERY_DIR)/conditional_linear_scan.mzn $< > $@
+
+# Conditional linear scan pattern matches in PDF format.
+%.conditional_linear_scans.pdf: %.conditional_linear_scans.szn %.trace
 	$(PROCESS_TRACE) -o $@ visualize $^ $(GRAPHVIZ_FLAGS)
 
 # Pipeline pattern matches in MiniZinc solution format.
