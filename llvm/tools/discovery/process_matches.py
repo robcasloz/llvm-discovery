@@ -49,9 +49,8 @@ def print_location(iset):
             lines[loc_basefile] = set()
         lines[loc_basefile].add(int(loc_line))
     return ";".join([loc_basefile + ":" +
-                     ",".join(map(str, sorted(loc_lines)))
-                     for (loc_basefile, loc_lines)
-                     in lines.items()])
+                     ",".join(map(str, sorted(lines[loc_basefile])))
+                     for loc_basefile in sorted(lines)])
 
 def print_loops(loops, simple):
     # Set of loops
