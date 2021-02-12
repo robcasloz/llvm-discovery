@@ -48,18 +48,18 @@ def print_location(iset):
         if not loc_basefile in lines:
             lines[loc_basefile] = set()
         lines[loc_basefile].add(int(loc_line))
-    return ";".join([loc_basefile + ":" +
-                     ",".join(map(str, sorted(lines[loc_basefile])))
-                     for loc_basefile in sorted(lines)])
+    return ";".join(sorted([loc_basefile + ":" +
+                            ",".join(map(str, sorted(lines[loc_basefile])))
+                            for loc_basefile in sorted(lines)]))
 
 def print_loops(loops, simple):
     # Set of loops
     loop_lines = set()
-    for loop in loops:
+    for loop in sorted(loops):
         [src_file, src_function, src_line, src_col] = loop.split(":")
         loop_lines.add(":".join([os.path.basename(src_file), src_line] + \
                                 ([] if simple else [src_col])))
-    return ";".join(loop_lines)
+    return ";".join(sorted(loop_lines))
 
 def match_consensus(pattern, pattern_data):
     if not pattern in pattern_data:
